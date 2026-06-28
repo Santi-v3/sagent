@@ -1,0 +1,23 @@
+{
+  "name": "sagent",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Local-first, Mac-first personal AI agent",
+  "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint && uv run ruff check .",
+    "format": "turbo run format && uv run ruff format .",
+    "test": "turbo run test && uv run pytest",
+    "typecheck": "turbo run typecheck",
+    "check": "pnpm lint && pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  }
+}
