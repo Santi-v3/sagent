@@ -21,7 +21,16 @@ Sagent behandelt Sicherheit als Kernfunktion. Modellantworten, Repository-Inhalt
 - **Stufe 1 – Vorschlagen:** Pläne und Patches in einem isolierten Bereich erzeugen; keine Workspace-Mutation.
 - **Stufe 2 – Ändern:** Exakt angezeigten Patch nach expliziter Freigabe anwenden.
 - **Stufe 3 – Ausführen:** Einen angezeigten, allowlist-basierten Befehl mit Limits starten.
-- **Stufe 4 – Extern:** Netzwerk, Git-Push, Paketveröffentlichung oder andere externe Effekte; separate, besonders deutliche Freigabe.
+- **Stufe 4 – Extern:** Netzwerk, Paketveröffentlichung oder andere externe Effekte benötigen eine separate, besonders deutliche Freigabe. Für den definierten Git-Abschluss besteht eine dauerhafte, eng begrenzte Freigabe zum Push des aktuellen Feature-Branches und zur PR-Erstellung gegen `main`. Merge, Auto-Merge, Force-Push und Push auf `main` bleiben ohne ausdrückliche Bestätigung verboten.
+
+## Git-Schutz
+
+- Änderungen erfolgen ausschließlich auf einem Feature-Branch.
+- Vor dem Commit müssen die relevanten Prüfungen erfolgreich sein.
+- Nach dem Commit wird nur der aktuelle Feature-Branch gepusht.
+- Der Pull Request zeigt Diff, Tests und bekannte Risiken.
+- Ein Merge nach `main` erfolgt nur nach ausdrücklicher Nutzerbestätigung.
+- Auto-Merge, Force-Push und direkte Pushes auf `main` sind nicht Teil der dauerhaften Freigabe.
 
 ## Sandbox-Anforderungen
 

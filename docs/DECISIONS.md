@@ -57,3 +57,10 @@ Dieses Dokument ist ein leichtgewichtiges Decision Log. Neue Entscheidungen erha
 - **Datum:** 2026-06-29
 - **Entscheidung:** `docs/MASTER_PLAN.md` definiert Vision, Zielbild, MVP-Reihenfolge und langfristigen Scope. Fokussierte Dokumente dürfen Details präzisieren, aber strategische Abweichungen müssen sichtbar als neue Entscheidung dokumentiert werden.
 - **Konsequenz:** Neue Agent-Sessions lesen zuerst den Masterplan. `SECURITY.md` bleibt für Schutzregeln verbindlich; bei Unklarheit gilt die strengere Regel. `TASKS.md` und `HANDOFF.md` bilden nur den aktuellen Ausschnitt ab.
+
+## ADR-009: Feature-Branch, Push und Pull Request sind der Standardabschluss
+
+- **Status:** Angenommen
+- **Datum:** 2026-06-29
+- **Entscheidung:** Codex arbeitet pro Aufgabe auf einem Feature-Branch, testet, committet, pusht den Feature-Branch und erstellt einen Pull Request gegen `main`. Nur der Nutzer darf den Merge freigeben.
+- **Konsequenz:** Feature-Branch-Push und PR-Erstellung gelten als dauerhaft autorisierte Abschlussaktionen. Direkte Arbeit oder Pushes auf `main`, Force-Push, Auto-Merge und Merge ohne ausdrückliche Nutzerbestätigung bleiben verboten. Diese neuere Entscheidung präzisiert abweichende Git-Regeln im Masterplan.

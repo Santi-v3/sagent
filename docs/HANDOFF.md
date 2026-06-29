@@ -42,6 +42,8 @@ Auch dabei bleiben Dateioperationen, Shell-Tools und echte Modellaufrufe ausdrü
 ## Wichtige Leitplanken für die nächste Session
 
 - Zuerst `docs/MASTER_PLAN.md`, danach `docs/SECURITY.md`, `docs/DECISIONS.md`, `docs/TASKS.md` und dieses Handoff lesen.
+- Jede Aufgabe auf einem Feature-Branch abschließen: testen, committen, Branch pushen und PR gegen `main` erstellen.
+- Niemals ohne ausdrückliche Nutzerbestätigung mergen oder Auto-Merge aktivieren.
 - Keine schreibenden Tools vor einem getesteten Proposal-/Approval-Vertrag.
 - Keine freie Shell und keine echten LLM-Aufrufe.
 - Neue Architekturentscheidungen im Decision Log ergänzen.

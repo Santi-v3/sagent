@@ -57,8 +57,20 @@ Der Workflow trennt Verstehen, Vorschlagen und Verändern. Kein Modell und kein 
 - Audit-Log abschließen
 - Nur freigegebene, langfristig relevante Fakten ins Memory schreiben
 - `docs/HANDOFF.md` aktualisieren, wenn die Arbeit über Sessions fortgesetzt wird
-- Abgeschlossene Arbeit auf dem aktuellen Aufgaben-Branch committen
-- Push, Merge und andere externe Git-Aktionen weiterhin separat freigeben
+
+## 9. Verbindlicher Git-Abschluss
+
+Jede abgeschlossene Aufgabe folgt exakt diesem Ablauf:
+
+1. Codex arbeitet auf einem Feature-Branch, niemals direkt auf `main`.
+2. Codex führt die relevanten Tests, Linter, Typprüfungen und Builds aus.
+3. Codex committet den geprüften Stand auf dem Feature-Branch.
+4. Codex pusht den Feature-Branch zu GitHub.
+5. Codex erstellt einen Pull Request gegen `main` oder liefert den PR-Link und eine klare Anleitung, falls die automatische Erstellung blockiert ist.
+6. Der Nutzer prüft Diff, Testergebnisse und Risiken.
+7. Der Merge erfolgt ausschließlich nach ausdrücklicher Bestätigung des Nutzers.
+
+Ein neuer Commit nach der Prüfung macht eine erneute Prüfung erforderlich. Codex aktiviert kein Auto-Merge und merged niemals eigenständig.
 
 ## Abbruchbedingungen
 
