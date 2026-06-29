@@ -97,7 +97,7 @@ Der MVP-Git-Vertrag ist noch kein vollständiger Commit-Approval-Flow: Es gibt w
 ## Implementierter Loopback-Modellvertrag (MVP 2.B)
 
 - Die Standardkonfiguration registriert weiterhin nur den Fake. Ein lokaler Adapter benötigt gleichzeitig `SAGENT_NETWORK_ENABLED=loopback`, ein festes Providerprofil, eine Base-URL und eine Modell-ID.
-- LM Studio ist ausschließlich auf Port `1234`, Ollama ausschließlich auf Port `11434` erlaubt. Host muss das exakte Literal `127.0.0.1` oder `::1`, Schema `http` und Pfad `/v1` sein. `localhost`, DNS, alternative IP-Darstellungen, andere Ports, URL-Credentials, Query und Fragment werden abgewiesen.
+- LM Studio ist ausschließlich unter `127.0.0.1:1234`, Ollama ausschließlich unter `127.0.0.1:11434` erlaubt. Schema muss `http` und Pfad `/v1` sein. IPv6, `localhost`, DNS, alternative IP-Darstellungen, andere Ports, URL-Credentials, Query und Fragment werden abgewiesen.
 - Der HTTP-Client nutzt `trust_env=false`, folgt keinen Redirects, aktiviert kein HTTP/2, sendet `Accept-Encoding: identity`, übernimmt keine Cookies oder Proxies und setzt keinen `Authorization`-Header.
 - Der Request enthält ausschließlich `model`, source-labelled `messages`, `temperature`, `max_tokens` und `stream=false`. Tool-Definitionen, Tool-Choice und frei wählbare Endpoints sind nicht Teil des API-Requests.
 - Connect-, Read-, Write- und Pool-Timeout sowie Request-/Response-Bytes sind begrenzt. Es gibt keine automatischen Retries.

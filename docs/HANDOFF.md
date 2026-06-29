@@ -52,13 +52,13 @@
 - Git-Tool und API mit 14 fokussierten Tests geprüft; vollständige Projektprüfung siehe letzter Aufgabenabschluss im PR
 - Kriterien für MVP 1 aus Abschnitt 28 des Masterplans gegen Implementierung, Tests und lokale Startfähigkeit auditiert
 - Provider-neutrale Modellverträge für source-labelled Input, Capability, Request, Response, Usage und Adapter-Metadaten implementiert
-- Transportklassen `in_process`, `loopback_http` und `remote_http` modelliert; Router-Allowlist erlaubt derzeit ausschließlich `in_process`
+- Transportklassen `in_process`, `loopback_http` und `remote_http` modelliert; die Standard-Allowlist erlaubt ausschließlich `in_process`
 - Deterministischen `FakeModelAdapter` ohne Modell-, Netzwerk- oder Tool-Aufruf für Chat und Coding ergänzt
 - `ModelRouter` mit festen Capability-Routen, Part-/Input-/Output-Limits, Streaming-Gate und Response-Identity-Prüfung implementiert
 - Modellantworten unveränderlich als `untrusted=true` modelliert; der Adaptervertrag enthält keine Tool-Call- oder Policy-Schnittstelle
 - `GET /models` und `POST /models/preview` für Discovery und begrenzte Offline-Simulation ergänzt
 - 14 fokussierte Core-/API-Tests für Determinismus, Injection-Text, Limits, Routing, blockierte echte Adapter/Transporte und fehlerhafte Adapterantworten erfolgreich geprüft
-- Kanonische `LoopbackEndpoint`-Policy für exakte IPv4-/IPv6-Literale, `/v1` und feste LM-Studio-/Ollama-Ports implementiert
+- Kanonische `LoopbackEndpoint`-Policy für das exakte IPv4-Literal `127.0.0.1`, `/v1` und feste LM-Studio-/Ollama-Ports implementiert
 - `LoopbackOpenAIChatAdapter` für nicht streamende `POST /v1/chat/completions` ohne Credentials, Proxies, Redirects, HTTP/2, Tools oder Retries ergänzt
 - Source-labelled Inputs auf minimale System-/User-Messages abgebildet und Modell-, Request- sowie Response-Bytes begrenzt
 - Strikte Response-Prüfung für Content-Type, UTF-8/JSON, Modell-ID, genau eine Assistant-Choice, Textinhalt, Finish-Reason und Usage implementiert
@@ -66,7 +66,7 @@
 - `POST /models/complete` benötigt registrierten Loopback-Adapter und `confirmed=true`; URL, Port und Modell sind nicht request-steuerbar
 - Positive Mock-Integration sowie negative Tests für URL-Ausbruch, Proxyvererbung, Redirect, Timeout, Connection-Fehler, Protokollfehler und Größenlimits ergänzt
 - `docs/LOCAL_MODELS.md` mit Konfiguration, Sicherheitsgrenzen und noch offener Live-Evaluation ergänzt
-- 37 fokussierte Loopback-/Model-API-Tests und insgesamt 106 Python-Tests erfolgreich geprüft; Ruff, ESLint, TypeScript und Produktionsbuild bestanden
+- 38 fokussierte Loopback-/Model-API-Tests und insgesamt 107 Python-Tests erfolgreich geprüft; Ruff, ESLint, TypeScript und Produktionsbuild bestanden
 
 ## MVP-1-Abschlussaudit
 
@@ -83,7 +83,7 @@
 ## Bewusste Grenzen
 
 - Workflow-Zustände sind noch nicht persistent und gehen beim API-Neustart verloren
-- Keine echte LLM- oder Netzwerk-Integration; die Modellvorschau ist ein In-Process-Fake
+- Standardmäßig bleibt die Modellvorschau ein In-Process-Fake; echter Netzwerkzugriff ist ausschließlich als explizit konfigurierter und bestätigter IPv4-Loopback-Aufruf möglich
 - Datei-Tools sind noch nicht an API oder UI angebunden; ChangeSet-Zustände bleiben im Prozessspeicher
 - Mehrdatei-ChangeSets sind pro Datei atomar, aber noch keine globale Dateisystemtransaktion
 - Testprozesse haben noch keine echte macOS-Dateisystem-/Netzwerk-Sandbox; nur bewusst geprüfte lokale Workspaces ausführen

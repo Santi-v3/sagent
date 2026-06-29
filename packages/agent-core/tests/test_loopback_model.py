@@ -67,19 +67,18 @@ def adapter_with_handler(
     )
 
 
-def test_endpoint_normalizes_exact_ipv4_and_ipv6_loopback_literals() -> None:
+def test_endpoint_normalizes_exact_ipv4_loopback_literal() -> None:
     ipv4 = LoopbackEndpoint("http://127.0.0.1:1234/v1/")
-    ipv6 = LoopbackEndpoint("http://[::1]:11434/v1")
 
     assert ipv4.base_url == "http://127.0.0.1:1234/v1"
     assert ipv4.chat_completions_url == "http://127.0.0.1:1234/v1/chat/completions"
-    assert ipv6.base_url == "http://[::1]:11434/v1"
 
 
 @pytest.mark.parametrize(
     "url",
     [
         "http://localhost:1234/v1",
+        "http://[::1]:1234/v1",
         "http://127.0.0.2:1234/v1",
         "http://2130706433:1234/v1",
         "https://127.0.0.1:1234/v1",
