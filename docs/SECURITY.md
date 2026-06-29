@@ -21,7 +21,21 @@ Sagent behandelt Sicherheit als Kernfunktion. Modellantworten, Repository-Inhalt
 - **Stufe 1 – Vorschlagen:** Pläne und Patches in einem isolierten Bereich erzeugen; keine Workspace-Mutation.
 - **Stufe 2 – Ändern:** Exakt angezeigten Patch nach expliziter Freigabe anwenden.
 - **Stufe 3 – Ausführen:** Einen angezeigten, allowlist-basierten Befehl mit Limits starten.
-- **Stufe 4 – Extern:** Netzwerk, Git-Push, Paketveröffentlichung oder andere externe Effekte; separate, besonders deutliche Freigabe.
+- **Stufe 4 – Extern:** Netzwerk, Paketveröffentlichung oder andere externe Effekte benötigen eine separate, besonders deutliche Freigabe. Für den definierten Git-Abschluss besteht eine dauerhafte, eng begrenzte Freigabe zum Push des aktuellen Feature-Branches und zur PR-Erstellung gegen `main`. Merge, Auto-Merge, Force-Push und Push auf `main` bleiben ohne ausdrückliche Bestätigung verboten.
+
+## Git-Schutz
+
+- Änderungen erfolgen ausschließlich auf einem Feature-Branch.
+- `git status` und der vollständige Diff werden vor jedem Commit geprüft.
+- Vor dem Commit wird auf Secrets, API-Keys, Tokens, `.env`-Dateien, private Schlüssel sowie personenbezogene oder private Daten geprüft.
+- Vor dem Commit müssen die relevanten Tests, Linter, Typprüfungen und Builds erfolgreich sein.
+- Commits folgen dem Conventional-Commit-Format und enthalten nur Änderungen der aktuellen Aufgabe.
+- Nach dem Commit wird nur der aktuelle Feature-Branch gepusht.
+- Pushes mit Secrets, privaten Dateien oder ungeprüften Änderungen sind verboten.
+- Der Pull Request zeigt Zusammenfassung, Diff, Testergebnisse und bekannte Risiken.
+- Ein Merge nach `main` erfolgt nur nach ausdrücklicher Nutzerbestätigung.
+- Fehlgeschlagene Tests blockieren den Merge.
+- Auto-Merge, Force-Push und direkte Arbeit oder Pushes auf `main` sind nicht Teil der dauerhaften Freigabe. Ausnahmen gelten nur für das initiale Projekt-Setup oder nach ausdrücklicher Nutzerfreigabe.
 
 ## Sandbox-Anforderungen
 
@@ -30,6 +44,44 @@ Sagent behandelt Sicherheit als Kernfunktion. Modellantworten, Repository-Inhalt
 - Tools erhalten nur die benötigten Verzeichnisse und Umgebungsvariablen.
 - Prozesse laufen mit festem Arbeitsverzeichnis, bereinigter Umgebung und Timeout.
 - Änderungen werden vor Übernahme erneut gegen den freigegebenen Hash geprüft.
+
+## Implementierter Datei-Sicherheitsvertrag (MVP 1.C)
+
+- Der Workspace-Root wird einmal kanonisch aufgelöst und muss ein existierendes Verzeichnis sein.
+- Tool-Eingaben akzeptieren ausschließlich relative Pfade. Absolute Pfade, jedes `..`-Segment und Symlink-Ziele außerhalb des Workspace werden abgewiesen.
+- `.env`-Varianten, `.ssh`, bekannte SSH-Schlüssel, Token-/Secret-/Credential-Namen sowie private Schlüssel- und Zertifikat-Dateiendungen bleiben auch für Lese- und List-Operationen gesperrt.
+- `FileTool` verarbeitet nur reguläre UTF-8-Textdateien ohne NUL-Bytes. Standardmäßig gelten 1 MiB pro Datei und 1.000 Einträge pro Listing.
+- Erstellen setzt ein vorhandenes Elternverzeichnis voraus. Löschen, Umbenennen und automatisches Erstellen von Verzeichnissen sind nicht implementiert.
+- Ein ChangeSet speichert Operation, relativen Pfad, alten und neuen SHA-256-Wert, alte und neue Inhalte sowie den sichtbaren Unified Diff.
+- Approval und Apply erwarten denselben Proposal-Hash. Vor dem Schreiben wird der Ausgangszustand erneut geprüft; Abweichungen stoppen mit Konflikt statt vorhandene Arbeit zu überschreiben.
+- Einzelne Datei-Schreibvorgänge sind atomar. Ein ChangeSet wird höchstens einmal angewendet und Schreibmethoden akzeptieren nur intern signierte, zu Pfad, Operation und neuem Inhalt passende Nachweise.
+
+Die ChangeSet-Zustände sind noch nicht persistent, und mehrere Dateien bilden noch keine globale Dateisystemtransaktion. Deshalb bleibt die API-/UI-Anbindung bis zu einem eigenen Review deaktiviert.
+
+## Implementierter Test-Sicherheitsvertrag (MVP 1.D)
+
+- Requests wählen nur eine registrierte Profil-ID; ausführbare Datei, Argumente und Arbeitsverzeichnis stammen vollständig aus der serverseitigen Allowlist.
+- Der Task muss zuvor menschlich freigegeben sein. Zusätzlich müssen `confirmed=true` und der exakt angezeigte Befehl übermittelt werden; Abweichungen stoppen vor dem Prozessstart.
+- Prozesse starten mit `shell=False`, geschlossenem stdin, eigener Prozessgruppe, fixiertem kanonischem Workspace und einer neu aufgebauten Umgebung ohne geerbte Secrets.
+- Wall-Clock-Timeout und CPU-Limit beenden die gesamte Prozessgruppe. Core-Dumps und die Zahl offener Dateideskriptoren sind begrenzt.
+- stdout und stderr werden vollständig entleert, aber je Stream nur bis 64 KiB gespeichert. Bekannte Token-, Secret-, Passwort-, API-Key- und Private-Key-Muster werden vor Speicherung redigiert.
+- Höchstens 100 unveränderliche Ergebnisse bleiben im Prozessspeicher. Ein fehlgeschlagener Test ist ein strukturiertes Ergebnis und kein API-Fehler.
+- Standard-Proxyvariablen zeigen auf einen lokalen Blackhole-Endpunkt; Paketinstallation gehört nicht zur Allowlist. Web-Lint startet das bereits installierte lokale ESLint direkt, nicht den Paketmanager.
+
+Diese Maßnahmen verhindern freie Shell-Kommandos und begrenzen versehentliche Nebenwirkungen. Sie sind noch keine OS-Sandbox: absichtlicher Raw-Socket-Zugriff oder Dateizugriff durch bösartigen Repository-Testcode ist technisch weiterhin möglich. Solche Workspaces dürfen erst nach einer späteren macOS-Sandbox ausgeführt werden.
+
+## Implementierter Git-Sicherheitsvertrag (MVP 1.E)
+
+- `GitTool` akzeptiert genau einen kanonischen Workspace, der dem Git-Repository-Root entsprechen muss. Verschachtelte oder übergeordnete Repositories werden abgewiesen.
+- Git wird über einen vertrauenswürdigen absoluten Executable-Pfad, feste interne Argumentlisten, `shell=False`, geschlossenes stdin, deaktivierte Prompts und eine neu aufgebaute Umgebung gestartet. Globale und System-Konfiguration, Hooks, Pager, externe Diff-Programme und Textconv bleiben deaktiviert.
+- Read-only-Aufrufe setzen `GIT_OPTIONAL_LOCKS=0`. Laufzeit, stdout, stderr und die Zahl der Status-Einträge sind begrenzt; eine gesamte Prozessgruppe wird bei Timeout beendet.
+- Statuspfade werden gegen die Workspace-Secret-Policy geprüft. Sensible Pfade erscheinen nur als `[sensitive path hidden]` und werden nicht an Diff-Befehle übergeben.
+- Der Review-Diff umfasst staged, unstaged und unversionierte erlaubte Textdateien. Er ist größenbegrenzt, markiert Kürzungen und redigiert bekannte Token-, Secret-, Passwort-, API-Key- und Private-Key-Muster.
+- Lokale Branch-Erstellung benötigt `confirmed=true`, den unveränderten angezeigten Ausgangsbranch und einen Namen mit `codex/`, `feature/`, `fix/`, `docs/`, `test/` oder `chore/`. Auf `main`, `master`, `trunk` und Detached HEAD wird sichtbar gewarnt.
+- Die Commit-Vorbereitung ist rein deklarativ: Sie staged und committet nichts. Sie wird auf geschützten Branches sowie bei leerem, verändertem, gekürztem oder redigiertem Diff blockiert und akzeptiert nur eine einzelne Conventional-Commit-Betreffzeile.
+- Push und Merge sind Methoden, die immer einen Policy-Fehler auslösen. API und UI besitzen keine entsprechenden Routen oder Aktionen. Force-Push und Auto-Merge sind ebenfalls nicht verfügbar.
+
+Der MVP-Git-Vertrag ist noch kein vollständiger Commit-Approval-Flow: Es gibt weder Staging noch Commit-Ausführung. Die bestehende Codex-Session kann den geprüften Feature-Branch gemäß dem dokumentierten Repository-Workflow committen und pushen; der in Sagent eingebaute Agent darf das noch nicht.
 
 ## Prompt Injection
 
