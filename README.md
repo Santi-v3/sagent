@@ -2,7 +2,17 @@
 
 Sagent ist ein local-first, Mac-first Personal AI Agent in Entwicklung. Langfristig soll er wie ein eigener Coding-Agent arbeiten: Projekte lesen, Änderungen planen, Code vorbereiten, Tests ausführen, Diffs erklären und Änderungen erst nach ausdrücklicher menschlicher Freigabe übernehmen.
 
-Dieses Repository enthält zunächst nur eine klare, dokumentierte Projektbasis. Es gibt noch keine LLM-Anbindung, keine produktive Benutzeroberfläche und keine Werkzeuge mit unbeschränktem Datei- oder Systemzugriff.
+Das Repository enthält eine erste lokal ausführbare Minimalversion: eine deterministische Agent-API und eine einfache Codex-nahe Weboberfläche. Es gibt weiterhin keine LLM-Anbindung und keine Datei-, Shell- oder Systemwerkzeuge.
+
+## Projektkontext
+
+[`docs/MASTER_PLAN.md`](docs/MASTER_PLAN.md) ist die kanonische Quelle für Vision, Zielbild, MVP-Reihenfolge und langfristigen Funktionsumfang. Die fokussierten Dokumente konkretisieren den Masterplan:
+
+1. `docs/DECISIONS.md` hält später getroffene Architekturpräzisierungen fest.
+2. `docs/SECURITY.md` enthält verbindliche Schutzregeln; bei Unklarheit gilt die strengere Regel.
+3. `docs/TASKS.md` und `docs/HANDOFF.md` beschreiben den aktuellen Arbeitsstand.
+
+Bei Widersprüchen wird nichts stillschweigend überschrieben: Die Abweichung wird dokumentiert und vor der Implementierung geklärt.
 
 ## Leitprinzipien
 
@@ -17,8 +27,8 @@ Dieses Repository enthält zunächst nur eine klare, dokumentierte Projektbasis.
 
 ```text
 apps/
-  web/           Spätere Next.js/PWA-Oberfläche
-  agent-api/     Spätere FastAPI für lokale Agent-Sitzungen
+  web/           Lokale Next.js-Oberfläche
+  agent-api/     Lokale FastAPI mit deterministischer Task-Antwort
 packages/
   agent-core/    Orchestrierung, Policies und Approval-Logik
   memory/        Markdown-basiertes Memory-System
@@ -33,23 +43,55 @@ Der vorgesehene Stack ist Next.js, React, Tailwind und TypeScript im Frontend so
 
 - macOS
 - Node.js 22 oder neuer
-- pnpm 10 oder neuer
-- Python 3.12 oder neuer
+- pnpm 11 oder neuer
+- Python 3.12
 - uv
 
-## Lokale Vorbereitung
-
-Noch gibt es keine installierbaren App-Pakete. Sobald die ersten Scaffolds vorhanden sind, ist der vorgesehene Ablauf:
+## Installation
 
 ```bash
-cp .env.example .env
 pnpm install
 uv sync --dev
-pnpm check
 ```
+
+Optional kann `.env.example` nach `.env` kopiert werden. Für den Standardstart sind keine Secrets oder API-Keys erforderlich.
+
+## Lokal starten
+
+API und Weboberfläche gemeinsam starten:
+
+```bash
+pnpm dev
+```
+
+Danach sind verfügbar:
+
+- Weboberfläche: `http://127.0.0.1:3000`
+- API-Status: `http://127.0.0.1:8765/health`
+- Interaktive API-Dokumentation: `http://127.0.0.1:8765/docs`
+
+Die API kann auch separat gestartet werden:
+
+```bash
+uv run uvicorn sagent_agent_api.main:app \
+  --app-dir apps/agent-api/src \
+  --reload \
+  --host 127.0.0.1 \
+  --port 8765
+```
+
+## Qualität prüfen
+
+```bash
+pnpm check
+pnpm build
+```
+
+`pnpm check` führt ESLint, ruff, TypeScript-Prüfung und pytest aus.
 
 ## Dokumentation
 
+- [Masterplan](docs/MASTER_PLAN.md)
 - [Projektdefinition](docs/PROJECT.md)
 - [Architektur](docs/ARCHITECTURE.md)
 - [Roadmap](docs/ROADMAP.md)
@@ -62,7 +104,7 @@ pnpm check
 
 ## Status
 
-**Phase 0 – Foundation.** Die Repository-Struktur und die Projektverträge werden festgelegt. Der nächste technische Schritt ist ein minimaler, deterministischer Agent-Core ohne LLM, der einen Workspace nur lesen und einen Änderungsplan als Datenstruktur erzeugen kann.
+**MVP 1.A abgeschlossen.** Die lokale FastAPI, deterministische Task-Verarbeitung, API-Tests und Codex-nahe Next.js-Oberfläche laufen. Als Nächstes folgt MVP 1.B: ein simulierter Plan- und Approval-Workflow, weiterhin ohne echte Dateiänderungen oder Modellaufrufe.
 
 ## Lizenz
 

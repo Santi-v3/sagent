@@ -1,5 +1,15 @@
 # Web App
 
-Platzhalter für die spätere lokale Next.js/PWA-Oberfläche mit React, Tailwind und TypeScript.
+Lokale Next.js-Oberfläche für die erste technische Minimalversion von Sagent.
 
-Die erste UI soll ausschließlich Aufgabe, Plan, Diff, Prüfstatus und explizite Freigaben darstellen. Sicherheitsentscheidungen werden zusätzlich in der Agent-API validiert.
+Sie sendet Aufgaben an die lokale Agent-API, zeigt die strukturierte Platzhalterantwort und behandelt Verbindungsfehler. Es gibt keine Authentifizierung, Modellwahl oder produktiven Agent-Tools.
+
+## Start
+
+Vom Repository-Root:
+
+```bash
+pnpm --filter @sagent/web dev
+```
+
+Danach läuft die Oberfläche unter `http://127.0.0.1:3000`.

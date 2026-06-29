@@ -50,3 +50,10 @@ Dieses Dokument ist ein leichtgewichtiges Decision Log. Neue Entscheidungen erha
 - **Datum:** 2026-06-29
 - **Entscheidung:** Die ersten Zustände werden als einfache, getestete Zustandsmaschine gebaut. LangGraph wird eingeführt, wenn Verzweigungen, Wiederaufnahme oder Persistenz es rechtfertigen.
 - **Konsequenz:** Geringere Anfangskomplexität ohne die spätere Technologieoption zu verlieren.
+
+## ADR-008: Der Projektplan ist die strategische Kontextquelle
+
+- **Status:** Angenommen
+- **Datum:** 2026-06-29
+- **Entscheidung:** `docs/MASTER_PLAN.md` definiert Vision, Zielbild, MVP-Reihenfolge und langfristigen Scope. Fokussierte Dokumente dürfen Details präzisieren, aber strategische Abweichungen müssen sichtbar als neue Entscheidung dokumentiert werden.
+- **Konsequenz:** Neue Agent-Sessions lesen zuerst den Masterplan. `SECURITY.md` bleibt für Schutzregeln verbindlich; bei Unklarheit gilt die strengere Regel. `TASKS.md` und `HANDOFF.md` bilden nur den aktuellen Ausschnitt ab.

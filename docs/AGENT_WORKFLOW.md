@@ -57,6 +57,8 @@ Der Workflow trennt Verstehen, Vorschlagen und Verändern. Kein Modell und kein 
 - Audit-Log abschließen
 - Nur freigegebene, langfristig relevante Fakten ins Memory schreiben
 - `docs/HANDOFF.md` aktualisieren, wenn die Arbeit über Sessions fortgesetzt wird
+- Abgeschlossene Arbeit auf dem aktuellen Aufgaben-Branch committen
+- Push, Merge und andere externe Git-Aktionen weiterhin separat freigeben
 
 ## Abbruchbedingungen
 

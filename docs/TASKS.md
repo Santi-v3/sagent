@@ -1,27 +1,34 @@
 # Aufgaben
 
-Diese Liste ist nach Ausführungsreihenfolge sortiert. Jede Aufgabe soll klein genug für einen überprüfbaren Pull Request bleiben.
+Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschnitt 23. Jede Aufgabe bleibt klein genug für einen überprüfbaren Branch und Pull Request.
 
-## Als Nächstes
+## Abgeschlossen – MVP 1.A
 
-- [ ] Root-Tooling installieren und Lockfiles erzeugen (`pnpm`, `uv`)
-- [ ] `packages/agent-core` als echtes Python-Paket mit `src/`-Layout anlegen
-- [ ] Domänenmodelle für `Session`, `Plan`, `ToolCall`, `Proposal`, `Approval` und `AuditEvent` definieren
-- [ ] Workspace-Policy mit kanonischer Pfadauflösung implementieren
-- [ ] Sicherheitsfälle für `..`, absolute Pfade, Symlinks, Binärdateien und Größenlimits testen
-- [ ] Read-only-Tools `list_files` und `read_text_file` implementieren
-- [ ] Deterministischen Planner für Fixture-Aufgaben implementieren
-- [ ] Append-only JSONL-Audit-Log mit Redaction bauen
-- [ ] CI für ruff, pytest und spätere TypeScript-Prüfungen hinzufügen
+- [x] Root-Tooling installieren und Lockfiles erzeugen (`pnpm`, `uv`)
+- [x] FastAPI-Grundstruktur in `apps/agent-api` anlegen
+- [x] `GET /health` mit strukturierter Statusantwort implementieren
+- [x] `POST /agent/task` als deterministische Simulation implementieren
+- [x] pytest-Tests für `/health` und `/agent/task` ergänzen
+- [x] Next.js-, React-, Tailwind- und TypeScript-Grundstruktur in `apps/web` anlegen
+- [x] Task-Eingabe, Senden-Button, Antwort- und Fehleranzeige implementieren
+- [x] Lokale Startanleitung in `README.md` ergänzen
+- [x] Linting, Tests, Build und Browserfluss prüfen
+- [x] `docs/HANDOFF.md` nach Abschluss aktualisieren
 
-## Danach
+## Als Nächstes – MVP 1.B
 
-- [ ] Unified-Diff-Datentyp und Patch-Parser definieren
-- [ ] Patch zunächst nur gegen eine temporäre Workspace-Kopie anwenden
-- [ ] Approval-Modell und Proposal-Hash spezifizieren
-- [ ] Allowlist-basierten Command Runner entwerfen
-- [ ] FastAPI-App scaffolden, ausschließlich auf localhost
-- [ ] Next.js-App mit Plan-/Diff-Ansicht scaffolden
+- [ ] Domänenmodelle für `TaskPlanner`, `ChangeProposal` und `ApprovalState` definieren
+- [ ] Statuswerte `pending`, `approved`, `rejected`, `needs_changes` implementieren
+- [ ] Endpunkte für Plan, Approval und Task-Status ergänzen
+- [ ] Plan, Risiken und Approve/Reject in der UI anzeigen
+- [ ] Zustandsübergänge und ungültige Approval-Werte testen
+
+## Noch blockiert bis zu den Sicherheitsinkrementen
+
+- Dateiänderungen erst nach MVP 1.C und getesteter Workspace-/Approval-Logik
+- Testbefehle erst nach MVP 1.D und einer expliziten Allowlist
+- Git-Schreibaktionen erst nach MVP 1.E
+- Echte LLMs und Netzwerkzugriff erst ab MVP 2
 
 ## Definition of Done
 
