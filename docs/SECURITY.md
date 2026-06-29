@@ -26,11 +26,16 @@ Sagent behandelt Sicherheit als Kernfunktion. Modellantworten, Repository-Inhalt
 ## Git-Schutz
 
 - Änderungen erfolgen ausschließlich auf einem Feature-Branch.
-- Vor dem Commit müssen die relevanten Prüfungen erfolgreich sein.
+- `git status` und der vollständige Diff werden vor jedem Commit geprüft.
+- Vor dem Commit wird auf Secrets, API-Keys, Tokens, `.env`-Dateien, private Schlüssel sowie personenbezogene oder private Daten geprüft.
+- Vor dem Commit müssen die relevanten Tests, Linter, Typprüfungen und Builds erfolgreich sein.
+- Commits folgen dem Conventional-Commit-Format und enthalten nur Änderungen der aktuellen Aufgabe.
 - Nach dem Commit wird nur der aktuelle Feature-Branch gepusht.
-- Der Pull Request zeigt Diff, Tests und bekannte Risiken.
+- Pushes mit Secrets, privaten Dateien oder ungeprüften Änderungen sind verboten.
+- Der Pull Request zeigt Zusammenfassung, Diff, Testergebnisse und bekannte Risiken.
 - Ein Merge nach `main` erfolgt nur nach ausdrücklicher Nutzerbestätigung.
-- Auto-Merge, Force-Push und direkte Pushes auf `main` sind nicht Teil der dauerhaften Freigabe.
+- Fehlgeschlagene Tests blockieren den Merge.
+- Auto-Merge, Force-Push und direkte Arbeit oder Pushes auf `main` sind nicht Teil der dauerhaften Freigabe. Ausnahmen gelten nur für das initiale Projekt-Setup oder nach ausdrücklicher Nutzerfreigabe.
 
 ## Sandbox-Anforderungen
 

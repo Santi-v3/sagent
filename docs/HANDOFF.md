@@ -49,6 +49,19 @@ Auch dabei bleiben Dateioperationen, Shell-Tools und echte Modellaufrufe ausdrü
 - Neue Architekturentscheidungen im Decision Log ergänzen.
 - Tests für negative Sicherheitsfälle vor Happy-Path-Komfort priorisieren.
 
+## Git-Abschluss jeder Aufgabe
+
+Vor der Übergabe muss die nächste Session:
+
+1. `git status`, Diff und Secret-/Privatdaten-Prüfung ausführen.
+2. Alle relevanten Tests, Linter, Typprüfungen und Builds erfolgreich abschließen.
+3. Einen klaren Conventional Commit auf dem Feature-Branch erstellen.
+4. Den Feature-Branch ohne Force-Push zu GitHub pushen.
+5. Einen PR gegen `main` erstellen oder Link und Anleitung liefern.
+6. Branch, Commit, Push, PR, Tests, Dateien, Risiken und Worktree-Status berichten.
+
+Der Nutzer prüft den PR. Kein Merge und kein Auto-Merge ohne seine ausdrückliche Bestätigung.
+
 ## Startprompt für eine Folgesession
 
 > Lies docs/MASTER_PLAN.md vollständig und nutze ihn als strategische Quelle. Lies danach README.md, docs/SECURITY.md, docs/DECISIONS.md, docs/TASKS.md und docs/HANDOFF.md. Implementiere ausschließlich MVP 1.B: einen deterministischen TaskPlanner-, ChangeProposal- und Approval-Workflow mit API und UI, weiterhin ohne LLMs, externe Netzwerkzugriffe oder Datei-/Shell-Tools.

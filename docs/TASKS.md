@@ -39,4 +39,10 @@ Eine Aufgabe ist fertig, wenn:
 - Formatierung, Linting und Tests erfolgreich sind,
 - neue Entscheidungen dokumentiert wurden,
 - `docs/HANDOFF.md` bei relevantem Session-Fortschritt aktualisiert wurde,
-- keine Secrets, generierten Artefakte oder persönlichen Daten eingecheckt wurden.
+- `git status`, Diff und Secret-/Privatdaten-Prüfung sauber sind,
+- keine Secrets, generierten Artefakte oder persönlichen Daten eingecheckt wurden,
+- ein klarer Conventional Commit auf dem Feature-Branch erstellt wurde,
+- der Feature-Branch ohne Force-Push gepusht wurde,
+- ein PR gegen `main` existiert oder Link und Anleitung dokumentiert sind,
+- Branch, Commit, Push, PR, Tests, Dateien, Risiken und Worktree-Status berichtet wurden,
+- kein Merge ohne ausdrückliche Nutzerbestätigung erfolgt ist.

@@ -72,6 +72,55 @@ Jede abgeschlossene Aufgabe folgt exakt diesem Ablauf:
 
 Ein neuer Commit nach der Prüfung macht eine erneute Prüfung erforderlich. Codex aktiviert kein Auto-Merge und merged niemals eigenständig.
 
+### Vor jedem Commit
+
+1. `git status` ausführen und den vollständigen Änderungsumfang prüfen.
+2. Sicherstellen, dass ausschließlich Dateien der aktuellen Aufgabe enthalten sind.
+3. Auf `.env`-Dateien, Secrets, API-Keys, Tokens, private Schlüssel und personenbezogene oder private Daten prüfen.
+4. Relevante Tests, Linter, Typprüfungen und Builds erfolgreich abschließen.
+5. Diff auf unerwartete, generierte oder binäre Dateien prüfen.
+
+Wenn eine dieser Prüfungen fehlschlägt, wird nicht committed oder gepusht.
+
+### Commit-Regel
+
+Jede abgeschlossene Aufgabe endet mit einem sauberen Conventional Commit. Die Message beschreibt Zweck und Art der Änderung, zum Beispiel:
+
+- `chore: initialize project structure`
+- `feat: add agent task endpoint`
+- `docs: update handoff`
+- `test: add approval flow tests`
+- `fix: block unsafe file paths`
+
+### Branch-Regel
+
+- Neue Features und Dokumentationsaufgaben erhalten einen verständlichen Feature-Branch.
+- Empfohlene Namen sind beispielsweise `feature/developer-workflow-simulation`, `feature/workspace-guard`, `feature/test-runner` oder `docs/update-agent-workflow`.
+- `main` ist der stabile Hauptbranch.
+- Direkte Arbeit auf `main` ist nur beim initialen Projekt-Setup oder nach ausdrücklicher Nutzerfreigabe erlaubt.
+
+### Push- und Pull-Request-Regel
+
+- Nach erfolgreichem Commit darf ausschließlich der aktuelle Feature-Branch gepusht werden.
+- Force-Push sowie Pushes von Secrets oder privaten Dateien sind verboten.
+- Nach dem Push wird, wenn möglich, ein Pull Request gegen `main` erstellt.
+- Wenn die automatische PR-Erstellung blockiert ist, nennt Codex den PR-Link oder die notwendigen Schritte.
+- Der PR enthält eine kurze Zusammenfassung, Testergebnisse und bekannte Risiken.
+- Fehlgeschlagene Tests blockieren den Merge.
+
+### Pflichtbericht zum Aufgabenabschluss
+
+Codex berichtet am Ende jeder Aufgabe:
+
+- aktuellen Branch
+- Commit-Hash und Commit-Message
+- Push-Status
+- PR-Status und PR-Link
+- Testergebnis
+- geänderte Dateien
+- offene Risiken oder TODOs
+- ob der Worktree sauber ist
+
 ## Abbruchbedingungen
 
 Der Agent stoppt bei Workspace-Ausbruch, fehlender Freigabe, verändertem Proposal, unerwarteten Dateien, Secret-Fund, nicht erlaubtem Befehl oder unklaren externen Auswirkungen.
