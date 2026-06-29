@@ -2,10 +2,10 @@
 
 ## Projektstatus
 
-- **Phase:** MVP 1 abgeschlossen (MVP 1.A–1.E)
+- **Phase:** MVP 1 abgeschlossen; MVP 2.A abgeschlossen
 - **Stand:** 2026-06-29
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Vorbereitung von MVP 2 – provider-neutraler lokaler Modelladapter, weiterhin hinter den deterministischen Sicherheitsgrenzen
+- **Aktueller Fokus:** MVP 2.B – abgesicherter Loopback-HTTP-Adapter für lokale OpenAI-kompatible Modellserver
 
 ## Fertiggestellt
 
@@ -51,6 +51,13 @@
 - UI um Branch-Badge, Statusübersicht, Dateiliste, `main`-Warnung, lokale Branch-Erstellung und scrollbaren Diff erweitert
 - Git-Tool und API mit 14 fokussierten Tests geprüft; vollständige Projektprüfung siehe letzter Aufgabenabschluss im PR
 - Kriterien für MVP 1 aus Abschnitt 28 des Masterplans gegen Implementierung, Tests und lokale Startfähigkeit auditiert
+- Provider-neutrale Modellverträge für source-labelled Input, Capability, Request, Response, Usage und Adapter-Metadaten implementiert
+- Transportklassen `in_process`, `loopback_http` und `remote_http` modelliert; Router-Allowlist erlaubt derzeit ausschließlich `in_process`
+- Deterministischen `FakeModelAdapter` ohne Modell-, Netzwerk- oder Tool-Aufruf für Chat und Coding ergänzt
+- `ModelRouter` mit festen Capability-Routen, Part-/Input-/Output-Limits, Streaming-Gate und Response-Identity-Prüfung implementiert
+- Modellantworten unveränderlich als `untrusted=true` modelliert; der Adaptervertrag enthält keine Tool-Call- oder Policy-Schnittstelle
+- `GET /models` und `POST /models/preview` für Discovery und begrenzte Offline-Simulation ergänzt
+- 14 fokussierte Core-/API-Tests für Determinismus, Injection-Text, Limits, Routing, blockierte echte Adapter/Transporte und fehlerhafte Adapterantworten erfolgreich geprüft
 
 ## MVP-1-Abschlussaudit
 
@@ -67,7 +74,7 @@
 ## Bewusste Grenzen
 
 - Workflow-Zustände sind noch nicht persistent und gehen beim API-Neustart verloren
-- Keine LLM- oder Netzwerk-Integration
+- Keine echte LLM- oder Netzwerk-Integration; die Modellvorschau ist ein In-Process-Fake
 - Datei-Tools sind noch nicht an API oder UI angebunden; ChangeSet-Zustände bleiben im Prozessspeicher
 - Mehrdatei-ChangeSets sind pro Datei atomar, aber noch keine globale Dateisystemtransaktion
 - Testprozesse haben noch keine echte macOS-Dateisystem-/Netzwerk-Sandbox; nur bewusst geprüfte lokale Workspaces ausführen
@@ -76,16 +83,18 @@
 - Die Commit-Vorbereitung ist nur ein unveränderlicher Plan. Sagent kann selbst weder stagen noch committen, pushen oder mergen
 - Secret-Erkennung ist absichtlich konservativ und musterorientiert; ein Treffer blockiert die Commit-Vorbereitung, ersetzt aber keinen manuellen Secret-Scan
 - Die visuelle Git-Ansicht wurde im laufenden Feature-Branch geprüft; der isolierte `main`-Browserdurchlauf wurde durch wiederholte Unterbrechungen der lokalen Browserverbindung nicht vollständig automatisiert. API- und Tool-Tests decken `main`-Warnung und Branch-Wechsel ab
+- `loopback_http` und `remote_http` sind nur Typen im Vertrag und werden vom aktuellen Router blockiert
+- Es gibt noch kein Streaming, keine Modellserver-Erkennung, keine sichere Endpoint-Konfiguration und keinen echten Modellvergleich
 
 ## Nächster sinnvoller Schritt
 
-MVP 2 gemäß Roadmap und Masterplan in einem neuen, kleinen Sicherheitsinkrement beginnen:
+MVP 2.B als separates Sicherheitsinkrement umsetzen:
 
-1. Provider-neutralen `ModelAdapter`-Vertrag definieren, der keine Tool-Berechtigungen besitzt.
-2. Deterministischen Fake-Adapter für Offline-Tests und reproduzierbare Fehlerfälle implementieren.
-3. Lokalen OpenAI-kompatiblen Transport für LM Studio oder Ollama hinter expliziter Konfiguration entwerfen.
-4. Timeout, Abbruch, Streaming-Grenzen, ungültige Modellantworten und nicht erreichbaren lokalen Server testen.
-5. Erst nach diesem Vertrags- und Sicherheitsreview einen echten lokalen Modellaufruf in API oder UI freigeben.
+1. Endpoint-Konfiguration ausschließlich für kanonische `http://127.0.0.1`-/`http://[::1]`-URLs und erlaubte Ports definieren.
+2. Redirects, DNS-Namen, Unix-Sockets, Proxyvererbung und Credential-Übernahme blockieren.
+3. OpenAI-kompatiblen Request/Response-Transport mit Timeout, Abbruch und harten Größenlimits implementieren.
+4. Nicht erreichbaren Server, Timeout, Redirect, ungültiges JSON, falsche IDs und übergroße Antworten negativ testen.
+5. LM Studio und Ollama lokal anhand derselben reproduzierbaren Coding-Aufgaben evaluieren; erst danach UI-Integration erwägen.
 
 Kostenpflichtige APIs, externe Modellendpunkte, freie Shell und Modell-gesteuerte Policy-Entscheidungen bleiben ausdrücklich ausgeschlossen.
 
@@ -95,7 +104,7 @@ Kostenpflichtige APIs, externe Modellendpunkte, freie Shell und Modell-gesteuert
 - Jede Aufgabe auf einem Feature-Branch abschließen: testen, committen, Branch pushen und PR gegen `main` erstellen.
 - Niemals ohne ausdrückliche Nutzerbestätigung mergen oder Auto-Merge aktivieren.
 - Datei-Schreibzugriffe ausschließlich über den getesteten ChangeSet-/Approval-Vertrag führen.
-- Keine freie Shell und keine echten LLM-Aufrufe.
+- Keine freie Shell; echter Loopback-Modellaufruf erst nach vollständigem MVP-2.B-Sicherheitsreview.
 - Neue Architekturentscheidungen im Decision Log ergänzen.
 - Tests für negative Sicherheitsfälle vor Happy-Path-Komfort priorisieren.
 - Modellantworten in MVP 2 immer als untrusted input behandeln; nur deterministischer Core und Tool-Policies dürfen Aktionen autorisieren.
@@ -115,4 +124,4 @@ Der Nutzer prüft den PR. Kein Merge und kein Auto-Merge ohne seine ausdrücklic
 
 ## Startprompt für eine Folgesession
 
-> Lies docs/MASTER_PLAN.md vollständig und nutze ihn als strategische Quelle. Lies danach README.md, docs/SECURITY.md, docs/DECISIONS.md, docs/TASKS.md und docs/HANDOFF.md. Beginne MVP 2 ausschließlich mit einem provider-neutralen ModelAdapter-Vertrag und einem deterministischen Fake-Adapter. Behalte alle Tool-, Workspace- und Approval-Entscheidungen außerhalb des Modells; noch keine kostenpflichtige API, kein externer Modellendpunkt und keine freie Shell.
+> Lies docs/MASTER_PLAN.md vollständig und nutze ihn als strategische Quelle. Lies danach README.md, docs/SECURITY.md, docs/DECISIONS.md, docs/TASKS.md und docs/HANDOFF.md. Implementiere MVP 2.B als abgesicherten Loopback-HTTP-Adapter für lokale OpenAI-kompatible Modellserver. Erlaube ausschließlich kanonische Loopback-URLs und explizite Ports, deaktiviere Redirects und geerbte Proxies, setze harte Timeouts und Größenlimits und teste alle negativen Netzwerkfälle. Keine Remote-Endpunkte, Zugangsdaten, Tool-Autorität oder freie Shell.

@@ -66,7 +66,8 @@ Die vollständige strategische Roadmap steht in [`MASTER_PLAN.md`](MASTER_PLAN.m
 
 ## MVP 2 – Echtes LLM und Modell-Router
 
-- Zuerst einen provider-neutralen Modellvertrag und deterministischen Fake-Adapter definieren
+- **MVP 2.A abgeschlossen:** provider-neutraler Modellvertrag, deterministischer Fake-Adapter, Capability-Router und Transport-Allowlist
+- **MVP 2.B als Nächstes:** abgesicherter Loopback-HTTP-Adapter für lokale OpenAI-kompatible Endpunkte
 - Adapter für lokale OpenAI-kompatible Endpunkte
 - LM Studio, Ollama und später MLX evaluieren
 - Coding-Modelle anhand reproduzierbarer Aufgaben vergleichen

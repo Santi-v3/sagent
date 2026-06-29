@@ -85,3 +85,10 @@ Dieses Dokument ist ein leichtgewichtiges Decision Log. Neue Entscheidungen erha
 - **Datum:** 2026-06-29
 - **Entscheidung:** MVP 1.E stellt Branch, Status und einen begrenzten, Secret-redigierten Diff über feste Git-Argumentlisten bereit. Als einzige Mutation darf ein ausdrücklich bestätigter, policy-konformer lokaler Feature-Branch erstellt werden. Eine Commit-Vorbereitung erzeugt nur Metadaten, die an den sichtbaren Diff-Hash gebunden sind; sie staged und committet nicht. Push und Merge sind im Tool immer blockiert.
 - **Konsequenz:** Die Weboberfläche kann den Repository-Zustand prüfbar machen, besitzt aber keine Remote-Aktion. Sensible, gekürzte oder nachträglich veränderte Diffs blockieren die Commit-Vorbereitung. Ein späterer Commit-, Push- oder Merge-Flow benötigt eigene serverseitige Approval-Verträge und neue negative Sicherheitstests. Der beaufsichtigte Codex-Repository-Abschluss aus ADR-009 bleibt davon getrennt.
+
+## ADR-013: Der Modell-Router erzwingt Fähigkeiten, Provenienz und Transportgrenzen
+
+- **Status:** Angenommen
+- **Datum:** 2026-06-29
+- **Entscheidung:** Modellintegration beginnt mit einem provider-neutralen Text-Completion-Vertrag. Eingabeteile behalten ihre Herkunft, Fähigkeiten werden über feste Routen gewählt und jede Adapterbeschreibung deklariert eine Transportklasse. Der Router erlaubt zunächst ausschließlich In-Process-Adapter. Antworten sind immer untrusted und können keine Tools autorisieren oder repräsentieren.
+- **Konsequenz:** Der deterministische Fake ermöglicht API- und Sicherheitstests ohne Modellserver. LM Studio, Ollama oder andere OpenAI-kompatible Server benötigen einen eigenen Loopback-Transport mit URL-, Redirect-, Timeout-, Streaming- und Größen-Policies. Remote-Endpunkte bleiben außerhalb des local-first Scopes, bis eine spätere Entscheidung sie ausdrücklich zulässt.

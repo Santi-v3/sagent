@@ -185,3 +185,37 @@ class GitBranchResponse(BaseModel):
 
     message: str
     status: GitStatusResponse
+
+
+class ModelAdapterResponse(BaseModel):
+    """Reviewable model adapter metadata without credentials or endpoint details."""
+
+    adapter_id: str
+    provider: str
+    model: str
+    capabilities: list[Literal["chat", "coding"]]
+    transport: Literal["in_process", "loopback_http", "remote_http"]
+    simulated: bool
+    supports_streaming: bool
+
+
+class ModelPreviewRequest(BaseModel):
+    """Bounded prompt for the deterministic offline adapter."""
+
+    prompt: str = Field(min_length=1, max_length=8_000)
+    capability: Literal["chat", "coding"] = "chat"
+    max_output_tokens: int = Field(default=256, ge=1, le=2_048)
+
+
+class ModelPreviewResponse(BaseModel):
+    """Untrusted text returned by the currently selected adapter."""
+
+    request_id: UUID
+    adapter_id: str
+    model: str
+    content: str
+    finish_reason: Literal["stop", "length"]
+    input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+    untrusted: Literal[True]
+    simulated: Literal[True]
