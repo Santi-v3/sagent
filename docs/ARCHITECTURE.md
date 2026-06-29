@@ -51,6 +51,8 @@ Die Standard-Transport-Allowlist enthält nur `in_process`. MVP 2.B kann nach ex
 
 Der Loopback-Adapter sendet den gemeinsamen OpenAI-kompatiblen Vertrag `POST /v1/chat/completions`. Endpoint, Providerprofil und Modell werden beim Routerbau fixiert. Ein API-Request kann diese Werte nicht verändern und muss den registrierten Adapter ausdrücklich mit `confirmed=true` auswählen.
 
+Längere Aufrufe laufen optional als `ModelJob`: `queued → running → succeeded|failed` oder über `cancelling → cancelled`. Ein thread-sicherer Cancellation-Token wird durch Router und Adapter gereicht. Beim Cancel schließt er HTTP-Client und Response-Stream; Snapshots enthalten keine Prompts. Ein einzelner Worker und eine begrenzte In-Memory-Historie verhindern unbegrenzte Parallelität.
+
 ### `packages/tools`
 
 Kleine, einzeln prüfbare Tools mit typisierten Eingaben und Ausgaben. MVP 1.C enthält den `WorkspaceGuard` und `FileTool` für begrenzte UTF-8-Textdateien. MVP 1.D ergänzt feste Testprofile, begrenzte Prozessausführung und redigierte Ergebnisse. MVP 1.E ergänzt repository-gebundenen Git-Status, begrenzte und redigierte Diffs, lokale Feature-Branch-Erstellung und eine nicht ausführende Commit-Vorbereitung. Schreibmethoden prüfen einen intern signierten Nachweis des Agent-Core erneut. Kein Tool erhält pauschalen Shell- oder Dateisystemzugriff; Git-Push und Merge sind nicht implementiert.

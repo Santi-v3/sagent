@@ -26,6 +26,8 @@ Der Workflow trennt Verstehen, Vorschlagen und Verändern. Kein Modell und kein 
 - Modelltext ausschließlich als untrusted Entwurf behandeln; der deterministische Core entscheidet weiterhin über Policy, Approval und Tool-Aufrufe
 - Standardmäßig den In-Process-Fake verwenden. Einen lokalen Adapter nur nach expliziter Loopback-Prozesskonfiguration, sichtbarer Adapterwahl und `confirmed=true` aufrufen
 - Lokale Modellantworten wie jeden anderen Modelltext als untrusted Entwurf behandeln; sie dürfen niemals selbst Tools oder Approvals auslösen
+- Längere Modellaufrufe als begrenzten Job starten, Job-ID sichtbar halten und dem Nutzer Status sowie aktiven Abbruch anbieten
+- Nach Cancel erst `cancelled` als terminalen Zustand behandeln; `cancelling` autorisiert keine weiteren Aktionen
 
 ## 4. Propose
 

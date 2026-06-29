@@ -18,8 +18,11 @@ Lokale FastAPI für die erste technische Minimalversion von Sagent.
 - `GET /models` – registrierte Adapter ohne Endpunkte oder Zugangsdaten anzeigen
 - `POST /models/preview` – deterministische Offline-Antwort als ausdrücklich untrusted erzeugen
 - `POST /models/complete` – bestätigten Textaufruf an einen explizit aktivierten Loopback-Adapter senden
+- `POST /models/jobs` – bestätigten lokalen Modellaufruf begrenzt im Hintergrund starten
+- `GET /models/jobs/{id}` – prompt-freien Jobstatus und gegebenenfalls Ergebnis abrufen
+- `POST /models/jobs/{id}/cancel` – queued/running Job aktiv abbrechen
 
-Plan-, Approval- und Testergebnis-Zustände liegen in dieser Version nur im Arbeitsspeicher. Die Git-Endpunkte sind fest an den Repository-Root gebunden. Die Modellvorschau nutzt ausschließlich einen In-Process-Fake. Ein echter lokaler Modellaufruf benötigt `SAGENT_NETWORK_ENABLED=loopback`, ein festes LM-Studio-/Ollama-Profil und `confirmed=true`; Remote-Transporte bleiben blockiert. Die API führt keine Dateioperationen, freien Shell-Befehle, Pushes oder Merges aus.
+Plan-, Approval-, Testergebnis- und ModelJob-Zustände liegen in dieser Version nur im Arbeitsspeicher. Die Git-Endpunkte sind fest an den Repository-Root gebunden. Die Modellvorschau nutzt ausschließlich einen In-Process-Fake. Ein echter lokaler Modellaufruf benötigt `SAGENT_NETWORK_ENABLED=loopback`, ein festes LM-Studio-/Ollama-Profil und `confirmed=true`; Remote-Transporte bleiben blockiert. Die API führt keine Dateioperationen, freien Shell-Befehle, Pushes oder Merges aus.
 
 Konfiguration und Sicherheitsgrenzen stehen in [`docs/LOCAL_MODELS.md`](../../docs/LOCAL_MODELS.md).
 

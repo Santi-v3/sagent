@@ -2,6 +2,7 @@
 
 import json
 from collections.abc import Callable
+from threading import Event, Thread
 
 import httpx2 as httpx
 import pytest
@@ -13,6 +14,8 @@ from sagent_agent_core import (
     LoopbackModelProtocolError,
     LoopbackModelTimeoutError,
     LoopbackOpenAIChatAdapter,
+    ModelCancellationToken,
+    ModelCancelledError,
     ModelCapability,
     ModelContractError,
     ModelInputPart,
@@ -24,6 +27,26 @@ from sagent_agent_core import (
 )
 
 MODEL = "qwen3-coder:local"
+
+
+class BlockingJsonStream(httpx.SyncByteStream):
+    def __init__(self, content: bytes) -> None:
+        self.content = content
+        self.started = Event()
+        self.release = Event()
+        self.closed = False
+
+    def __iter__(self):
+        midpoint = max(1, len(self.content) // 2)
+        self.started.set()
+        yield self.content[:midpoint]
+        self.release.wait(2)
+        if not self.closed:
+            yield self.content[midpoint:]
+
+    def close(self) -> None:
+        self.closed = True
+        self.release.set()
 
 
 def model_request() -> ModelRequest:
@@ -294,3 +317,37 @@ def test_model_and_resource_configuration_are_bounded() -> None:
         LoopbackOpenAIChatAdapter(endpoint, MODEL, read_timeout_seconds=301)
     with pytest.raises(ModelContractError, match="byte limits"):
         LoopbackOpenAIChatAdapter(endpoint, MODEL, max_response_bytes=9 * 1_024 * 1_024)
+
+
+def test_running_loopback_response_is_actively_closed_on_cancellation() -> None:
+    content = json.dumps(success_payload()).encode("utf-8")
+    stream = BlockingJsonStream(content)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            headers={"content-type": "application/json"},
+            stream=stream,
+        )
+
+    token = ModelCancellationToken()
+    adapter = adapter_with_handler(handler)
+    errors: list[BaseException] = []
+
+    def run() -> None:
+        try:
+            adapter.complete(model_request(), cancellation=token)
+        except BaseException as error:  # noqa: BLE001 - capture worker result for assertion.
+            errors.append(error)
+
+    worker = Thread(target=run, daemon=True)
+    worker.start()
+    assert stream.started.wait(1)
+
+    assert token.cancel() is True
+    worker.join(timeout=2)
+
+    assert worker.is_alive() is False
+    assert stream.closed is True
+    assert len(errors) == 1
+    assert isinstance(errors[0], ModelCancelledError)

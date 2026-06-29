@@ -72,7 +72,7 @@ Danach sind verfügbar:
 
 Die Weboberfläche zeigt nach einer Task-Freigabe Testprofile sowie den lokalen Git-Status und den redigierten Diff. Einen neuen lokalen Branch kann sie nur mit den Präfixen `codex/`, `feature/`, `fix/`, `docs/`, `test/` oder `chore/` erstellen. Es gibt keine UI- oder API-Aktion für Push oder Merge.
 
-Die API bietet außerdem `GET /models` und `POST /models/preview`. Standardmäßig verwenden beide ausschließlich den deterministischen In-Process-Fake. Nach vier expliziten Prozessvariablen kann `POST /models/complete` einen vorkonfigurierten LM-Studio- oder Ollama-Server auf dessen offiziellem Loopback-Port ansprechen. Remote-HTTP, Zugangsdaten und automatische Modellaufrufe bleiben blockiert.
+Die API bietet außerdem `GET /models` und `POST /models/preview`. Standardmäßig verwenden beide ausschließlich den deterministischen In-Process-Fake. Nach vier expliziten Prozessvariablen kann `POST /models/complete` einen vorkonfigurierten LM-Studio- oder Ollama-Server auf dessen offiziellem Loopback-Port ansprechen. Für längere Aufrufe stehen begrenzte Jobs mit Start, Status und aktivem Cancel zur Verfügung. Remote-HTTP, Zugangsdaten und automatische Modellaufrufe bleiben blockiert.
 
 Die API kann auch separat gestartet werden:
 
@@ -110,7 +110,7 @@ pnpm build
 
 ## Status
 
-**MVP 1 sowie MVP 2.A abgeschlossen; MVP 2.B implementiert.** Der `ModelRouter` trennt Fähigkeiten und Transportarten, bewahrt Eingabequellen und behandelt jede Modellantwort als untrusted. Standard bleibt der deterministische In-Process-Fake. Ein echter lokaler Chat-Completion-Aufruf ist nur nach expliziter Loopback-Konfiguration, bestätigtem API-Request und allen URL-/Timeout-/Größen-Gates möglich. Als Nächstes folgt die reproduzierbare Live-Evaluation mit LM Studio und Ollama.
+**MVP 1 sowie MVP 2.A abgeschlossen; MVP 2.B implementiert.** Der `ModelRouter` trennt Fähigkeiten und Transportarten, bewahrt Eingabequellen und behandelt jede Modellantwort als untrusted. Standard bleibt der deterministische In-Process-Fake. Ein echter lokaler Chat-Completion-Aufruf ist nur nach expliziter Loopback-Konfiguration, bestätigtem API-Request und allen URL-/Timeout-/Größen-Gates möglich. Laufende Aufrufe können über einen prompt-freien Jobstatus aktiv abgebrochen werden. Als Nächstes folgt die reproduzierbare Live-Evaluation mit LM Studio und Ollama.
 
 ## Lizenz
 

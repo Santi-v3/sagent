@@ -49,6 +49,16 @@ Ein echter lokaler Aufruf erfolgt nur über `POST /models/complete`, einen regis
 
 Die Antwort bleibt `untrusted=true`. Sie ist Textdaten und autorisiert keine Datei-, Shell-, Git-, Netzwerk- oder Tool-Aktion.
 
+## Abbrechbare Jobs
+
+Für längere Generierungen ist der Job-Flow vorgesehen:
+
+1. `POST /models/jobs` mit demselben Adapter, Prompt, Capability, Tokenlimit und `confirmed=true` liefert `202` und eine `job_id`.
+2. `GET /models/jobs/{job_id}` liefert ausschließlich prompt-freie Metadaten, Status und gegebenenfalls das untrusted Ergebnis.
+3. `POST /models/jobs/{job_id}/cancel` setzt den Job auf `cancelling`, schließt den aktiven HTTP-Client und Response-Stream und endet in `cancelled`.
+
+Terminale Jobs können nicht nachträglich abgebrochen werden. Ein bereits abgebrochener Job akzeptiert wiederholtes Cancel idempotent. Es gibt maximal einen Worker und 100 gespeicherte Jobs im API-Prozess; alte terminale Jobs werden bei Bedarf verworfen.
+
 ## Sicherheitsgrenzen
 
 - Nur exakte Literale `127.0.0.1` und `::1`; kein `localhost`, DNS oder alternative IP-Darstellung.
@@ -63,9 +73,9 @@ Die Antwort bleibt `untrusted=true`. Sie ist Textdaten und autorisiert keine Dat
 
 - Live-Evaluation mit einem tatsächlich gestarteten LM-Studio- und Ollama-Server
 - reproduzierbarer Vergleich von Qwen3-Coder, Devstral und weiteren Open-Weight-Coding-Modellen
-- Streaming und Abbruch aus der Weboberfläche
+- Streaming und Jobsteuerung aus der Weboberfläche
 - Modellwahl in der Weboberfläche
 - sichere Unterstützung abweichender lokaler Ports oder authentifizierter Server
 - MLX-Adapter
 
-Bis zur Live-Evaluation bleibt der deterministische Fake der Standardroute.
+Bis zur Live-Evaluation bleibt der deterministische Fake der Standardroute. Jobzustände liegen nur im Arbeitsspeicher und gehen beim API-Neustart verloren.

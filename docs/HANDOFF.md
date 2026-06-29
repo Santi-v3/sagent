@@ -2,7 +2,7 @@
 
 ## Projektstatus
 
-- **Phase:** MVP 1 und MVP 2.A abgeschlossen; MVP 2.B implementiert
+- **Phase:** MVP 1, MVP 2.A und MVP 2.B abgeschlossen
 - **Stand:** 2026-06-29
 - **Repository:** `Santi-v3/sagent`
 - **Aktueller Fokus:** MVP 2.C – Live-Evaluation von LM Studio, Ollama und einem ersten Coding-Modell auf dem Ziel-Mac
@@ -67,6 +67,13 @@
 - Positive Mock-Integration sowie negative Tests für URL-Ausbruch, Proxyvererbung, Redirect, Timeout, Connection-Fehler, Protokollfehler und Größenlimits ergänzt
 - `docs/LOCAL_MODELS.md` mit Konfiguration, Sicherheitsgrenzen und noch offener Live-Evaluation ergänzt
 - 37 fokussierte Loopback-/Model-API-Tests und insgesamt 106 Python-Tests erfolgreich geprüft; Ruff, ESLint, TypeScript und Produktionsbuild bestanden
+- Thread-sicheren `ModelCancellationToken` mit idempotenten Close-Callbacks und eigenem `ModelCancelledError` implementiert
+- Cancellation durch Router, Fake und Loopback-Adapter propagiert; aktiver Abbruch schließt HTTP-Client und Response-Stream
+- Begrenzten `ModelJobService` mit einem API-Worker, maximal 100 Jobs und Zuständen `queued`, `running`, `cancelling`, `succeeded`, `failed`, `cancelled` ergänzt
+- `POST /models/jobs`, `GET /models/jobs/{id}` und `POST /models/jobs/{id}/cancel` implementiert
+- Job-Snapshots prompt-frei gehalten, interne Requests nach Terminalstatus verworfen und Adapterfehler generisch redigiert
+- Race-, Queue-, Capacity-, Success-, Failure-, wiederholte Cancel- und aktive Stream-Close-Fälle in Core und API getestet
+- 59 fokussierte Model-/Cancellation-Tests und insgesamt 119 Python-Tests erfolgreich; Ruff, ESLint, TypeScript, Produktionsbuild und API-Shutdown geprüft
 
 ## MVP-1-Abschlussaudit
 
@@ -94,7 +101,8 @@
 - Die visuelle Git-Ansicht wurde im laufenden Feature-Branch geprüft; der isolierte `main`-Browserdurchlauf wurde durch wiederholte Unterbrechungen der lokalen Browserverbindung nicht vollständig automatisiert. API- und Tool-Tests decken `main`-Warnung und Branch-Wechsel ab
 - `remote_http` bleibt immer blockiert; `loopback_http` ist nur nach vollständiger Prozesskonfiguration und bestätigtem Request aktiv
 - Es gibt noch kein Streaming, keine automatische Modellserver-Erkennung und keinen echten Modellvergleich
-- Eine bereits blockierend laufende HTTP-Generierung kann derzeit nur durch den Read-Timeout beendet werden; ein expliziter Cancellation-Token fehlt noch
+- Modelljobs sind nur prozesslokal; API-Neustart verwirft Status und Ergebnis
+- Cancellation ist für den nicht streamenden HTTP-Job umgesetzt, aber noch nicht in der Weboberfläche sichtbar
 - Die Kompatibilität ist gegen die offiziellen LM-Studio-/Ollama-Verträge und Mock-Transports geprüft, aber noch nicht gegen einen tatsächlich laufenden lokalen Modellserver
 
 ## Nächster sinnvoller Schritt
@@ -106,7 +114,7 @@ MVP 2.C als kontrollierte lokale Evaluation durchführen:
 3. `GET /models` und bestätigtes `POST /models/complete` gegen den echten Loopback-Server prüfen.
 4. Latenz, Speicherbedarf, Antwortqualität, Token-Nutzung und Fehlerverhalten reproduzierbar protokollieren.
 5. Danach denselben Ablauf mit dem zweiten Provider und mindestens einem zweiten Coding-Modell vergleichen.
-6. Erst auf Basis dieser Daten Default-Modell, Streaming-/Abbruch-Inkrement und UI-Modellwahl entscheiden.
+6. Erst auf Basis dieser Daten Default-Modell, Streaming-Inkrement sowie UI-Modellwahl und Jobsteuerung entscheiden.
 
 Kostenpflichtige APIs, externe Modellendpunkte, freie Shell und Modell-gesteuerte Policy-Entscheidungen bleiben ausdrücklich ausgeschlossen.
 

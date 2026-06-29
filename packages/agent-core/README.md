@@ -21,6 +21,8 @@ MVP 2.A ergänzt:
 
 MVP 2.B ergänzt `LoopbackOpenAIChatAdapter` für den gemeinsamen LM-Studio-/Ollama-Vertrag `POST /v1/chat/completions`. Er akzeptiert nur kanonische Loopback-Literale und Profilports, deaktiviert Umgebung-Proxies und Redirects, sendet weder Credentials noch Tool-Definitionen und begrenzt Timeouts sowie Request-/Response-Größe. Die Antwort muss genau eine textuelle Assistant-Choice für das konfigurierte Modell enthalten.
 
+Der Cancellation-Baustein ergänzt einen thread-sicheren, idempotenten `ModelCancellationToken`, der aktive HTTP-Client-/Response-Ressourcen schließt. `ModelJobService` führt höchstens eine kleine konfigurierte Zahl von Workern und Job-Snapshots, speichert keine Prompts in API-Snapshots, begrenzt die Historie und unterscheidet `queued`, `running`, `cancelling`, `succeeded`, `failed` und `cancelled`.
+
 Löschen, freie Shell, Netzwerkzugriff, echte LLM-Aufrufe und automatische Git-Aktionen sind nicht Teil dieses Moduls.
 
 ## Tests
