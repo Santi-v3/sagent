@@ -2,7 +2,7 @@
 
 Sagent ist ein local-first, Mac-first Personal AI Agent in Entwicklung. Langfristig soll er wie ein eigener Coding-Agent arbeiten: Projekte lesen, Änderungen planen, Code vorbereiten, Tests ausführen, Diffs erklären und Änderungen erst nach ausdrücklicher menschlicher Freigabe übernehmen.
 
-Das Repository enthält MVP 1 als lokal ausführbare Minimalversion: eine deterministische Agent-API, eine Codex-nahe Weboberfläche, sichere ChangeSets, einen allowlist-basierten TestRunner sowie begrenzte Git-Status-, Diff- und Branch-Funktionen. Es gibt weiterhin keine LLM-Anbindung, keine freie Shell und keine unkontrollierten Systemwerkzeuge. Die Datei-Tools sind bewusst noch nicht mit API oder UI verbunden; Push und Merge sind im Agent-Tool nicht verfügbar.
+Das Repository enthält MVP 1 als lokal ausführbare Minimalversion und den ersten Baustein von MVP 2: eine deterministische Agent-API, eine Codex-nahe Weboberfläche, sichere ChangeSets, einen allowlist-basierten TestRunner, begrenzte Git-Funktionen sowie einen provider-neutralen Modellvertrag mit Offline-Fake und Transport-Allowlist. Es gibt weiterhin keinen echten LLM-Aufruf, keine freie Shell und keine unkontrollierten Systemwerkzeuge. Die Datei-Tools sind bewusst noch nicht mit API oder UI verbunden; Push und Merge sind im Agent-Tool nicht verfügbar.
 
 ## Projektkontext
 
@@ -30,7 +30,7 @@ apps/
   web/           Lokale Next.js-Oberfläche
   agent-api/     Lokale FastAPI mit Task-, Plan- und Approval-Workflow
 packages/
-  agent-core/    ChangeSets, Diffs und inhaltsgebundene Approval-Logik
+  agent-core/    ChangeSets, Approval-Logik und provider-neutraler ModelRouter
   memory/        Markdown-basiertes Memory-System
   tools/         WorkspaceGuard, Datei-, Test- und begrenzte Git-Werkzeuge
   shared/        Gemeinsame Verträge und Hilfsfunktionen
@@ -72,6 +72,8 @@ Danach sind verfügbar:
 
 Die Weboberfläche zeigt nach einer Task-Freigabe Testprofile sowie den lokalen Git-Status und den redigierten Diff. Einen neuen lokalen Branch kann sie nur mit den Präfixen `codex/`, `feature/`, `fix/`, `docs/`, `test/` oder `chore/` erstellen. Es gibt keine UI- oder API-Aktion für Push oder Merge.
 
+Die API bietet außerdem `GET /models` und `POST /models/preview`. Beide verwenden ausschließlich den deterministischen In-Process-Fake. Loopback-HTTP, Remote-HTTP, Zugangsdaten und echte Modellserver sind in diesem Inkrement nicht aktiviert.
+
 Die API kann auch separat gestartet werden:
 
 ```bash
@@ -107,7 +109,7 @@ pnpm build
 
 ## Status
 
-**MVP 1 abgeschlossen.** Der lokale Workflow deckt Task-Planung, Proposal und Approval, sichere interne ChangeSets, allowlist-basierte Tests sowie redigierten Git-Status und Diff ab. Feature-Branches können lokal nach enger Namensregel erstellt werden; Arbeit auf `main` erzeugt eine Warnung. Commit-Vorbereitung verändert Git nicht, Push und Merge bleiben blockiert. Als Nächstes folgt MVP 2 mit einem zunächst lokalen, austauschbaren Modelladapter hinter denselben Sicherheitsgrenzen.
+**MVP 1 abgeschlossen; MVP 2.A in Arbeit.** Der lokale Workflow deckt Task-Planung, Proposal und Approval, sichere interne ChangeSets, allowlist-basierte Tests sowie redigierten Git-Status und Diff ab. Der neue `ModelRouter` trennt Fähigkeiten und Transportarten, bewahrt Eingabequellen und behandelt jede Modellantwort als untrusted. Aktuell ist ausschließlich ein deterministischer In-Process-Fake erlaubt. Als Nächstes folgt ein gesondert geprüfter Loopback-Adapter für lokale OpenAI-kompatible Modellserver.
 
 ## Lizenz
 

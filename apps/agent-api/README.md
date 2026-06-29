@@ -15,8 +15,10 @@ Lokale FastAPI für die erste technische Minimalversion von Sagent.
 - `GET /git/status` – lokalen Branch und begrenzten Worktree-Status anzeigen
 - `GET /git/diff` – begrenzten, Secret-redigierten Review-Diff anzeigen
 - `POST /git/branch` – bestätigten lokalen Feature-Branch nach enger Namensregel erstellen
+- `GET /models` – registrierte Adapter ohne Endpunkte oder Zugangsdaten anzeigen
+- `POST /models/preview` – deterministische Offline-Antwort als ausdrücklich untrusted erzeugen
 
-Plan-, Approval- und Testergebnis-Zustände liegen in dieser Version nur im Arbeitsspeicher. Die Git-Endpunkte sind fest an den Repository-Root gebunden. Die API führt keine Dateioperationen, freien Shell-Befehle, Modellaufrufe, Pushes, Merges oder beabsichtigten externen Netzwerkzugriffe aus.
+Plan-, Approval- und Testergebnis-Zustände liegen in dieser Version nur im Arbeitsspeicher. Die Git-Endpunkte sind fest an den Repository-Root gebunden. Die Modellvorschau nutzt ausschließlich einen In-Process-Fake; Loopback- und Remote-Transporte sind nicht registriert. Die API führt keine Dateioperationen, freien Shell-Befehle, echten Modellaufrufe, Pushes, Merges oder beabsichtigten externen Netzwerkzugriffe aus.
 
 ## Start
 

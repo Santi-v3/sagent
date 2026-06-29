@@ -83,6 +83,19 @@ Diese Maßnahmen verhindern freie Shell-Kommandos und begrenzen versehentliche N
 
 Der MVP-Git-Vertrag ist noch kein vollständiger Commit-Approval-Flow: Es gibt weder Staging noch Commit-Ausführung. Die bestehende Codex-Session kann den geprüften Feature-Branch gemäß dem dokumentierten Repository-Workflow committen und pushen; der in Sagent eingebaute Agent darf das noch nicht.
 
+## Implementierter Modell-Sicherheitsvertrag (MVP 2.A)
+
+- Modellanfragen bestehen aus unveränderlichen Textteilen mit erhaltenem Herkunftslabel: `policy`, `user`, `workspace`, `memory` oder `tool_result`. Ein Label erweitert niemals Tool- oder Systemrechte.
+- Der Adaptervertrag kann ausschließlich Text vervollständigen. Er kennt weder Tool-Router noch Datei-, Prozess-, Git-, Netzwerk- oder Approval-Methoden und besitzt keine Tool-Call-Struktur.
+- Fähigkeiten (`chat`, `coding`) werden explizit auf registrierte Adapter geroutet. Unbekannte Adapter, fehlende Routen und Capability-Mismatches werden vor Ausführung blockiert.
+- Transportarten sind Teil der Policy. Standardmäßig ist ausschließlich `in_process` erlaubt; `loopback_http` und `remote_http` werden vor Adapter-Ausführung abgewiesen. Zusätzlich bleiben selbst In-Process-Adapter mit `simulated=false` gesperrt, bis die Laufzeit sie ausdrücklich aktiviert.
+- Zahl und Gesamtgröße der Eingabeteile sowie die Ausgabelänge sind begrenzt. Streaming ist im Fake nicht erlaubt. Request-ID, Adapter-ID und Modell-ID werden nach der Antwort erneut abgeglichen.
+- Jede `ModelResponse` ist technisch unveränderlich `untrusted=true`. Modelltext wird nicht als Approval, Policy-Entscheidung oder ausführbare Aktion interpretiert.
+- Der aktuelle `FakeModelAdapter` ist deterministisch und führt keinen Modell-, Netzwerk- oder Tool-Aufruf aus. Die API gibt weder Endpoint-Konfiguration noch Zugangsdaten zurück.
+- Adapterfehler werden in eine generische Fehlermeldung übersetzt, damit Provider-Interna nicht über die API-Grenze austreten.
+
+Ein echter lokaler Modellserver ist damit noch nicht freigegeben. Vor `loopback_http` müssen URL-Kanonisierung, Loopback-/Port-Allowlist, DNS-/Redirect-Schutz, Timeout, Abbruch, Größenlimits, Streaming und Fehler-Redaction separat implementiert und negativ getestet werden.
+
 ## Prompt Injection
 
 Text in Projekten kann Anweisungen enthalten. Diese Inhalte sind Daten, keine Systemanweisungen. Sie dürfen keine Policies ändern, Tools freigeben, Secrets anfordern oder den Workspace erweitern. Herkunft und Rolle jedes Kontextblocks müssen erhalten bleiben.

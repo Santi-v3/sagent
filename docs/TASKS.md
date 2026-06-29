@@ -55,11 +55,14 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 
 ## Als Nächstes – MVP 2
 
-- [ ] Provider-neutralen `ModelAdapter`-Vertrag mit strukturierten Ein- und Ausgaben definieren
-- [ ] Deterministischen Fake-Adapter für Tests und Offline-Entwicklung implementieren
+- [x] Provider-neutralen `ModelAdapter`-Vertrag mit strukturierten Ein- und Ausgaben definieren
+- [x] Deterministischen Fake-Adapter für Tests und Offline-Entwicklung implementieren
+- [x] Capability-Router mit fester Transport-Allowlist und Input-/Output-Grenzen implementieren
+- [x] Modellantworten unveränderlich als untrusted markieren und Tool-Call-Strukturen ausschließen
+- [x] Adapter-Discovery und deterministische Offline-Preview in der API bereitstellen
 - [ ] Lokalen OpenAI-kompatiblen Adapter ohne fest eingebettete Zugangsdaten entwerfen
 - [ ] LM Studio und Ollama anhand von Installation, API-Kompatibilität, Streaming und Mac-Ressourcen vergleichen
-- [ ] Modelltext strikt als nicht vertrauenswürdige Eingabe behandeln; Tool-Policies bleiben deterministisch
+- [x] Modelltext strikt als nicht vertrauenswürdige Eingabe behandeln; Tool-Policies bleiben deterministisch
 - [ ] Timeout, Abbruch, fehlerhafte Antworten und nicht erreichbaren lokalen Modellserver testen
 - [ ] Erst nach separater Freigabe einen echten lokalen Modellaufruf in API und UI aktivieren
 

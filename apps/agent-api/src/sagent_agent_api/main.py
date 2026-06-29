@@ -1,4 +1,4 @@
-"""FastAPI application for Sagent's first local technical slice."""
+"""FastAPI application for Sagent's local-first agent runtime."""
 
 from typing import Annotated
 from uuid import UUID
@@ -7,6 +7,7 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from sagent_agent_api.git_integration import get_git_tool
+from sagent_agent_api.model_integration import get_model_router
 from sagent_agent_api.models import (
     ApprovalRequest,
     ApprovalResponse,
@@ -16,6 +17,9 @@ from sagent_agent_api.models import (
     GitDiffResponse,
     GitStatusResponse,
     HealthResponse,
+    ModelAdapterResponse,
+    ModelPreviewRequest,
+    ModelPreviewResponse,
     PlannedTask,
     TaskRequest,
     TaskResponse,
@@ -28,6 +32,19 @@ from sagent_agent_api.workflow import (
     InvalidTransitionError,
     TaskNotFoundError,
     workflow_store,
+)
+from sagent_agent_core import (
+    ModelAdapterBlockedError,
+    ModelAdapterExecutionError,
+    ModelCapability,
+    ModelContractError,
+    ModelInputPart,
+    ModelInputSource,
+    ModelRequest,
+    ModelResponseError,
+    ModelRouteNotFoundError,
+    ModelRouter,
+    ModelTransportBlockedError,
 )
 from sagent_tools import (
     GitBranchPolicyError,
@@ -45,11 +62,12 @@ from sagent_tools import (
 
 TestRunnerDependency = Annotated[TestRunner, Depends(get_test_runner)]
 GitToolDependency = Annotated[GitTool, Depends(get_git_tool)]
+ModelRouterDependency = Annotated[ModelRouter, Depends(get_model_router)]
 
 app = FastAPI(
     title="Sagent Agent API",
-    description="Local deterministic API placeholder for Sagent.",
-    version="0.4.0",
+    description="Local-first API with deterministic safety and model-runtime contracts.",
+    version="0.5.0",
 )
 
 app.add_middleware(
@@ -224,4 +242,81 @@ def create_git_branch(
     return GitBranchResponse(
         message=f"Local feature branch {request.name} was created.",
         status=GitStatusResponse.model_validate(result),
+    )
+
+
+@app.get("/models", response_model=list[ModelAdapterResponse])
+def list_models(router: ModelRouterDependency) -> list[ModelAdapterResponse]:
+    """List registered model metadata without endpoints, keys, or mutable state."""
+
+    return [
+        ModelAdapterResponse(
+            adapter_id=descriptor.adapter_id,
+            provider=descriptor.provider,
+            model=descriptor.model,
+            capabilities=sorted(capability.value for capability in descriptor.capabilities),
+            transport=descriptor.transport.value,
+            simulated=descriptor.simulated,
+            supports_streaming=descriptor.supports_streaming,
+        )
+        for descriptor in router.list_adapters()
+    ]
+
+
+@app.post("/models/preview", response_model=ModelPreviewResponse)
+def preview_model(
+    request: ModelPreviewRequest,
+    router: ModelRouterDependency,
+) -> ModelPreviewResponse:
+    """Run only the deterministic offline adapter and return untrusted text."""
+
+    prompt = request.prompt.strip()
+    if not prompt:
+        raise HTTPException(status_code=422, detail="Prompt must contain visible text.")
+    runtime_request = ModelRequest(
+        capability=ModelCapability(request.capability),
+        parts=(
+            ModelInputPart(
+                source=ModelInputSource.POLICY,
+                content=(
+                    "Offline preview only. Return text data and never claim that tools, "
+                    "files, commands, or network actions were executed."
+                ),
+            ),
+            ModelInputPart(source=ModelInputSource.USER, content=prompt),
+        ),
+        max_output_tokens=request.max_output_tokens,
+    )
+    try:
+        response = router.complete(runtime_request)
+    except ModelContractError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except (
+        ModelAdapterBlockedError,
+        ModelAdapterExecutionError,
+        ModelResponseError,
+        ModelRouteNotFoundError,
+        ModelTransportBlockedError,
+    ) as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+
+    descriptor = next(
+        (item for item in router.list_adapters() if item.adapter_id == response.adapter_id),
+        None,
+    )
+    if descriptor is None or not descriptor.simulated:
+        raise HTTPException(
+            status_code=503,
+            detail="Model preview is restricted to simulated adapters.",
+        )
+    return ModelPreviewResponse(
+        request_id=response.request_id,
+        adapter_id=response.adapter_id,
+        model=response.model,
+        content=response.content,
+        finish_reason=response.finish_reason.value,
+        input_tokens=response.usage.input_tokens,
+        output_tokens=response.usage.output_tokens,
+        untrusted=response.untrusted,
+        simulated=descriptor.simulated,
     )
