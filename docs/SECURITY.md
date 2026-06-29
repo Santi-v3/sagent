@@ -94,7 +94,18 @@ Der MVP-Git-Vertrag ist noch kein vollständiger Commit-Approval-Flow: Es gibt w
 - Der aktuelle `FakeModelAdapter` ist deterministisch und führt keinen Modell-, Netzwerk- oder Tool-Aufruf aus. Die API gibt weder Endpoint-Konfiguration noch Zugangsdaten zurück.
 - Adapterfehler werden in eine generische Fehlermeldung übersetzt, damit Provider-Interna nicht über die API-Grenze austreten.
 
-Ein echter lokaler Modellserver ist damit noch nicht freigegeben. Vor `loopback_http` müssen URL-Kanonisierung, Loopback-/Port-Allowlist, DNS-/Redirect-Schutz, Timeout, Abbruch, Größenlimits, Streaming und Fehler-Redaction separat implementiert und negativ getestet werden.
+## Implementierter Loopback-Modellvertrag (MVP 2.B)
+
+- Die Standardkonfiguration registriert weiterhin nur den Fake. Ein lokaler Adapter benötigt gleichzeitig `SAGENT_NETWORK_ENABLED=loopback`, ein festes Providerprofil, eine Base-URL und eine Modell-ID.
+- LM Studio ist ausschließlich auf Port `1234`, Ollama ausschließlich auf Port `11434` erlaubt. Host muss das exakte Literal `127.0.0.1` oder `::1`, Schema `http` und Pfad `/v1` sein. `localhost`, DNS, alternative IP-Darstellungen, andere Ports, URL-Credentials, Query und Fragment werden abgewiesen.
+- Der HTTP-Client nutzt `trust_env=false`, folgt keinen Redirects, aktiviert kein HTTP/2, sendet `Accept-Encoding: identity`, übernimmt keine Cookies oder Proxies und setzt keinen `Authorization`-Header.
+- Der Request enthält ausschließlich `model`, source-labelled `messages`, `temperature`, `max_tokens` und `stream=false`. Tool-Definitionen, Tool-Choice und frei wählbare Endpoints sind nicht Teil des API-Requests.
+- Connect-, Read-, Write- und Pool-Timeout sowie Request-/Response-Bytes sind begrenzt. Es gibt keine automatischen Retries.
+- HTTP-Fehlertexte, Connection-Details und Timeout-Details verlassen den Adapter nicht. Redirects, falscher Content-Type, ungültiges UTF-8/JSON, falsche Modell-ID, mehrere Choices, Tool-/Function-Calls, unerlaubte Finish-Reasons und fehlerhafte Usage werden blockiert.
+- `POST /models/complete` akzeptiert nur registrierte `loopback_http`-Adapter, begrenzten Text und `confirmed=true`. Die Antwort bleibt `untrusted=true` und `simulated=false`.
+- Die Konfiguration wird beim ersten Routerbau im Prozess gecacht. Ein Request kann Provider, URL, Port oder Modell nicht austauschen.
+
+Die technische Loopback-Grenze ist implementiert und mit Mock-Transports negativ getestet. Eine Live-Evaluation gegen tatsächlich gestartete LM-Studio-/Ollama-Server bleibt separat, damit Installation, Modellwahl und Ressourcenverbrauch nicht stillschweigend verändert werden.
 
 ## Prompt Injection
 

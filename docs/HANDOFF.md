@@ -2,10 +2,10 @@
 
 ## Projektstatus
 
-- **Phase:** MVP 1 abgeschlossen; MVP 2.A abgeschlossen
+- **Phase:** MVP 1 und MVP 2.A abgeschlossen; MVP 2.B implementiert
 - **Stand:** 2026-06-29
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** MVP 2.B – abgesicherter Loopback-HTTP-Adapter für lokale OpenAI-kompatible Modellserver
+- **Aktueller Fokus:** MVP 2.C – Live-Evaluation von LM Studio, Ollama und einem ersten Coding-Modell auf dem Ziel-Mac
 
 ## Fertiggestellt
 
@@ -58,6 +58,15 @@
 - Modellantworten unveränderlich als `untrusted=true` modelliert; der Adaptervertrag enthält keine Tool-Call- oder Policy-Schnittstelle
 - `GET /models` und `POST /models/preview` für Discovery und begrenzte Offline-Simulation ergänzt
 - 14 fokussierte Core-/API-Tests für Determinismus, Injection-Text, Limits, Routing, blockierte echte Adapter/Transporte und fehlerhafte Adapterantworten erfolgreich geprüft
+- Kanonische `LoopbackEndpoint`-Policy für exakte IPv4-/IPv6-Literale, `/v1` und feste LM-Studio-/Ollama-Ports implementiert
+- `LoopbackOpenAIChatAdapter` für nicht streamende `POST /v1/chat/completions` ohne Credentials, Proxies, Redirects, HTTP/2, Tools oder Retries ergänzt
+- Source-labelled Inputs auf minimale System-/User-Messages abgebildet und Modell-, Request- sowie Response-Bytes begrenzt
+- Strikte Response-Prüfung für Content-Type, UTF-8/JSON, Modell-ID, genau eine Assistant-Choice, Textinhalt, Finish-Reason und Usage implementiert
+- `SAGENT_NETWORK_ENABLED=loopback` plus festes Provider-, Base-URL- und Modellprofil als vierfaches Opt-in eingeführt; Standardroute bleibt Fake
+- `POST /models/complete` benötigt registrierten Loopback-Adapter und `confirmed=true`; URL, Port und Modell sind nicht request-steuerbar
+- Positive Mock-Integration sowie negative Tests für URL-Ausbruch, Proxyvererbung, Redirect, Timeout, Connection-Fehler, Protokollfehler und Größenlimits ergänzt
+- `docs/LOCAL_MODELS.md` mit Konfiguration, Sicherheitsgrenzen und noch offener Live-Evaluation ergänzt
+- 37 fokussierte Loopback-/Model-API-Tests und insgesamt 106 Python-Tests erfolgreich geprüft; Ruff, ESLint, TypeScript und Produktionsbuild bestanden
 
 ## MVP-1-Abschlussaudit
 
@@ -83,18 +92,21 @@
 - Die Commit-Vorbereitung ist nur ein unveränderlicher Plan. Sagent kann selbst weder stagen noch committen, pushen oder mergen
 - Secret-Erkennung ist absichtlich konservativ und musterorientiert; ein Treffer blockiert die Commit-Vorbereitung, ersetzt aber keinen manuellen Secret-Scan
 - Die visuelle Git-Ansicht wurde im laufenden Feature-Branch geprüft; der isolierte `main`-Browserdurchlauf wurde durch wiederholte Unterbrechungen der lokalen Browserverbindung nicht vollständig automatisiert. API- und Tool-Tests decken `main`-Warnung und Branch-Wechsel ab
-- `loopback_http` und `remote_http` sind nur Typen im Vertrag und werden vom aktuellen Router blockiert
-- Es gibt noch kein Streaming, keine Modellserver-Erkennung, keine sichere Endpoint-Konfiguration und keinen echten Modellvergleich
+- `remote_http` bleibt immer blockiert; `loopback_http` ist nur nach vollständiger Prozesskonfiguration und bestätigtem Request aktiv
+- Es gibt noch kein Streaming, keine automatische Modellserver-Erkennung und keinen echten Modellvergleich
+- Eine bereits blockierend laufende HTTP-Generierung kann derzeit nur durch den Read-Timeout beendet werden; ein expliziter Cancellation-Token fehlt noch
+- Die Kompatibilität ist gegen die offiziellen LM-Studio-/Ollama-Verträge und Mock-Transports geprüft, aber noch nicht gegen einen tatsächlich laufenden lokalen Modellserver
 
 ## Nächster sinnvoller Schritt
 
-MVP 2.B als separates Sicherheitsinkrement umsetzen:
+MVP 2.C als kontrollierte lokale Evaluation durchführen:
 
-1. Endpoint-Konfiguration ausschließlich für kanonische `http://127.0.0.1`-/`http://[::1]`-URLs und erlaubte Ports definieren.
-2. Redirects, DNS-Namen, Unix-Sockets, Proxyvererbung und Credential-Übernahme blockieren.
-3. OpenAI-kompatiblen Request/Response-Transport mit Timeout, Abbruch und harten Größenlimits implementieren.
-4. Nicht erreichbaren Server, Timeout, Redirect, ungültiges JSON, falsche IDs und übergroße Antworten negativ testen.
-5. LM Studio und Ollama lokal anhand derselben reproduzierbaren Coding-Aufgaben evaluieren; erst danach UI-Integration erwägen.
+1. Nutzer wählt und startet LM Studio oder Ollama bewusst auf dem Ziel-Mac; Sagent installiert oder lädt kein Modell ungefragt.
+2. Einen kleinen, Mac-tauglichen Coding-Modellkandidaten und eine feste Benchmark-Aufgabe dokumentieren.
+3. `GET /models` und bestätigtes `POST /models/complete` gegen den echten Loopback-Server prüfen.
+4. Latenz, Speicherbedarf, Antwortqualität, Token-Nutzung und Fehlerverhalten reproduzierbar protokollieren.
+5. Danach denselben Ablauf mit dem zweiten Provider und mindestens einem zweiten Coding-Modell vergleichen.
+6. Erst auf Basis dieser Daten Default-Modell, Streaming-/Abbruch-Inkrement und UI-Modellwahl entscheiden.
 
 Kostenpflichtige APIs, externe Modellendpunkte, freie Shell und Modell-gesteuerte Policy-Entscheidungen bleiben ausdrücklich ausgeschlossen.
 
@@ -104,7 +116,7 @@ Kostenpflichtige APIs, externe Modellendpunkte, freie Shell und Modell-gesteuert
 - Jede Aufgabe auf einem Feature-Branch abschließen: testen, committen, Branch pushen und PR gegen `main` erstellen.
 - Niemals ohne ausdrückliche Nutzerbestätigung mergen oder Auto-Merge aktivieren.
 - Datei-Schreibzugriffe ausschließlich über den getesteten ChangeSet-/Approval-Vertrag führen.
-- Keine freie Shell; echter Loopback-Modellaufruf erst nach vollständigem MVP-2.B-Sicherheitsreview.
+- Keine freie Shell, kein Remote-Modell und keine automatische Installation oder Modell-Downloads.
 - Neue Architekturentscheidungen im Decision Log ergänzen.
 - Tests für negative Sicherheitsfälle vor Happy-Path-Komfort priorisieren.
 - Modellantworten in MVP 2 immer als untrusted input behandeln; nur deterministischer Core und Tool-Policies dürfen Aktionen autorisieren.
@@ -124,4 +136,4 @@ Der Nutzer prüft den PR. Kein Merge und kein Auto-Merge ohne seine ausdrücklic
 
 ## Startprompt für eine Folgesession
 
-> Lies docs/MASTER_PLAN.md vollständig und nutze ihn als strategische Quelle. Lies danach README.md, docs/SECURITY.md, docs/DECISIONS.md, docs/TASKS.md und docs/HANDOFF.md. Implementiere MVP 2.B als abgesicherten Loopback-HTTP-Adapter für lokale OpenAI-kompatible Modellserver. Erlaube ausschließlich kanonische Loopback-URLs und explizite Ports, deaktiviere Redirects und geerbte Proxies, setze harte Timeouts und Größenlimits und teste alle negativen Netzwerkfälle. Keine Remote-Endpunkte, Zugangsdaten, Tool-Autorität oder freie Shell.
+> Lies docs/MASTER_PLAN.md und docs/LOCAL_MODELS.md vollständig, danach SECURITY.md, DECISIONS.md, TASKS.md und HANDOFF.md. Führe MVP 2.C nur mit einem vom Nutzer bewusst gestarteten lokalen LM-Studio- oder Ollama-Server durch. Installiere oder lade nichts ungefragt. Nutze eine feste Coding-Benchmark, protokolliere Latenz, Speicher, Token und Qualität und vergleiche mindestens zwei Provider-/Modellkombinationen. Keine Remote-Endpunkte, Zugangsdaten, Tool-Autorität oder freie Shell.
