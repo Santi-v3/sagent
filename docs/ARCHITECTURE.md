@@ -24,19 +24,19 @@ Sandboxed workspace tools
 
 ### `apps/web`
 
-Spätere Next.js/PWA für Aufgaben, Pläne, Diffs, Prüfergebnisse und Approval-Dialoge. Die UI darf Sicherheitsentscheidungen nicht allein erzwingen; die API validiert jede Aktion erneut.
+Lokale Next.js-Oberfläche für Aufgaben, Pläne, Diffs, Prüfergebnisse und Approval-Dialoge. Seit MVP 1.E zeigt sie zusätzlich Branch, Worktree-Status und Git-Diff und kann einen policy-konformen lokalen Feature-Branch anfordern. Die UI darf Sicherheitsentscheidungen nicht allein erzwingen; die API validiert jede Aktion erneut.
 
 ### `apps/agent-api`
 
-Spätere lokale FastAPI. Sie verwaltet Sitzungen, transportiert typisierte Kommandos und streamt Ereignisse. Sie bindet standardmäßig nur an `127.0.0.1` und besitzt keine eigenständige Tool-Logik.
+Lokale FastAPI. Sie verwaltet den derzeit flüchtigen Task-Workflow und transportiert typisierte Kommandos zu den eng begrenzten Tools. Sie bindet standardmäßig nur an `127.0.0.1` und besitzt keine eigenständige Tool-Logik.
 
 ### `packages/agent-core`
 
-Zentrale Zustandsmaschine für `intake → inspect → plan → propose → approve → apply → verify → complete`. Hier liegen Tool-Routing, Policy-Prüfung, Approval-Tokens und Audit-Ereignisse. LangGraph kann später diese Zustandsmaschine implementieren, ist aber keine Voraussetzung für MVP 1.
+Zentrale Zustandsmaschine für `intake → inspect → plan → propose → approve → apply → verify → complete`. MVP 1.C implementiert hier unveränderliche ChangeSets, Unified Diffs, Proposal-Hashes und den einmaligen Approval-/Apply-Lebenszyklus. LangGraph kann später diese Zustandsmaschine implementieren, ist aber keine Voraussetzung für MVP 1.
 
 ### `packages/tools`
 
-Kleine, einzeln prüfbare Tools mit typisierten Eingaben und Ausgaben. Beispiele: Dateien auflisten, Textdatei lesen, Patch vorbereiten, erlaubten Testbefehl starten. Kein Tool erhält pauschalen Shell- oder Dateisystemzugriff.
+Kleine, einzeln prüfbare Tools mit typisierten Eingaben und Ausgaben. MVP 1.C enthält den `WorkspaceGuard` und `FileTool` für begrenzte UTF-8-Textdateien. MVP 1.D ergänzt feste Testprofile, begrenzte Prozessausführung und redigierte Ergebnisse. MVP 1.E ergänzt repository-gebundenen Git-Status, begrenzte und redigierte Diffs, lokale Feature-Branch-Erstellung und eine nicht ausführende Commit-Vorbereitung. Schreibmethoden prüfen einen intern signierten Nachweis des Agent-Core erneut. Kein Tool erhält pauschalen Shell- oder Dateisystemzugriff; Git-Push und Merge sind nicht implementiert.
 
 ### `packages/memory`
 

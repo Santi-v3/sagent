@@ -1,5 +1,7 @@
 # Projektdefinition
 
+> Strategische Quelle: [`MASTER_PLAN.md`](MASTER_PLAN.md). Dieses Dokument fasst den aktuell relevanten Produktscope kompakt zusammen.
+
 ## Vision
 
 Sagent wird ein persönlicher, lokal laufender Entwicklungsagent für macOS. Er soll technische Arbeit verständlich vorbereiten und kontrolliert ausführen, ohne dem Menschen die letzte Entscheidung abzunehmen.

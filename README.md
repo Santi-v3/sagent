@@ -2,7 +2,17 @@
 
 Sagent ist ein local-first, Mac-first Personal AI Agent in Entwicklung. Langfristig soll er wie ein eigener Coding-Agent arbeiten: Projekte lesen, Änderungen planen, Code vorbereiten, Tests ausführen, Diffs erklären und Änderungen erst nach ausdrücklicher menschlicher Freigabe übernehmen.
 
-Dieses Repository enthält zunächst nur eine klare, dokumentierte Projektbasis. Es gibt noch keine LLM-Anbindung, keine produktive Benutzeroberfläche und keine Werkzeuge mit unbeschränktem Datei- oder Systemzugriff.
+Das Repository enthält MVP 1 als lokal ausführbare Minimalversion: eine deterministische Agent-API, eine Codex-nahe Weboberfläche, sichere ChangeSets, einen allowlist-basierten TestRunner sowie begrenzte Git-Status-, Diff- und Branch-Funktionen. Es gibt weiterhin keine LLM-Anbindung, keine freie Shell und keine unkontrollierten Systemwerkzeuge. Die Datei-Tools sind bewusst noch nicht mit API oder UI verbunden; Push und Merge sind im Agent-Tool nicht verfügbar.
+
+## Projektkontext
+
+[`docs/MASTER_PLAN.md`](docs/MASTER_PLAN.md) ist die kanonische Quelle für Vision, Zielbild, MVP-Reihenfolge und langfristigen Funktionsumfang. Die fokussierten Dokumente konkretisieren den Masterplan:
+
+1. `docs/DECISIONS.md` hält später getroffene Architekturpräzisierungen fest.
+2. `docs/SECURITY.md` enthält verbindliche Schutzregeln; bei Unklarheit gilt die strengere Regel.
+3. `docs/TASKS.md` und `docs/HANDOFF.md` beschreiben den aktuellen Arbeitsstand.
+
+Bei Widersprüchen wird nichts stillschweigend überschrieben: Die Abweichung wird dokumentiert und vor der Implementierung geklärt.
 
 ## Leitprinzipien
 
@@ -17,12 +27,12 @@ Dieses Repository enthält zunächst nur eine klare, dokumentierte Projektbasis.
 
 ```text
 apps/
-  web/           Spätere Next.js/PWA-Oberfläche
-  agent-api/     Spätere FastAPI für lokale Agent-Sitzungen
+  web/           Lokale Next.js-Oberfläche
+  agent-api/     Lokale FastAPI mit Task-, Plan- und Approval-Workflow
 packages/
-  agent-core/    Orchestrierung, Policies und Approval-Logik
+  agent-core/    ChangeSets, Diffs und inhaltsgebundene Approval-Logik
   memory/        Markdown-basiertes Memory-System
-  tools/         Begrenzte Datei-, Diff- und Test-Werkzeuge
+  tools/         WorkspaceGuard, Datei-, Test- und begrenzte Git-Werkzeuge
   shared/        Gemeinsame Verträge und Hilfsfunktionen
 docs/            Produkt-, Architektur- und Betriebsdokumentation
 ```
@@ -33,23 +43,58 @@ Der vorgesehene Stack ist Next.js, React, Tailwind und TypeScript im Frontend so
 
 - macOS
 - Node.js 22 oder neuer
-- pnpm 10 oder neuer
-- Python 3.12 oder neuer
+- pnpm 11 oder neuer
+- Python 3.12
 - uv
 
-## Lokale Vorbereitung
-
-Noch gibt es keine installierbaren App-Pakete. Sobald die ersten Scaffolds vorhanden sind, ist der vorgesehene Ablauf:
+## Installation
 
 ```bash
-cp .env.example .env
 pnpm install
 uv sync --dev
-pnpm check
 ```
+
+Optional kann `.env.example` nach `.env` kopiert werden. Für den Standardstart sind keine Secrets oder API-Keys erforderlich.
+
+## Lokal starten
+
+API und Weboberfläche gemeinsam starten:
+
+```bash
+pnpm dev
+```
+
+Danach sind verfügbar:
+
+- Weboberfläche: `http://127.0.0.1:3000`
+- API-Status: `http://127.0.0.1:8765/health`
+- Interaktive API-Dokumentation: `http://127.0.0.1:8765/docs`
+
+Die Weboberfläche zeigt nach einer Task-Freigabe Testprofile sowie den lokalen Git-Status und den redigierten Diff. Einen neuen lokalen Branch kann sie nur mit den Präfixen `codex/`, `feature/`, `fix/`, `docs/`, `test/` oder `chore/` erstellen. Es gibt keine UI- oder API-Aktion für Push oder Merge.
+
+Die API kann auch separat gestartet werden:
+
+```bash
+PYTHONPATH=apps/agent-api/src:packages/tools/src:packages/agent-core/src \
+  uv run uvicorn sagent_agent_api.main:app \
+  --app-dir apps/agent-api/src \
+  --reload \
+  --host 127.0.0.1 \
+  --port 8765
+```
+
+## Qualität prüfen
+
+```bash
+pnpm check
+pnpm build
+```
+
+`pnpm check` führt ESLint, ruff, TypeScript-Prüfung und pytest aus.
 
 ## Dokumentation
 
+- [Masterplan](docs/MASTER_PLAN.md)
 - [Projektdefinition](docs/PROJECT.md)
 - [Architektur](docs/ARCHITECTURE.md)
 - [Roadmap](docs/ROADMAP.md)
@@ -62,7 +107,7 @@ pnpm check
 
 ## Status
 
-**Phase 0 – Foundation.** Die Repository-Struktur und die Projektverträge werden festgelegt. Der nächste technische Schritt ist ein minimaler, deterministischer Agent-Core ohne LLM, der einen Workspace nur lesen und einen Änderungsplan als Datenstruktur erzeugen kann.
+**MVP 1 abgeschlossen.** Der lokale Workflow deckt Task-Planung, Proposal und Approval, sichere interne ChangeSets, allowlist-basierte Tests sowie redigierten Git-Status und Diff ab. Feature-Branches können lokal nach enger Namensregel erstellt werden; Arbeit auf `main` erzeugt eine Warnung. Commit-Vorbereitung verändert Git nicht, Push und Merge bleiben blockiert. Als Nächstes folgt MVP 2 mit einem zunächst lokalen, austauschbaren Modelladapter hinter denselben Sicherheitsgrenzen.
 
 ## Lizenz
 

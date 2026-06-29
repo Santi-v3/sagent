@@ -4,7 +4,12 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**",
+        "src/**/__pycache__/**"
+      ]
     },
     "dev": {
       "cache": false,
@@ -17,8 +22,7 @@
       "cache": false
     },
     "test": {
-      "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "dependsOn": ["^build"]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"]

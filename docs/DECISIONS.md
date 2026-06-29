@@ -50,3 +50,38 @@ Dieses Dokument ist ein leichtgewichtiges Decision Log. Neue Entscheidungen erha
 - **Datum:** 2026-06-29
 - **Entscheidung:** Die ersten Zustände werden als einfache, getestete Zustandsmaschine gebaut. LangGraph wird eingeführt, wenn Verzweigungen, Wiederaufnahme oder Persistenz es rechtfertigen.
 - **Konsequenz:** Geringere Anfangskomplexität ohne die spätere Technologieoption zu verlieren.
+
+## ADR-008: Der Projektplan ist die strategische Kontextquelle
+
+- **Status:** Angenommen
+- **Datum:** 2026-06-29
+- **Entscheidung:** `docs/MASTER_PLAN.md` definiert Vision, Zielbild, MVP-Reihenfolge und langfristigen Scope. Fokussierte Dokumente dürfen Details präzisieren, aber strategische Abweichungen müssen sichtbar als neue Entscheidung dokumentiert werden.
+- **Konsequenz:** Neue Agent-Sessions lesen zuerst den Masterplan. `SECURITY.md` bleibt für Schutzregeln verbindlich; bei Unklarheit gilt die strengere Regel. `TASKS.md` und `HANDOFF.md` bilden nur den aktuellen Ausschnitt ab.
+
+## ADR-009: Feature-Branch, Push und Pull Request sind der Standardabschluss
+
+- **Status:** Angenommen
+- **Datum:** 2026-06-29
+- **Entscheidung:** Codex arbeitet pro Aufgabe auf einem Feature-Branch, testet, committet, pusht den Feature-Branch und erstellt einen Pull Request gegen `main`. Nur der Nutzer darf den Merge freigeben.
+- **Konsequenz:** Feature-Branch-Push und PR-Erstellung gelten als dauerhaft autorisierte Abschlussaktionen. Direkte Arbeit oder Pushes auf `main`, Force-Push, Auto-Merge und Merge ohne ausdrückliche Nutzerbestätigung bleiben verboten. Diese neuere Entscheidung präzisiert abweichende Git-Regeln im Masterplan.
+
+## ADR-010: Datei-Freigaben sind inhaltsgebundene ChangeSets
+
+- **Status:** Angenommen
+- **Datum:** 2026-06-29
+- **Entscheidung:** Dateiänderungen werden zuerst mit kanonischen relativen Pfaden, altem und neuem Inhalt sowie Unified Diff vorbereitet. Die Freigabe bindet sich an einen SHA-256-Hash dieses exakten ChangeSets. Erst danach erzeugt der Core prozessinterne, HMAC-signierte Schreibnachweise für die enthaltenen Dateioperationen.
+- **Konsequenz:** Ein geänderter Pfad, Inhalt, Operationstyp oder Ausgangszustand entwertet die Freigabe. ChangeSets werden nur einmal angewendet. Die Zustände liegen in MVP 1.C noch ausschließlich im Prozessspeicher; Persistenz und Ablaufzeiten folgen vor einer produktiven Nutzung.
+
+## ADR-011: Testausführung erfolgt nur über sichtbare, feste Profile
+
+- **Status:** Angenommen
+- **Datum:** 2026-06-29
+- **Entscheidung:** Die API akzeptiert keine Befehle oder Argumentlisten aus Requests. Sie bietet ausschließlich serverseitig registrierte Profile an. Ein Lauf benötigt einen bereits freigegebenen Task, `confirmed=true` und den unverändert zurückgesendeten Anzeigebefehl. Der Prozess startet als Argumentliste ohne freie Shell.
+- **Konsequenz:** Unbekannte Profile und veränderte Befehle werden vor Prozessstart blockiert. Timeout, Prozessgruppe, CPU, Dateideskriptoren, Umgebung, Loggröße, Redaction und Ergebnisanzahl sind begrenzt. Da Repository-Tests selbst Code ausführen, bleibt der Runner bis zu einer echten macOS-Sandbox nur für bewusst geprüfte lokale Workspaces freigegeben.
+
+## ADR-012: Git-Inspektion und Git-Mutation bleiben getrennt
+
+- **Status:** Angenommen
+- **Datum:** 2026-06-29
+- **Entscheidung:** MVP 1.E stellt Branch, Status und einen begrenzten, Secret-redigierten Diff über feste Git-Argumentlisten bereit. Als einzige Mutation darf ein ausdrücklich bestätigter, policy-konformer lokaler Feature-Branch erstellt werden. Eine Commit-Vorbereitung erzeugt nur Metadaten, die an den sichtbaren Diff-Hash gebunden sind; sie staged und committet nicht. Push und Merge sind im Tool immer blockiert.
+- **Konsequenz:** Die Weboberfläche kann den Repository-Zustand prüfbar machen, besitzt aber keine Remote-Aktion. Sensible, gekürzte oder nachträglich veränderte Diffs blockieren die Commit-Vorbereitung. Ein späterer Commit-, Push- oder Merge-Flow benötigt eigene serverseitige Approval-Verträge und neue negative Sicherheitstests. Der beaufsichtigte Codex-Repository-Abschluss aus ADR-009 bleibt davon getrennt.
