@@ -3,11 +3,12 @@
 import json
 from threading import Event
 from time import monotonic, sleep
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import httpx2 as httpx
 from fastapi.testclient import TestClient
 
+import sagent_agent_api.model_jobs as model_jobs_module
 from sagent_agent_api.main import app
 from sagent_agent_api.model_jobs import get_model_job_service
 from sagent_agent_core import (
@@ -15,6 +16,7 @@ from sagent_agent_core import (
     LoopbackOpenAIChatAdapter,
     ModelCapability,
     ModelJobService,
+    ModelJobState,
     ModelRouter,
     ModelTransport,
 )
@@ -186,3 +188,29 @@ def test_job_api_requires_confirmation_known_adapter_and_known_job() -> None:
     assert unknown_adapter.status_code == 422
     assert missing_job.status_code == 404
     assert missing_cancel.status_code == 404
+
+
+def test_api_shutdown_cancels_active_job_and_closes_response_stream() -> None:
+    stream = BlockingJsonStream(json.dumps(success_payload()).encode("utf-8"))
+    service = job_service(
+        lambda request: httpx.Response(
+            200,
+            headers={"content-type": "application/json"},
+            stream=stream,
+        )
+    )
+    model_jobs_module._service = service
+    try:
+        with TestClient(app) as lifecycle_client:
+            created = lifecycle_client.post("/models/jobs", json=start_payload())
+            assert created.status_code == 202
+            assert stream.started.wait(1)
+
+        snapshot = service.get(UUID(created.json()["job_id"]))
+
+        assert snapshot.state is ModelJobState.CANCELLED
+        assert stream.closed is True
+        assert model_jobs_module._service is None
+        model_jobs_module.close_model_job_service()
+    finally:
+        model_jobs_module.close_model_job_service()

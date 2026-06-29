@@ -148,10 +148,22 @@ def test_environment_configuration_requires_explicit_loopback_profile() -> None:
     assert local.simulated is False
     assert all(not hasattr(item, "base_url") for item in descriptors)
 
+    ollama_router = build_model_router(
+        {
+            "SAGENT_NETWORK_ENABLED": "loopback",
+            "SAGENT_LLM_PROVIDER": "ollama",
+            "SAGENT_LLM_BASE_URL": "http://127.0.0.1:11434/v1",
+            "SAGENT_LLM_MODEL": "qwen3-coder-local",
+        }
+    )
+    assert any(
+        item.adapter_id == "local-ollama" for item in ollama_router.list_adapters()
+    )
+
     with pytest.raises(ModelContractError, match="NETWORK_ENABLED=loopback"):
         build_model_router(
             {
-                "SAGENT_NETWORK_ENABLED": "true",
+                "SAGENT_NETWORK_ENABLED": "remote",
                 "SAGENT_LLM_PROVIDER": "lm-studio",
                 "SAGENT_LLM_BASE_URL": "http://127.0.0.1:1234/v1",
                 "SAGENT_LLM_MODEL": "qwen3-coder-local",
@@ -163,6 +175,15 @@ def test_environment_configuration_requires_explicit_loopback_profile() -> None:
                 "SAGENT_NETWORK_ENABLED": "loopback",
                 "SAGENT_LLM_PROVIDER": "ollama",
                 "SAGENT_LLM_BASE_URL": "http://127.0.0.1:1234/v1",
+                "SAGENT_LLM_MODEL": "qwen3-coder-local",
+            }
+        )
+    with pytest.raises(ModelContractError, match="port"):
+        build_model_router(
+            {
+                "SAGENT_NETWORK_ENABLED": "loopback",
+                "SAGENT_LLM_PROVIDER": "lm-studio",
+                "SAGENT_LLM_BASE_URL": "http://127.0.0.1:11434/v1",
                 "SAGENT_LLM_MODEL": "qwen3-coder-local",
             }
         )

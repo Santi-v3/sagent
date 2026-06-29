@@ -1,13 +1,13 @@
 # Lokale Modelle
 
-Sagent unterstützt in MVP 2.B einen bewusst kleinen OpenAI-kompatiblen Vertrag für lokale Chat Completions. Der Adapter ist standardmäßig deaktiviert und kann ausschließlich einen vorkonfigurierten Server unter der exakten IPv4- oder IPv6-Loopback-Adresse ansprechen.
+Sagent unterstützt in MVP 2.B einen bewusst kleinen OpenAI-kompatiblen Vertrag für lokale Chat Completions. Der Adapter ist standardmäßig deaktiviert und kann ausschließlich einen vorkonfigurierten Server unter der exakten IPv4-Loopback-Adresse ansprechen.
 
 ## Unterstützte Profile
 
 | Profil | Erlaubte Base-URL | Vertrag |
 | --- | --- | --- |
-| LM Studio | `http://127.0.0.1:1234/v1` oder `http://[::1]:1234/v1` | `POST /v1/chat/completions` |
-| Ollama | `http://127.0.0.1:11434/v1` oder `http://[::1]:11434/v1` | `POST /v1/chat/completions` |
+| LM Studio | `http://127.0.0.1:1234/v1` | `POST /v1/chat/completions` |
+| Ollama | `http://127.0.0.1:11434/v1` | `POST /v1/chat/completions` |
 
 Die Ports entsprechen den Beispielen der offiziellen [LM-Studio-Dokumentation](https://lmstudio.ai/docs/developer/openai-compat/chat-completions) und [Ollama-Dokumentation](https://docs.ollama.com/api/openai-compatibility). Andere Hosts, Hostnamen, Ports, Pfade, Protokolle, Redirects und Remote-Endpunkte werden abgewiesen.
 
@@ -61,7 +61,7 @@ Terminale Jobs können nicht nachträglich abgebrochen werden. Ein bereits abgeb
 
 ## Sicherheitsgrenzen
 
-- Nur exakte Literale `127.0.0.1` und `::1`; kein `localhost`, DNS oder alternative IP-Darstellung.
+- Nur das exakte Literal `127.0.0.1`; kein IPv6, `localhost`, DNS oder alternative IP-Darstellung.
 - Nur `http`, der Profilport und der kanonische Pfad `/v1`.
 - Keine URL-Credentials, Query-Parameter, Fragmente, API-Keys oder `Authorization`-Header.
 - Keine geerbten Proxyvariablen, Redirects, HTTP/2, automatischen Retries oder Tool-Definitionen.
