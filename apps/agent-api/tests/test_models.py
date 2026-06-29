@@ -10,6 +10,7 @@ from sagent_agent_core import (
     LoopbackEndpoint,
     LoopbackOpenAIChatAdapter,
     ModelAdapterDescriptor,
+    ModelCancellationToken,
     ModelCapability,
     ModelContractError,
     ModelRequest,
@@ -31,7 +32,12 @@ class BlockedRealAdapter:
         simulated=False,
     )
 
-    def complete(self, request: ModelRequest) -> ModelResponse:
+    def complete(
+        self,
+        request: ModelRequest,
+        *,
+        cancellation: ModelCancellationToken | None = None,
+    ) -> ModelResponse:
         raise AssertionError("A non-simulated adapter must not execute.")
 
 

@@ -4,9 +4,11 @@ import hashlib
 import json
 import math
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import StrEnum
+from threading import Event, Lock
 from types import MappingProxyType
 from typing import Protocol, runtime_checkable
 from uuid import UUID, uuid4
@@ -38,6 +40,66 @@ class ModelAdapterExecutionError(ModelRuntimeError):
 
 class ModelResponseError(ModelRuntimeError):
     """Raised when an adapter returns an invalid or oversized response."""
+
+
+class ModelCancelledError(ModelRuntimeError):
+    """Raised when a model request is cancelled before completion."""
+
+
+class ModelCancellationToken:
+    """Thread-safe, idempotent cancellation signal with close callbacks."""
+
+    def __init__(self) -> None:
+        self._event = Event()
+        self._lock = Lock()
+        self._callbacks: dict[UUID, Callable[[], None]] = {}
+
+    @property
+    def is_cancelled(self) -> bool:
+        return self._event.is_set()
+
+    def cancel(self) -> bool:
+        """Set cancellation once and invoke registered resource closers."""
+
+        with self._lock:
+            if self._event.is_set():
+                return False
+            self._event.set()
+            callbacks = tuple(self._callbacks.values())
+            self._callbacks.clear()
+        for callback in callbacks:
+            with suppress(Exception):
+                callback()
+        return True
+
+    def wait(self, timeout: float | None = None) -> bool:
+        """Wait for cancellation; useful to coordinate bounded workers and tests."""
+
+        return self._event.wait(timeout)
+
+    def raise_if_cancelled(self) -> None:
+        if self.is_cancelled:
+            raise ModelCancelledError("Model request was cancelled.")
+
+    def add_cancel_callback(self, callback: Callable[[], None]) -> Callable[[], None]:
+        """Register a resource closer and return an idempotent unregister function."""
+
+        callback_id = uuid4()
+        call_immediately = False
+        with self._lock:
+            if self._event.is_set():
+                call_immediately = True
+            else:
+                self._callbacks[callback_id] = callback
+        if call_immediately:
+            with suppress(Exception):
+                callback()
+
+        def unregister() -> None:
+            with self._lock:
+                self._callbacks.pop(callback_id, None)
+
+        return unregister
 
 
 class ModelCapability(StrEnum):
@@ -170,7 +232,12 @@ class ModelAdapter(Protocol):
     def descriptor(self) -> ModelAdapterDescriptor:
         """Return static metadata used for routing and policy checks."""
 
-    def complete(self, request: ModelRequest) -> ModelResponse:
+    def complete(
+        self,
+        request: ModelRequest,
+        *,
+        cancellation: ModelCancellationToken | None = None,
+    ) -> ModelResponse:
         """Return untrusted text for one immutable request."""
 
 
@@ -197,7 +264,14 @@ class FakeModelAdapter:
     def descriptor(self) -> ModelAdapterDescriptor:
         return self._descriptor
 
-    def complete(self, request: ModelRequest) -> ModelResponse:
+    def complete(
+        self,
+        request: ModelRequest,
+        *,
+        cancellation: ModelCancellationToken | None = None,
+    ) -> ModelResponse:
+        if cancellation is not None:
+            cancellation.raise_if_cancelled()
         if request.capability not in self.descriptor.capabilities:
             raise ModelContractError("Fake adapter does not support this capability.")
         if request.stream:
@@ -225,7 +299,7 @@ class FakeModelAdapter:
         truncated = len(full_content) > max_characters
         content = full_content[:max_characters]
         input_characters = sum(len(part.content) for part in request.parts)
-        return ModelResponse(
+        response = ModelResponse(
             request_id=request.request_id,
             adapter_id=self.descriptor.adapter_id,
             model=self.descriptor.model,
@@ -236,6 +310,9 @@ class FakeModelAdapter:
                 output_tokens=max(1, math.ceil(len(content) / 4)),
             ),
         )
+        if cancellation is not None:
+            cancellation.raise_if_cancelled()
+        return response
 
 
 class ModelRouter:
@@ -293,9 +370,17 @@ class ModelRouter:
             self._adapters[adapter_id].descriptor for adapter_id in sorted(self._adapters)
         )
 
-    def complete(self, request: ModelRequest, *, adapter_id: str | None = None) -> ModelResponse:
+    def complete(
+        self,
+        request: ModelRequest,
+        *,
+        adapter_id: str | None = None,
+        cancellation: ModelCancellationToken | None = None,
+    ) -> ModelResponse:
         """Validate, route, execute, and revalidate one text-only request."""
 
+        if cancellation is not None:
+            cancellation.raise_if_cancelled()
         self._validate_request(request)
         selected_id = adapter_id or self._routes.get(request.capability)
         if selected_id is None:
@@ -322,12 +407,14 @@ class ModelRouter:
             raise ModelContractError("Selected adapter does not support streaming.")
 
         try:
-            response = adapter.complete(request)
+            response = adapter.complete(request, cancellation=cancellation)
         except ModelRuntimeError:
             raise
         except Exception as error:
             raise ModelAdapterExecutionError("Model adapter execution failed.") from error
 
+        if cancellation is not None:
+            cancellation.raise_if_cancelled()
         self._validate_response(request, descriptor, response)
         return response
 

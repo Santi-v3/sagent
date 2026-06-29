@@ -67,7 +67,7 @@ Die vollständige strategische Roadmap steht in [`MASTER_PLAN.md`](MASTER_PLAN.m
 ## MVP 2 – Echtes LLM und Modell-Router
 
 - **MVP 2.A abgeschlossen:** provider-neutraler Modellvertrag, deterministischer Fake-Adapter, Capability-Router und Transport-Allowlist
-- **MVP 2.B Transportkern implementiert:** abgesicherter, opt-in Loopback-HTTP-Adapter; aktiver Abbruch bleibt offen
+- **MVP 2.B abgeschlossen:** abgesicherter opt-in Loopback-Adapter sowie begrenzte, aktiv abbrechbare Modelljobs
 - **MVP 2.C als Nächstes:** reproduzierbare Live-Evaluation mit LM Studio und Ollama sowie erstem Coding-Modell
 - Adapter für lokale OpenAI-kompatible Endpunkte
 - LM Studio, Ollama und später MLX evaluieren

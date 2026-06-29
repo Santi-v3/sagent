@@ -105,7 +105,18 @@ Der MVP-Git-Vertrag ist noch kein vollständiger Commit-Approval-Flow: Es gibt w
 - `POST /models/complete` akzeptiert nur registrierte `loopback_http`-Adapter, begrenzten Text und `confirmed=true`. Die Antwort bleibt `untrusted=true` und `simulated=false`.
 - Die Konfiguration wird beim ersten Routerbau im Prozess gecacht. Ein Request kann Provider, URL, Port oder Modell nicht austauschen.
 
-Die technische Loopback-Grenze ist implementiert und mit Mock-Transports negativ getestet. Eine Live-Evaluation gegen tatsächlich gestartete LM-Studio-/Ollama-Server bleibt separat, damit Installation, Modellwahl und Ressourcenverbrauch nicht stillschweigend verändert werden.
+## Implementierter Modell-Cancellation-Vertrag
+
+- `ModelCancellationToken` setzt genau einmal ein thread-sicheres Signal und führt registrierte Resource-Close-Callbacks idempotent aus. Spät registrierte Ressourcen werden sofort geschlossen.
+- Router, Fake und Loopback-Adapter prüfen Cancellation vor Dispatch und vor Rückgabe. Der Loopback-Adapter prüft zusätzlich während des Response-Streams.
+- Ein aktiver Cancel schließt sowohl HTTP-Client als auch Response. Transportfehler infolge dieses Close werden als `ModelCancelledError`, nicht als Providerfehler, klassifiziert.
+- `ModelJobService` ist auf 1–4 Worker und 1–1.000 Jobs konfigurierbar; die API nutzt einen Worker und maximal 100 Jobs. Sind alle Slots aktiv, wird kein weiterer Job angenommen.
+- API-Snapshots enthalten Adapter, Capability, Zeitpunkte, Status und Ergebnis, aber weder Prompt noch vollständigen Request. Nach Terminalstatus wird der interne Request verworfen.
+- Fehlertexte aus Adaptern werden im Jobstatus nicht übernommen. Jobs melden ausschließlich die generische Meldung `Local model job failed safely.`
+- Jobstart benötigt weiterhin `confirmed=true` und einen vorkonfigurierten nicht simulierten Loopback-Adapter. Cancel ist nur für queued/running/cancelling Jobs erlaubt und für bereits cancelled Jobs idempotent.
+- Beim API-Shutdown werden aktive Tokens gesetzt und der begrenzte Executor geschlossen. Jobzustände bleiben bewusst flüchtig.
+
+Die technische Loopback- und Cancellation-Grenze ist implementiert und mit Mock-Transports sowie Parallelitäts-Races negativ getestet. Eine Live-Evaluation gegen tatsächlich gestartete LM-Studio-/Ollama-Server bleibt separat, damit Installation, Modellwahl und Ressourcenverbrauch nicht stillschweigend verändert werden.
 
 ## Prompt Injection
 

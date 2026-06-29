@@ -243,3 +243,27 @@ class LocalModelCompletionResponse(BaseModel):
     output_tokens: int = Field(ge=0)
     untrusted: Literal[True]
     simulated: Literal[False]
+
+
+class ModelJobCreateRequest(BaseModel):
+    """Explicit request for one cancellable local model job."""
+
+    adapter_id: str = Field(pattern=r"^[a-z][a-z0-9._-]{0,63}$")
+    prompt: str = Field(min_length=1, max_length=8_000)
+    capability: Literal["chat", "coding"] = "chat"
+    max_output_tokens: int = Field(default=256, ge=1, le=2_048)
+    confirmed: Literal[True]
+
+
+class ModelJobResponse(BaseModel):
+    """Prompt-free lifecycle snapshot for one bounded model job."""
+
+    job_id: UUID
+    adapter_id: str
+    capability: Literal["chat", "coding"]
+    state: Literal["queued", "running", "cancelling", "succeeded", "failed", "cancelled"]
+    created_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None
+    result: LocalModelCompletionResponse | None
+    error: str | None

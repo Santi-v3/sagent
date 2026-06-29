@@ -10,6 +10,8 @@ import httpx2 as httpx
 
 from sagent_agent_core.model_runtime import (
     ModelAdapterDescriptor,
+    ModelCancellationToken,
+    ModelCancelledError,
     ModelCapability,
     ModelContractError,
     ModelFinishReason,
@@ -149,9 +151,16 @@ class LoopbackOpenAIChatAdapter:
     def descriptor(self) -> ModelAdapterDescriptor:
         return self._descriptor
 
-    def complete(self, request: ModelRequest) -> ModelResponse:
+    def complete(
+        self,
+        request: ModelRequest,
+        *,
+        cancellation: ModelCancellationToken | None = None,
+    ) -> ModelResponse:
         """Send one bounded request and accept only a text chat completion."""
 
+        if cancellation is not None:
+            cancellation.raise_if_cancelled()
         if request.stream:
             raise ModelContractError("Loopback streaming is not enabled in MVP 2.B.")
         if request.capability not in self.descriptor.capabilities:
@@ -172,30 +181,60 @@ class LoopbackOpenAIChatAdapter:
             "Content-Type": "application/json",
             "User-Agent": "sagent-local-model/0.1",
         }
+        client = httpx.Client(
+            transport=self._transport,
+            timeout=self._timeout,
+            trust_env=False,
+            follow_redirects=False,
+            http1=True,
+            http2=False,
+            limits=httpx.Limits(max_connections=1, max_keepalive_connections=0),
+        )
+        unregister_client = (
+            cancellation.add_cancel_callback(client.close)
+            if cancellation is not None
+            else lambda: None
+        )
         try:
-            with httpx.Client(
-                transport=self._transport,
-                timeout=self._timeout,
-                trust_env=False,
-                follow_redirects=False,
-                http1=True,
-                http2=False,
-                limits=httpx.Limits(max_connections=1, max_keepalive_connections=0),
-            ) as client:
+            with client:
+                if cancellation is not None:
+                    cancellation.raise_if_cancelled()
                 with client.stream(
                     "POST",
                     self.endpoint.chat_completions_url,
                     content=request_bytes,
                     headers=headers,
                 ) as response:
-                    body = self._read_response(response)
-        except (LoopbackModelError, LoopbackModelProtocolError):
+                    unregister_response = (
+                        cancellation.add_cancel_callback(response.close)
+                        if cancellation is not None
+                        else lambda: None
+                    )
+                    try:
+                        body = self._read_response(response, cancellation)
+                    finally:
+                        unregister_response()
+        except (LoopbackModelError, LoopbackModelProtocolError) as error:
+            if cancellation is not None and cancellation.is_cancelled:
+                raise ModelCancelledError("Model request was cancelled.") from error
             raise
         except httpx.TimeoutException as error:
+            if cancellation is not None and cancellation.is_cancelled:
+                raise ModelCancelledError("Model request was cancelled.") from error
             raise LoopbackModelTimeoutError("Local model request timed out.") from error
         except httpx.HTTPError as error:
+            if cancellation is not None and cancellation.is_cancelled:
+                raise ModelCancelledError("Model request was cancelled.") from error
             raise LoopbackModelConnectionError("Local model server is unavailable.") from error
+        except Exception as error:
+            if cancellation is not None and cancellation.is_cancelled:
+                raise ModelCancelledError("Model request was cancelled.") from error
+            raise
+        finally:
+            unregister_client()
 
+        if cancellation is not None:
+            cancellation.raise_if_cancelled()
         return self._parse_response(request, body)
 
     def _request_payload(self, request: ModelRequest) -> dict[str, object]:
@@ -221,7 +260,13 @@ class LoopbackOpenAIChatAdapter:
             "stream": False,
         }
 
-    def _read_response(self, response: httpx.Response) -> bytes:
+    def _read_response(
+        self,
+        response: httpx.Response,
+        cancellation: ModelCancellationToken | None,
+    ) -> bytes:
+        if cancellation is not None:
+            cancellation.raise_if_cancelled()
         if 300 <= response.status_code < 400:
             raise LoopbackModelProtocolError("Local model redirects are forbidden.")
         if response.status_code != 200:
@@ -244,9 +289,13 @@ class LoopbackOpenAIChatAdapter:
 
         body = bytearray()
         for chunk in response.iter_bytes():
+            if cancellation is not None:
+                cancellation.raise_if_cancelled()
             if len(body) + len(chunk) > self.max_response_bytes:
                 raise LoopbackModelProtocolError("Local model response exceeds the byte limit.")
             body.extend(chunk)
+        if cancellation is not None:
+            cancellation.raise_if_cancelled()
         if not body:
             raise LoopbackModelProtocolError("Local model response is empty.")
         return bytes(body)

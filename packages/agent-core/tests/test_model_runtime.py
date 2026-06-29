@@ -10,6 +10,8 @@ from sagent_agent_core import (
     ModelAdapterBlockedError,
     ModelAdapterDescriptor,
     ModelAdapterExecutionError,
+    ModelCancellationToken,
+    ModelCancelledError,
     ModelCapability,
     ModelContractError,
     ModelFinishReason,
@@ -46,8 +48,15 @@ class StaticAdapter:
     fail: bool = False
     call_count: int = 0
 
-    def complete(self, model_request: ModelRequest) -> ModelResponse:
+    def complete(
+        self,
+        model_request: ModelRequest,
+        *,
+        cancellation: ModelCancellationToken | None = None,
+    ) -> ModelResponse:
         self.call_count += 1
+        if cancellation is not None:
+            cancellation.raise_if_cancelled()
         if self.fail:
             raise RuntimeError("provider detail that must not escape")
         return ModelResponse(
@@ -226,3 +235,33 @@ def test_invalid_descriptors_routes_and_streaming_are_rejected() -> None:
     router = ModelRouter([adapter], {ModelCapability.CHAT: adapter.descriptor.adapter_id})
     with pytest.raises(ModelContractError, match="streaming"):
         router.complete(streaming_request)
+
+
+def test_cancellation_token_is_thread_safe_idempotent_and_closes_resources() -> None:
+    token = ModelCancellationToken()
+    calls: list[str] = []
+    unregister = token.add_cancel_callback(lambda: calls.append("registered"))
+
+    assert token.cancel() is True
+    assert token.cancel() is False
+    unregister()
+    token.add_cancel_callback(lambda: calls.append("late"))
+
+    assert token.is_cancelled is True
+    assert token.wait(0) is True
+    assert calls == ["registered", "late"]
+    with pytest.raises(ModelCancelledError, match="cancelled"):
+        token.raise_if_cancelled()
+
+
+def test_router_blocks_a_precancelled_request_before_adapter_execution() -> None:
+    adapter = FakeModelAdapter()
+    router = ModelRouter(
+        [adapter],
+        {ModelCapability.CODING: adapter.descriptor.adapter_id},
+    )
+    token = ModelCancellationToken()
+    token.cancel()
+
+    with pytest.raises(ModelCancelledError, match="cancelled"):
+        router.complete(request(), cancellation=token)
