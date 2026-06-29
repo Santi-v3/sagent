@@ -2,10 +2,10 @@
 
 ## Projektstatus
 
-- **Phase:** MVP 1.B abgeschlossen
+- **Phase:** MVP 1.C abgeschlossen
 - **Stand:** 2026-06-29
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Vorbereitung von WorkspaceGuard, ChangeSet und sicheren Dateioperationen in MVP 1.C
+- **Aktueller Fokus:** Vorbereitung eines allowlist-basierten TestRunners in MVP 1.D
 
 ## Fertiggestellt
 
@@ -26,22 +26,31 @@
 - `POST /agent/plan`, `GET /agent/tasks/{id}` und `POST /agent/approve` ergänzt
 - Codex-nahe Plan-, Risiko-, Proposal- und Approval-UI umgesetzt
 - 10 API-Tests sowie Desktop-, Mobile- und Approval-Browserflows erfolgreich geprüft
+- `WorkspaceGuard` mit fixiertem kanonischem Root und relativer Pfadpflicht implementiert
+- Absolute Pfade, Traversal, Symlink-Ausbrüche, `.env`, SSH-Schlüssel sowie Token-/Secret-/Credential-Pfade blockiert
+- `FileTool` für begrenztes Lesen, Auflisten, atomisches Erstellen und Ändern von UTF-8-Textdateien ergänzt
+- Unveränderliche ChangeSets mit alten/neuen Inhalten, SHA-256-Werten und Unified Diffs implementiert
+- Inhaltsgebundene Freigabe mit exaktem Proposal-Hash, intern signierten Schreibnachweisen und Stale-Workspace-Prüfung umgesetzt
+- 22 neue Core-/Tool-Tests für Sicherheitsgrenzen, Konflikte und erlaubte Dateiänderungen erfolgreich geprüft
 
 ## Bewusste Grenzen
 
 - Workflow-Zustände sind noch nicht persistent und gehen beim API-Neustart verloren
 - Keine LLM- oder Netzwerk-Integration
-- Keine Dateiänderungs- oder Shell-Tools
+- Datei-Tools sind noch nicht an API oder UI angebunden; ChangeSet-Zustände bleiben im Prozessspeicher
+- Mehrdatei-ChangeSets sind pro Datei atomar, aber noch keine globale Dateisystemtransaktion
+- Keine Shell- oder TestRunner-Tools
 - Tasks und Verlauf sind noch nicht persistent
 
 ## Nächster sinnvoller Schritt
 
-MVP 1.C gemäß Abschnitt 25 des Masterplans umsetzen:
+MVP 1.D gemäß Abschnitt 26 des Masterplans umsetzen:
 
-1. `WorkspaceGuard` für kanonische Pfade und sensible Dateien testgetrieben implementieren.
-2. Datei-Tools ausschließlich hinter dem Guard definieren.
-3. Änderungen als `ChangeSet` und Diff vorbereiten, noch ohne ungeprüfte Mutation.
-4. Schreiben an eine inhaltsgebundene Freigabe koppeln.
+1. Eine feste Allowlist benannter Testprofile definieren; keine freien Kommandos oder Argumente akzeptieren.
+2. Prozesse ohne `shell=True`, mit bereinigter Umgebung, fixiertem Workspace, Timeout und Output-Limit starten.
+3. Strukturierte Testresultate speichern und über die Agent-API abrufbar machen.
+4. Teststatus und begrenzte Logs in der UI darstellen.
+5. Erfolg, Fehler, Timeout und verbotene Befehle negativ testen.
 
 Shell-Tools, externe Netzwerkzugriffe und echte Modellaufrufe bleiben ausdrücklich ausgeschlossen.
 
@@ -50,7 +59,7 @@ Shell-Tools, externe Netzwerkzugriffe und echte Modellaufrufe bleiben ausdrückl
 - Zuerst `docs/MASTER_PLAN.md`, danach `docs/SECURITY.md`, `docs/DECISIONS.md`, `docs/TASKS.md` und dieses Handoff lesen.
 - Jede Aufgabe auf einem Feature-Branch abschließen: testen, committen, Branch pushen und PR gegen `main` erstellen.
 - Niemals ohne ausdrückliche Nutzerbestätigung mergen oder Auto-Merge aktivieren.
-- Keine schreibenden Tools vor einem getesteten Proposal-/Approval-Vertrag.
+- Datei-Schreibzugriffe ausschließlich über den getesteten ChangeSet-/Approval-Vertrag führen.
 - Keine freie Shell und keine echten LLM-Aufrufe.
 - Neue Architekturentscheidungen im Decision Log ergänzen.
 - Tests für negative Sicherheitsfälle vor Happy-Path-Komfort priorisieren.
@@ -70,4 +79,4 @@ Der Nutzer prüft den PR. Kein Merge und kein Auto-Merge ohne seine ausdrücklic
 
 ## Startprompt für eine Folgesession
 
-> Lies docs/MASTER_PLAN.md vollständig und nutze ihn als strategische Quelle. Lies danach README.md, docs/SECURITY.md, docs/DECISIONS.md, docs/TASKS.md und docs/HANDOFF.md. Implementiere ausschließlich MVP 1.C: WorkspaceGuard, sichere Dateioperationen, ChangeSet und Diff mit Approval-Pflicht; weiterhin ohne LLMs, externe Netzwerkzugriffe oder freie Shell-Tools.
+> Lies docs/MASTER_PLAN.md vollständig und nutze ihn als strategische Quelle. Lies danach README.md, docs/SECURITY.md, docs/DECISIONS.md, docs/TASKS.md und docs/HANDOFF.md. Implementiere ausschließlich MVP 1.D: einen allowlist-basierten TestRunner mit strukturierten Ergebnissen, API und UI; weiterhin ohne LLMs, externe Netzwerkzugriffe oder freie Shell-Kommandos.

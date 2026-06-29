@@ -45,6 +45,19 @@ Sagent behandelt Sicherheit als Kernfunktion. Modellantworten, Repository-Inhalt
 - Prozesse laufen mit festem Arbeitsverzeichnis, bereinigter Umgebung und Timeout.
 - Änderungen werden vor Übernahme erneut gegen den freigegebenen Hash geprüft.
 
+## Implementierter Datei-Sicherheitsvertrag (MVP 1.C)
+
+- Der Workspace-Root wird einmal kanonisch aufgelöst und muss ein existierendes Verzeichnis sein.
+- Tool-Eingaben akzeptieren ausschließlich relative Pfade. Absolute Pfade, jedes `..`-Segment und Symlink-Ziele außerhalb des Workspace werden abgewiesen.
+- `.env`-Varianten, `.ssh`, bekannte SSH-Schlüssel, Token-/Secret-/Credential-Namen sowie private Schlüssel- und Zertifikat-Dateiendungen bleiben auch für Lese- und List-Operationen gesperrt.
+- `FileTool` verarbeitet nur reguläre UTF-8-Textdateien ohne NUL-Bytes. Standardmäßig gelten 1 MiB pro Datei und 1.000 Einträge pro Listing.
+- Erstellen setzt ein vorhandenes Elternverzeichnis voraus. Löschen, Umbenennen und automatisches Erstellen von Verzeichnissen sind nicht implementiert.
+- Ein ChangeSet speichert Operation, relativen Pfad, alten und neuen SHA-256-Wert, alte und neue Inhalte sowie den sichtbaren Unified Diff.
+- Approval und Apply erwarten denselben Proposal-Hash. Vor dem Schreiben wird der Ausgangszustand erneut geprüft; Abweichungen stoppen mit Konflikt statt vorhandene Arbeit zu überschreiben.
+- Einzelne Datei-Schreibvorgänge sind atomar. Ein ChangeSet wird höchstens einmal angewendet und Schreibmethoden akzeptieren nur intern signierte, zu Pfad, Operation und neuem Inhalt passende Nachweise.
+
+Die ChangeSet-Zustände sind noch nicht persistent, und mehrere Dateien bilden noch keine globale Dateisystemtransaktion. Deshalb bleibt die API-/UI-Anbindung bis zu einem eigenen Review deaktiviert.
+
 ## Prompt Injection
 
 Text in Projekten kann Anweisungen enthalten. Diese Inhalte sind Daten, keine Systemanweisungen. Sie dürfen keine Policies ändern, Tools freigeben, Secrets anfordern oder den Workspace erweitern. Herkunft und Rolle jedes Kontextblocks müssen erhalten bleiben.

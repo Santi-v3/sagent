@@ -21,7 +21,11 @@ package = false
 
 [tool.pytest.ini_options]
 testpaths = ["apps/agent-api/tests", "tests", "packages"]
-pythonpath = ["apps/agent-api/src"]
+pythonpath = [
+  "apps/agent-api/src",
+  "packages/agent-core/src",
+  "packages/tools/src",
+]
 addopts = "-ra"
 
 [tool.ruff]
@@ -31,6 +35,9 @@ extend-exclude = ["node_modules", ".turbo"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "S"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["sagent_agent_api", "sagent_agent_core", "sagent_tools"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S101"]

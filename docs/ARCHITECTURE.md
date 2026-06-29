@@ -32,11 +32,11 @@ Spätere lokale FastAPI. Sie verwaltet Sitzungen, transportiert typisierte Komma
 
 ### `packages/agent-core`
 
-Zentrale Zustandsmaschine für `intake → inspect → plan → propose → approve → apply → verify → complete`. Hier liegen Tool-Routing, Policy-Prüfung, Approval-Tokens und Audit-Ereignisse. LangGraph kann später diese Zustandsmaschine implementieren, ist aber keine Voraussetzung für MVP 1.
+Zentrale Zustandsmaschine für `intake → inspect → plan → propose → approve → apply → verify → complete`. MVP 1.C implementiert hier unveränderliche ChangeSets, Unified Diffs, Proposal-Hashes und den einmaligen Approval-/Apply-Lebenszyklus. LangGraph kann später diese Zustandsmaschine implementieren, ist aber keine Voraussetzung für MVP 1.
 
 ### `packages/tools`
 
-Kleine, einzeln prüfbare Tools mit typisierten Eingaben und Ausgaben. Beispiele: Dateien auflisten, Textdatei lesen, Patch vorbereiten, erlaubten Testbefehl starten. Kein Tool erhält pauschalen Shell- oder Dateisystemzugriff.
+Kleine, einzeln prüfbare Tools mit typisierten Eingaben und Ausgaben. MVP 1.C enthält den `WorkspaceGuard` und `FileTool` für begrenzte UTF-8-Textdateien. Schreibmethoden prüfen einen intern signierten Nachweis des Agent-Core erneut. Kein Tool erhält pauschalen Shell- oder Dateisystemzugriff.
 
 ### `packages/memory`
 

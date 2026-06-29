@@ -2,7 +2,7 @@
 
 Sagent ist ein local-first, Mac-first Personal AI Agent in Entwicklung. Langfristig soll er wie ein eigener Coding-Agent arbeiten: Projekte lesen, Änderungen planen, Code vorbereiten, Tests ausführen, Diffs erklären und Änderungen erst nach ausdrücklicher menschlicher Freigabe übernehmen.
 
-Das Repository enthält eine erste lokal ausführbare Minimalversion: eine deterministische Agent-API und eine einfache Codex-nahe Weboberfläche. Es gibt weiterhin keine LLM-Anbindung und keine Datei-, Shell- oder Systemwerkzeuge.
+Das Repository enthält eine lokal ausführbare Minimalversion: eine deterministische Agent-API, eine einfache Codex-nahe Weboberfläche und einen getesteten Sicherheitskern für begrenzte Dateiänderungen. Es gibt weiterhin keine LLM-Anbindung, keine freie Shell und keine unkontrollierten Systemwerkzeuge. Die Datei-Tools sind in MVP 1.C bewusst noch nicht mit API oder UI verbunden.
 
 ## Projektkontext
 
@@ -30,9 +30,9 @@ apps/
   web/           Lokale Next.js-Oberfläche
   agent-api/     Lokale FastAPI mit Task-, Plan- und Approval-Workflow
 packages/
-  agent-core/    Orchestrierung, Policies und Approval-Logik
+  agent-core/    ChangeSets, Diffs und inhaltsgebundene Approval-Logik
   memory/        Markdown-basiertes Memory-System
-  tools/         Begrenzte Datei-, Diff- und Test-Werkzeuge
+  tools/         WorkspaceGuard und begrenzte Dateiwerkzeuge
   shared/        Gemeinsame Verträge und Hilfsfunktionen
 docs/            Produkt-, Architektur- und Betriebsdokumentation
 ```
@@ -104,7 +104,7 @@ pnpm build
 
 ## Status
 
-**MVP 1.B abgeschlossen.** Sagent erzeugt deterministische Pläne mit Ziel, Schritten, Risiken, nächsten Aktionen und Änderungsvorschlag. Freigeben, Ablehnen und Überarbeitung anfordern funktionieren über API und Codex-nahe UI. Als Nächstes folgt MVP 1.C mit WorkspaceGuard, sicheren Dateioperationen und Diffs; weiterhin ohne LLM-Aufrufe.
+**MVP 1.C abgeschlossen.** Sagent kann Dateiänderungen als unveränderliche ChangeSets mit alten und neuen Inhalten sowie Unified Diff vorbereiten. `WorkspaceGuard` blockiert Workspace-Ausbrüche und sensible Pfade; geschrieben wird erst nach exakter, hash-gebundener Freigabe und erneuter Prüfung des Ausgangszustands. Als Nächstes folgt MVP 1.D mit einem eng allowlist-basierten TestRunner; weiterhin ohne LLM-Aufrufe oder freie Shell.
 
 ## Lizenz
 

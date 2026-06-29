@@ -64,3 +64,10 @@ Dieses Dokument ist ein leichtgewichtiges Decision Log. Neue Entscheidungen erha
 - **Datum:** 2026-06-29
 - **Entscheidung:** Codex arbeitet pro Aufgabe auf einem Feature-Branch, testet, committet, pusht den Feature-Branch und erstellt einen Pull Request gegen `main`. Nur der Nutzer darf den Merge freigeben.
 - **Konsequenz:** Feature-Branch-Push und PR-Erstellung gelten als dauerhaft autorisierte Abschlussaktionen. Direkte Arbeit oder Pushes auf `main`, Force-Push, Auto-Merge und Merge ohne ausdrückliche Nutzerbestätigung bleiben verboten. Diese neuere Entscheidung präzisiert abweichende Git-Regeln im Masterplan.
+
+## ADR-010: Datei-Freigaben sind inhaltsgebundene ChangeSets
+
+- **Status:** Angenommen
+- **Datum:** 2026-06-29
+- **Entscheidung:** Dateiänderungen werden zuerst mit kanonischen relativen Pfaden, altem und neuem Inhalt sowie Unified Diff vorbereitet. Die Freigabe bindet sich an einen SHA-256-Hash dieses exakten ChangeSets. Erst danach erzeugt der Core prozessinterne, HMAC-signierte Schreibnachweise für die enthaltenen Dateioperationen.
+- **Konsequenz:** Ein geänderter Pfad, Inhalt, Operationstyp oder Ausgangszustand entwertet die Freigabe. ChangeSets werden nur einmal angewendet. Die Zustände liegen in MVP 1.C noch ausschließlich im Prozessspeicher; Persistenz und Ablaufzeiten folgen vor einer produktiven Nutzung.

@@ -1,6 +1,7 @@
 """Tests for the deterministic task placeholder."""
 
 from fastapi.testclient import TestClient
+
 from sagent_agent_api.main import app
 
 client = TestClient(app)

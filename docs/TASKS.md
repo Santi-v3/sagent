@@ -23,19 +23,29 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Plan, Risiken und Approve/Reject in der UI anzeigen
 - [x] Zustandsübergänge und ungültige Approval-Werte testen
 
-## Als Nächstes – MVP 1.C
+## Abgeschlossen – MVP 1.C
 
-- [ ] `WorkspaceGuard` mit kanonischer Pfadauflösung definieren
-- [ ] Absolute Pfade, Traversal, Symlink-Ausbrüche und sensible Dateien blockieren
-- [ ] `FileTool` für Lesen, Auflisten, Erstellen und Ändern hinter dem Guard entwerfen
-- [ ] `ChangeSet` mit alten/neuen Inhalten und Unified Diff implementieren
-- [ ] Schreibzugriffe an inhaltsgebundene Freigabe koppeln
-- [ ] Negative Sicherheitstests und erlaubten Happy Path ergänzen
+- [x] `WorkspaceGuard` mit kanonischer Pfadauflösung definieren
+- [x] Absolute Pfade, Traversal, Symlink-Ausbrüche und sensible Dateien blockieren
+- [x] `FileTool` für Lesen, Auflisten, Erstellen und Ändern hinter dem Guard entwerfen
+- [x] `ChangeSet` mit alten/neuen Inhalten und Unified Diff implementieren
+- [x] Schreibzugriffe an inhaltsgebundene Freigabe koppeln
+- [x] Negative Sicherheitstests und erlaubten Happy Path ergänzen
+
+## Als Nächstes – MVP 1.D
+
+- [ ] Allowlist für exakt definierte Testbefehle modellieren
+- [ ] `TestRunner` ohne `shell=True` und ohne frei übergebbare Argumente implementieren
+- [ ] Laufzeit-, Ausgabe- und Umgebungsgrenzen erzwingen
+- [ ] Strukturierte `TestResult`-Datensätze speichern
+- [ ] `POST /agent/run-tests` und `GET /agent/test-results/{id}` ergänzen
+- [ ] Teststatus und begrenzte Logs in der UI anzeigen
+- [ ] Erfolg, Fehler, Timeout und verbotene Befehle testen
 
 ## Noch blockiert bis zu den Sicherheitsinkrementen
 
-- Dateiänderungen bleiben blockiert, bis Guard, ChangeSet und Approval in MVP 1.C vollständig getestet sind
-- Testbefehle erst nach MVP 1.D und einer expliziten Allowlist
+- Dateiänderungen bleiben außerhalb des internen Core-Services blockiert, bis API- und UI-Anbindung einen eigenen Sicherheitsreview erhalten
+- Testbefehle erst innerhalb von MVP 1.D und ausschließlich über eine explizite Allowlist
 - Git-Schreibaktionen erst nach MVP 1.E
 - Echte LLMs und Netzwerkzugriff erst ab MVP 2
 

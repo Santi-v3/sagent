@@ -34,7 +34,7 @@ Die vollständige strategische Roadmap steht in [`MASTER_PLAN.md`](MASTER_PLAN.m
 
 ## MVP 1.C – WorkspaceGuard, Dateien und Diffs
 
-**Status: als Nächstes**
+**Status: abgeschlossen**
 
 - Kanonische Workspace-Grenze und Schutz sensibler Pfade
 - Begrenzte Datei-Tools hinter dem WorkspaceGuard
@@ -43,6 +43,8 @@ Die vollständige strategische Roadmap steht in [`MASTER_PLAN.md`](MASTER_PLAN.m
 - Negative Tests für Traversal, Symlinks, `.env` und Workspace-Ausbruch
 
 ## MVP 1.D – Sichere Test-Ausführung
+
+**Status: als Nächstes**
 
 - Allowlist-basierter TestRunner ohne freie Shell
 - Strukturierte, begrenzte Testresultate

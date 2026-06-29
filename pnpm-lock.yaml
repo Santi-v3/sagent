@@ -57,6 +57,10 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  packages/agent-core: {}
+
+  packages/tools: {}
+
 packages:
 
   '@alloc/quick-lru@5.2.0':

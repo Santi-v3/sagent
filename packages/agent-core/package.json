@@ -1,0 +1,12 @@
+{
+  "name": "@sagent/agent-core",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "uv run --project ../.. python -m compileall -q src",
+    "format": "uv run --project ../.. ruff format src tests",
+    "lint": "uv run --project ../.. ruff check src tests",
+    "test": "uv run --project ../.. pytest tests",
+    "typecheck": "uv run --project ../.. python -m compileall -q src"
+  }
+}
