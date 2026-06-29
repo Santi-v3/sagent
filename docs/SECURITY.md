@@ -97,7 +97,7 @@ Der MVP-Git-Vertrag ist noch kein vollständiger Commit-Approval-Flow: Es gibt w
 ## Implementierter Loopback-Modellvertrag (MVP 2.B)
 
 - Die Standardkonfiguration registriert weiterhin nur den Fake. Ein lokaler Adapter benötigt gleichzeitig `SAGENT_NETWORK_ENABLED=loopback`, ein festes Providerprofil, eine Base-URL und eine Modell-ID.
-- LM Studio ist ausschließlich auf Port `1234`, Ollama ausschließlich auf Port `11434` erlaubt. Host muss das exakte Literal `127.0.0.1` oder `::1`, Schema `http` und Pfad `/v1` sein. `localhost`, DNS, alternative IP-Darstellungen, andere Ports, URL-Credentials, Query und Fragment werden abgewiesen.
+- LM Studio ist ausschließlich unter `127.0.0.1:1234`, Ollama ausschließlich unter `127.0.0.1:11434` erlaubt. Schema muss `http` und Pfad `/v1` sein. IPv6, `localhost`, DNS, alternative IP-Darstellungen, andere Ports, URL-Credentials, Query und Fragment werden abgewiesen.
 - Der HTTP-Client nutzt `trust_env=false`, folgt keinen Redirects, aktiviert kein HTTP/2, sendet `Accept-Encoding: identity`, übernimmt keine Cookies oder Proxies und setzt keinen `Authorization`-Header.
 - Der Request enthält ausschließlich `model`, source-labelled `messages`, `temperature`, `max_tokens` und `stream=false`. Tool-Definitionen, Tool-Choice und frei wählbare Endpoints sind nicht Teil des API-Requests.
 - Connect-, Read-, Write- und Pool-Timeout sowie Request-/Response-Bytes sind begrenzt. Es gibt keine automatischen Retries.
@@ -113,7 +113,7 @@ Der MVP-Git-Vertrag ist noch kein vollständiger Commit-Approval-Flow: Es gibt w
 - `ModelJobService` ist auf 1–4 Worker und 1–1.000 Jobs konfigurierbar; die API nutzt einen Worker und maximal 100 Jobs. Sind alle Slots aktiv, wird kein weiterer Job angenommen.
 - API-Snapshots enthalten Adapter, Capability, Zeitpunkte, Status und Ergebnis, aber weder Prompt noch vollständigen Request. Nach Terminalstatus wird der interne Request verworfen.
 - Fehlertexte aus Adaptern werden im Jobstatus nicht übernommen. Jobs melden ausschließlich die generische Meldung `Local model job failed safely.`
-- Jobstart benötigt weiterhin `confirmed=true` und einen vorkonfigurierten nicht simulierten Loopback-Adapter. Cancel ist nur für queued/running Jobs erlaubt und für bereits cancelled Jobs idempotent.
+- Jobstart benötigt weiterhin `confirmed=true` und einen vorkonfigurierten nicht simulierten Loopback-Adapter. Cancel ist nur für queued/running/cancelling Jobs erlaubt und für bereits cancelled Jobs idempotent.
 - Beim API-Shutdown werden aktive Tokens gesetzt und der begrenzte Executor geschlossen. Jobzustände bleiben bewusst flüchtig.
 
 Die technische Loopback- und Cancellation-Grenze ist implementiert und mit Mock-Transports sowie Parallelitäts-Races negativ getestet. Eine Live-Evaluation gegen tatsächlich gestartete LM-Studio-/Ollama-Server bleibt separat, damit Installation, Modellwahl und Ressourcenverbrauch nicht stillschweigend verändert werden.

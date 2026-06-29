@@ -70,12 +70,9 @@ class LoopbackEndpoint:
             raise ModelContractError("Loopback base URL cannot contain query or fragment data.")
         if port is None or port not in self.allowed_ports:
             raise ModelContractError("Loopback model port is not explicitly allowed.")
-        if parsed.hostname == "127.0.0.1":
-            authority = f"127.0.0.1:{port}"
-        elif parsed.hostname == "::1":
-            authority = f"[::1]:{port}"
-        else:
-            raise ModelContractError("Only exact IPv4 or IPv6 loopback literals are allowed.")
+        if parsed.hostname != "127.0.0.1":
+            raise ModelContractError("Only the exact IPv4 loopback literal is allowed.")
+        authority = f"127.0.0.1:{port}"
         if parsed.netloc != authority or parsed.path not in {"/v1", "/v1/"}:
             raise ModelContractError("Loopback base URL must be canonical and end at /v1.")
 
