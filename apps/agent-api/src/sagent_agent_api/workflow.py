@@ -60,7 +60,10 @@ class TaskPlanner:
                     "Betroffene Dateien können erst nach einer sicheren Projektanalyse "
                     "bestätigt werden."
                 ),
-                "Diese Simulation verändert keine Dateien und führt keine Befehle aus.",
+                (
+                    "Diese Phase verändert keine Dateien. Testbefehle laufen nur nach "
+                    "Freigabe und separater Auswahl."
+                ),
             ],
             next_actions=[
                 "Plan und Risiken prüfen",

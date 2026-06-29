@@ -46,8 +46,10 @@ Der Workflow trennt Verstehen, Vorschlagen und Verändern. Kein Modell und kein 
 
 ## 7. Verify
 
-- Nur angezeigte und erlaubte Checks ausführen
-- Exit-Codes und begrenzte Ausgaben erfassen
+- Nur ein serverseitig registriertes, sichtbar ausgewähltes Testprofil ausführen
+- Freigegebenen Task und exakten Anzeigebefehl serverseitig erneut prüfen
+- Exit-Codes sowie begrenzte und redigierte Ausgaben erfassen
+- Timeout oder unbekanntes Profil beendet den Verify-Schritt ohne improvisierten Ersatzbefehl
 - Finalen Diff und unerwartete Änderungen prüfen
 - Bei Fehlern keine zusätzlichen Reparaturen ohne neuen Vorschlag durchführen
 

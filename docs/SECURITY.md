@@ -58,6 +58,18 @@ Sagent behandelt Sicherheit als Kernfunktion. Modellantworten, Repository-Inhalt
 
 Die ChangeSet-Zustände sind noch nicht persistent, und mehrere Dateien bilden noch keine globale Dateisystemtransaktion. Deshalb bleibt die API-/UI-Anbindung bis zu einem eigenen Review deaktiviert.
 
+## Implementierter Test-Sicherheitsvertrag (MVP 1.D)
+
+- Requests wählen nur eine registrierte Profil-ID; ausführbare Datei, Argumente und Arbeitsverzeichnis stammen vollständig aus der serverseitigen Allowlist.
+- Der Task muss zuvor menschlich freigegeben sein. Zusätzlich müssen `confirmed=true` und der exakt angezeigte Befehl übermittelt werden; Abweichungen stoppen vor dem Prozessstart.
+- Prozesse starten mit `shell=False`, geschlossenem stdin, eigener Prozessgruppe, fixiertem kanonischem Workspace und einer neu aufgebauten Umgebung ohne geerbte Secrets.
+- Wall-Clock-Timeout und CPU-Limit beenden die gesamte Prozessgruppe. Core-Dumps und die Zahl offener Dateideskriptoren sind begrenzt.
+- stdout und stderr werden vollständig entleert, aber je Stream nur bis 64 KiB gespeichert. Bekannte Token-, Secret-, Passwort-, API-Key- und Private-Key-Muster werden vor Speicherung redigiert.
+- Höchstens 100 unveränderliche Ergebnisse bleiben im Prozessspeicher. Ein fehlgeschlagener Test ist ein strukturiertes Ergebnis und kein API-Fehler.
+- Standard-Proxyvariablen zeigen auf einen lokalen Blackhole-Endpunkt; Paketinstallation gehört nicht zur Allowlist. Web-Lint startet das bereits installierte lokale ESLint direkt, nicht den Paketmanager.
+
+Diese Maßnahmen verhindern freie Shell-Kommandos und begrenzen versehentliche Nebenwirkungen. Sie sind noch keine OS-Sandbox: absichtlicher Raw-Socket-Zugriff oder Dateizugriff durch bösartigen Repository-Testcode ist technisch weiterhin möglich. Solche Workspaces dürfen erst nach einer späteren macOS-Sandbox ausgeführt werden.
+
 ## Prompt Injection
 
 Text in Projekten kann Anweisungen enthalten. Diese Inhalte sind Daten, keine Systemanweisungen. Sie dürfen keine Policies ändern, Tools freigeben, Secrets anfordern oder den Workspace erweitern. Herkunft und Rolle jedes Kontextblocks müssen erhalten bleiben.

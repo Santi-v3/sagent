@@ -1,6 +1,6 @@
 # Aufgaben
 
-Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschnitt 25. Jede Aufgabe bleibt klein genug für einen überprüfbaren Branch und Pull Request.
+Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschnitt 27. Jede Aufgabe bleibt klein genug für einen überprüfbaren Branch und Pull Request.
 
 ## Abgeschlossen – MVP 1.A
 
@@ -32,20 +32,30 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Schreibzugriffe an inhaltsgebundene Freigabe koppeln
 - [x] Negative Sicherheitstests und erlaubten Happy Path ergänzen
 
-## Als Nächstes – MVP 1.D
+## Abgeschlossen – MVP 1.D
 
-- [ ] Allowlist für exakt definierte Testbefehle modellieren
-- [ ] `TestRunner` ohne `shell=True` und ohne frei übergebbare Argumente implementieren
-- [ ] Laufzeit-, Ausgabe- und Umgebungsgrenzen erzwingen
-- [ ] Strukturierte `TestResult`-Datensätze speichern
-- [ ] `POST /agent/run-tests` und `GET /agent/test-results/{id}` ergänzen
-- [ ] Teststatus und begrenzte Logs in der UI anzeigen
-- [ ] Erfolg, Fehler, Timeout und verbotene Befehle testen
+- [x] Allowlist für exakt definierte Testbefehle modellieren
+- [x] `TestRunner` ohne `shell=True` und ohne frei übergebbare Argumente implementieren
+- [x] Laufzeit-, Ausgabe- und Umgebungsgrenzen erzwingen
+- [x] Strukturierte `TestResult`-Datensätze speichern
+- [x] `POST /agent/run-tests` und `GET /agent/test-results/{id}` ergänzen
+- [x] Teststatus und begrenzte Logs in der UI anzeigen
+- [x] Erfolg, Fehler, Timeout und verbotene Befehle testen
+
+## Als Nächstes – MVP 1.E
+
+- [ ] `GitTool` für Status, aktuellen Branch und Diff als read-only Funktionen implementieren
+- [ ] Feature-Branch-Erstellung mit Schutz für `main` ergänzen
+- [ ] Commit-Vorbereitung an exakte Freigabe und sauberen Diff koppeln
+- [ ] Push und Merge im Agent-Tool weiterhin blockieren, bis eine separate Freigabe vorliegt
+- [ ] `GET /git/status` und `POST /git/branch` ergänzen
+- [ ] Branch-, Status- und Diff-Informationen in der UI anzeigen
+- [ ] `main`-Schutz, verbotenen Push und erlaubten Feature-Branch testen
 
 ## Noch blockiert bis zu den Sicherheitsinkrementen
 
 - Dateiänderungen bleiben außerhalb des internen Core-Services blockiert, bis API- und UI-Anbindung einen eigenen Sicherheitsreview erhalten
-- Testbefehle erst innerhalb von MVP 1.D und ausschließlich über eine explizite Allowlist
+- Testbefehle ausschließlich über die implementierte Allowlist und nach menschlicher Freigabe
 - Git-Schreibaktionen erst nach MVP 1.E
 - Echte LLMs und Netzwerkzugriff erst ab MVP 2
 

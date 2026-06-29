@@ -4,15 +4,18 @@ import {
   ArrowUp,
   ArrowsClockwise,
   CheckCircle,
+  CircleNotch,
   Circle,
   FileCode,
   HourglassMedium,
+  Play,
   ShieldCheck,
+  TerminalWindow,
   Warning,
   WarningCircle,
   XCircle,
 } from "@phosphor-icons/react";
-import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 
 type ApprovalState = "pending" | "approved" | "rejected" | "needs_changes";
 type ApprovalDecision = Exclude<ApprovalState, "pending">;
@@ -48,6 +51,26 @@ type ApprovalResponse = {
   task: PlannedTask;
 };
 
+type TestProfile = {
+  profile_id: string;
+  command: string;
+  timeout_seconds: number;
+};
+
+type TestResult = {
+  result_id: string;
+  profile_id: string;
+  command: string;
+  exit_code: number;
+  stdout: string;
+  stderr: string;
+  passed: boolean;
+  created_at: string;
+  duration_ms: number;
+  timed_out: boolean;
+  output_truncated: boolean;
+};
+
 const API_URL = process.env.NEXT_PUBLIC_AGENT_API_URL ?? "http://127.0.0.1:8765";
 
 const sampleTasks = [
@@ -64,7 +87,7 @@ const approvalCopy: Record<ApprovalState, { label: string; message: string }> = 
   },
   approved: {
     label: "Freigegeben",
-    message: "Der Vorschlag ist freigegeben. Diese Simulation führt trotzdem nichts aus.",
+    message: "Der Plan ist freigegeben. Sichere, explizit ausgewählte Prüfungen sind jetzt möglich.",
   },
   rejected: {
     label: "Abgelehnt",
@@ -101,6 +124,13 @@ export function SagentShell() {
   const [isLoading, setIsLoading] = useState(false);
   const [isApprovalLoading, setIsApprovalLoading] = useState(false);
   const [isApiOnline, setIsApiOnline] = useState(false);
+  const [testProfiles, setTestProfiles] = useState<TestProfile[]>([]);
+  const [selectedTestProfileId, setSelectedTestProfileId] = useState("");
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
+  const [testProfileError, setTestProfileError] = useState("");
+  const [isTestProfilesLoading, setIsTestProfilesLoading] = useState(false);
+  const [isTestLoading, setIsTestLoading] = useState(false);
+  const [retryTest, setRetryTest] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -113,6 +143,32 @@ export function SagentShell() {
     return () => controller.abort();
   }, []);
 
+  const loadTestProfiles = useCallback(async () => {
+    setIsTestProfilesLoading(true);
+    setTestProfileError("");
+
+    try {
+      const response = await fetch(`${API_URL}/agent/test-profiles`);
+      if (!response.ok) {
+        throw new Error(`Profile request failed with status ${response.status}`);
+      }
+      const profiles = (await response.json()) as TestProfile[];
+      setTestProfiles(profiles);
+      setSelectedTestProfileId((current) => {
+        if (profiles.some((profile) => profile.profile_id === current)) return current;
+        return profiles.find((profile) => profile.profile_id === "project-tests")?.profile_id ??
+          profiles[0]?.profile_id ??
+          "";
+      });
+      setIsApiOnline(true);
+    } catch {
+      setTestProfileError("Die lokale Test-Allowlist konnte nicht geladen werden.");
+      setIsApiOnline(false);
+    } finally {
+      setIsTestProfilesLoading(false);
+    }
+  }, []);
+
   async function submitTask(event?: FormEvent) {
     event?.preventDefault();
     const normalizedTask = task.trim();
@@ -123,6 +179,11 @@ export function SagentShell() {
     setRetryDecision(null);
     setResult(null);
     setApprovalMessage("");
+    setTestProfiles([]);
+    setSelectedTestProfileId("");
+    setTestResult(null);
+    setTestProfileError("");
+    setRetryTest(false);
     setSubmittedTask(normalizedTask);
 
     try {
@@ -154,6 +215,7 @@ export function SagentShell() {
     setIsApprovalLoading(true);
     setError("");
     setRetryDecision(decision);
+    setRetryTest(false);
 
     try {
       const response = await fetch(`${API_URL}/agent/approve`, {
@@ -171,6 +233,9 @@ export function SagentShell() {
       setApprovalMessage(data.message);
       setRetryDecision(null);
       setIsApiOnline(true);
+      if (data.task.approval_state === "approved") {
+        void loadTestProfiles();
+      }
     } catch {
       setError("Die Freigabeentscheidung konnte nicht gespeichert werden.");
       setIsApiOnline(false);
@@ -179,7 +244,58 @@ export function SagentShell() {
     }
   }
 
+  async function runTests() {
+    const selectedProfile = testProfiles.find(
+      (profile) => profile.profile_id === selectedTestProfileId,
+    );
+    if (
+      !result ||
+      result.approval_state !== "approved" ||
+      !selectedProfile ||
+      isTestLoading
+    ) {
+      return;
+    }
+
+    setIsTestLoading(true);
+    setError("");
+    setRetryDecision(null);
+    setRetryTest(true);
+    setTestResult(null);
+
+    try {
+      const response = await fetch(`${API_URL}/agent/run-tests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task_id: result.task_id,
+          profile_id: selectedProfile.profile_id,
+          expected_command: selectedProfile.command,
+          confirmed: true,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Test request failed with status ${response.status}`);
+      }
+
+      const data = (await response.json()) as TestResult;
+      setTestResult(data);
+      setRetryTest(false);
+      setIsApiOnline(true);
+    } catch {
+      setError("Der lokale Testlauf konnte nicht gestartet werden.");
+      setIsApiOnline(false);
+    } finally {
+      setIsTestLoading(false);
+    }
+  }
+
   function retryLastAction() {
+    if (retryTest) {
+      void runTests();
+      return;
+    }
     if (retryDecision) {
       void decide(retryDecision);
       return;
@@ -356,6 +472,137 @@ export function SagentShell() {
                     </div>
                   ) : null}
                 </section>
+
+                {result.approval_state === "approved" ? (
+                  <section className="workflow-section test-section" aria-labelledby="tests-heading">
+                    <div className="section-heading-row">
+                      <h2 id="tests-heading">Tests</h2>
+                      <span
+                        className={`test-status ${
+                          isTestLoading
+                            ? "running"
+                            : testResult?.passed
+                              ? "passed"
+                              : testResult
+                                ? "failed"
+                                : "ready"
+                        }`}
+                      >
+                        {isTestLoading
+                          ? "Läuft"
+                          : testResult?.passed
+                            ? "Bestanden"
+                            : testResult
+                              ? "Fehlgeschlagen"
+                              : "Bereit"}
+                      </span>
+                    </div>
+                    <p>
+                      Nur der unten angezeigte Allowlist-Befehl wird lokal und ohne freie Shell
+                      ausgeführt.
+                    </p>
+
+                    {testProfileError ? (
+                      <div className="test-inline-error" role="alert">
+                        <WarningCircle weight="regular" aria-hidden="true" />
+                        <span>{testProfileError}</span>
+                        <button type="button" onClick={() => void loadTestProfiles()}>
+                          Erneut laden
+                        </button>
+                      </div>
+                    ) : null}
+
+                    {testProfiles.length ? (
+                      <div className="test-controls">
+                        <label htmlFor="test-profile">Testprofil</label>
+                        <select
+                          id="test-profile"
+                          value={selectedTestProfileId}
+                          disabled={isTestLoading}
+                          onChange={(event) => {
+                            setSelectedTestProfileId(event.target.value);
+                            setTestResult(null);
+                          }}
+                        >
+                          {testProfiles.map((profile) => (
+                            <option key={profile.profile_id} value={profile.profile_id}>
+                              {profile.profile_id}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="test-command">
+                          <TerminalWindow weight="regular" aria-hidden="true" />
+                          <code>
+                            {
+                              testProfiles.find(
+                                (profile) => profile.profile_id === selectedTestProfileId,
+                              )?.command
+                            }
+                          </code>
+                        </div>
+                        <button
+                          type="button"
+                          className="test-run-button"
+                          disabled={isTestLoading || !selectedTestProfileId}
+                          onClick={() => void runTests()}
+                        >
+                          {isTestLoading ? (
+                            <CircleNotch className="spin" weight="bold" aria-hidden="true" />
+                          ) : (
+                            <Play weight="fill" aria-hidden="true" />
+                          )}
+                          {isTestLoading ? "Tests laufen" : "Tests ausführen"}
+                        </button>
+                      </div>
+                    ) : isTestProfilesLoading ? (
+                      <div className="test-profile-loading" role="status">
+                        Testprofile werden geladen …
+                      </div>
+                    ) : null}
+
+                    {testResult ? (
+                      <div className={`test-result ${testResult.passed ? "passed" : "failed"}`}>
+                        <div className="test-result-summary">
+                          {testResult.passed ? (
+                            <CheckCircle weight="regular" aria-hidden="true" />
+                          ) : (
+                            <XCircle weight="regular" aria-hidden="true" />
+                          )}
+                          <div>
+                            <strong>
+                              {testResult.passed ? "Testlauf bestanden" : "Testlauf fehlgeschlagen"}
+                            </strong>
+                            <span>
+                              Exit {testResult.exit_code} · {testResult.duration_ms} ms
+                              {testResult.timed_out ? " · Zeitlimit erreicht" : ""}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="test-logs">
+                          <div className="test-logs-heading">
+                            <span>Logs</span>
+                            {testResult.output_truncated ? <span>gekürzt</span> : null}
+                          </div>
+                          {testResult.stdout ? (
+                            <div>
+                              <span className="test-log-label">stdout</span>
+                              <pre tabIndex={0}>{testResult.stdout}</pre>
+                            </div>
+                          ) : null}
+                          {testResult.stderr ? (
+                            <div>
+                              <span className="test-log-label">stderr</span>
+                              <pre tabIndex={0}>{testResult.stderr}</pre>
+                            </div>
+                          ) : null}
+                          {!testResult.stdout && !testResult.stderr ? (
+                            <p>Der Testlauf hat keine Ausgabe erzeugt.</p>
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
+                  </section>
+                ) : null}
               </article>
             ) : null}
           </div>

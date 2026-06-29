@@ -2,10 +2,10 @@
 
 ## Projektstatus
 
-- **Phase:** MVP 1.C abgeschlossen
+- **Phase:** MVP 1.D abgeschlossen
 - **Stand:** 2026-06-29
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Vorbereitung eines allowlist-basierten TestRunners in MVP 1.D
+- **Aktueller Fokus:** Vorbereitung des sicheren Git-Status-, Diff- und Branch-Workflows in MVP 1.E
 
 ## Fertiggestellt
 
@@ -32,6 +32,15 @@
 - Unveränderliche ChangeSets mit alten/neuen Inhalten, SHA-256-Werten und Unified Diffs implementiert
 - Inhaltsgebundene Freigabe mit exaktem Proposal-Hash, intern signierten Schreibnachweisen und Stale-Workspace-Prüfung umgesetzt
 - 22 neue Core-/Tool-Tests für Sicherheitsgrenzen, Konflikte und erlaubte Dateiänderungen erfolgreich geprüft
+- Allowlist-basierten `TestRunner` ohne freie Request-Kommandos und ohne `shell=True` implementiert
+- Feste Profile für Projekt-pytest, Python-ruff und lokales Web-ESLint ergänzt
+- Task-Approval und exakten Anzeigebefehl als doppelte API-Gates vor Prozessstart eingebaut
+- Timeout, Prozessgruppen-Abbruch, CPU-/Dateideskriptorgrenzen, bereinigte Umgebung und lokale Proxy-Sperre ergänzt
+- stdout/stderr auf 64 KiB begrenzt, bekannte Secrets redigiert und Ergebnis-Historie auf 100 Einträge begrenzt
+- `GET /agent/test-profiles`, `POST /agent/run-tests` und `GET /agent/test-results/{id}` implementiert
+- UI um Profilwahl, sichtbaren Befehl, Loading-, Bestanden-, Fehlgeschlagen- und Log-Zustände erweitert
+- 46 Python-Tests sowie echte Runner-Läufe für pytest, ruff und Web-ESLint erfolgreich geprüft
+- Desktop- und Mobile-Browserfluss für erfolgreiche und fehlgeschlagene Tests ohne Konsolenfehler geprüft
 
 ## Bewusste Grenzen
 
@@ -39,18 +48,18 @@
 - Keine LLM- oder Netzwerk-Integration
 - Datei-Tools sind noch nicht an API oder UI angebunden; ChangeSet-Zustände bleiben im Prozessspeicher
 - Mehrdatei-ChangeSets sind pro Datei atomar, aber noch keine globale Dateisystemtransaktion
-- Keine Shell- oder TestRunner-Tools
+- Testprozesse haben noch keine echte macOS-Dateisystem-/Netzwerk-Sandbox; nur bewusst geprüfte lokale Workspaces ausführen
 - Tasks und Verlauf sind noch nicht persistent
 
 ## Nächster sinnvoller Schritt
 
-MVP 1.D gemäß Abschnitt 26 des Masterplans umsetzen:
+MVP 1.E gemäß Abschnitt 27 des Masterplans umsetzen:
 
-1. Eine feste Allowlist benannter Testprofile definieren; keine freien Kommandos oder Argumente akzeptieren.
-2. Prozesse ohne `shell=True`, mit bereinigter Umgebung, fixiertem Workspace, Timeout und Output-Limit starten.
-3. Strukturierte Testresultate speichern und über die Agent-API abrufbar machen.
-4. Teststatus und begrenzte Logs in der UI darstellen.
-5. Erfolg, Fehler, Timeout und verbotene Befehle negativ testen.
+1. Git-Status, aktuellen Branch und Diff zunächst read-only und strukturiert bereitstellen.
+2. Feature-Branch-Erstellung mit explizitem Schutz vor Arbeit auf `main` implementieren.
+3. Commit-Vorbereitung an sichtbaren Diff und eine exakte Freigabe koppeln.
+4. Push, Force-Push, Merge und Auto-Merge im Agent-Tool ohne gesonderte Freigabe blockieren.
+5. API, UI und negative Tests für `main`-Schutz und verbotene Git-Aktionen ergänzen.
 
 Shell-Tools, externe Netzwerkzugriffe und echte Modellaufrufe bleiben ausdrücklich ausgeschlossen.
 
@@ -79,4 +88,4 @@ Der Nutzer prüft den PR. Kein Merge und kein Auto-Merge ohne seine ausdrücklic
 
 ## Startprompt für eine Folgesession
 
-> Lies docs/MASTER_PLAN.md vollständig und nutze ihn als strategische Quelle. Lies danach README.md, docs/SECURITY.md, docs/DECISIONS.md, docs/TASKS.md und docs/HANDOFF.md. Implementiere ausschließlich MVP 1.D: einen allowlist-basierten TestRunner mit strukturierten Ergebnissen, API und UI; weiterhin ohne LLMs, externe Netzwerkzugriffe oder freie Shell-Kommandos.
+> Lies docs/MASTER_PLAN.md vollständig und nutze ihn als strategische Quelle. Lies danach README.md, docs/SECURITY.md, docs/DECISIONS.md, docs/TASKS.md und docs/HANDOFF.md. Implementiere ausschließlich MVP 1.E: sicheren Git-Status, Diff und Feature-Branch-Unterstützung mit Approval-Pflicht; weiterhin ohne LLMs, unkontrollierte Pushes, Merge oder freie Shell-Kommandos.

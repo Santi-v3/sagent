@@ -1,8 +1,9 @@
 """FastAPI application for Sagent's first local technical slice."""
 
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from sagent_agent_api.models import (
@@ -13,17 +14,31 @@ from sagent_agent_api.models import (
     PlannedTask,
     TaskRequest,
     TaskResponse,
+    TestProfileResponse,
+    TestResultResponse,
+    TestRunRequest,
 )
+from sagent_agent_api.test_execution import get_test_runner
 from sagent_agent_api.workflow import (
     InvalidTransitionError,
     TaskNotFoundError,
     workflow_store,
 )
+from sagent_tools import (
+    TestCommandMismatchError,
+    TestExecutionError,
+    TestProfileNotAllowedError,
+    TestResultNotFoundError,
+    TestRunner,
+    TestRunnerBusyError,
+)
+
+TestRunnerDependency = Annotated[TestRunner, Depends(get_test_runner)]
 
 app = FastAPI(
     title="Sagent Agent API",
     description="Local deterministic API placeholder for Sagent.",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 app.add_middleware(
@@ -105,3 +120,54 @@ def approve_task(request: ApprovalRequest) -> ApprovalResponse:
         ApprovalState.NEEDS_CHANGES: "Überarbeitung wurde angefordert.",
     }
     return ApprovalResponse(message=messages[updated.approval_state], task=updated)
+
+
+@app.get("/agent/test-profiles", response_model=list[TestProfileResponse])
+def list_test_profiles(
+    runner: TestRunnerDependency,
+) -> list[TestProfileResponse]:
+    """List safe display metadata for the fixed server-side test allowlist."""
+
+    return [TestProfileResponse.model_validate(profile) for profile in runner.list_profiles()]
+
+
+@app.post("/agent/run-tests", response_model=TestResultResponse)
+def run_tests(
+    request: TestRunRequest,
+    runner: TestRunnerDependency,
+) -> TestResultResponse:
+    """Run one reviewed allowlist profile for an explicitly approved task."""
+
+    try:
+        task = workflow_store.get(request.task_id)
+    except TaskNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Task not found.") from error
+    if task.approval_state is not ApprovalState.APPROVED:
+        raise HTTPException(
+            status_code=409,
+            detail="Task must be approved before tests can run.",
+        )
+
+    try:
+        result = runner.run(request.profile_id, request.expected_command)
+    except TestProfileNotAllowedError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
+    except (TestCommandMismatchError, TestRunnerBusyError) as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except TestExecutionError as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error
+    return TestResultResponse.model_validate(result)
+
+
+@app.get("/agent/test-results/{result_id}", response_model=TestResultResponse)
+def get_test_result(
+    result_id: UUID,
+    runner: TestRunnerDependency,
+) -> TestResultResponse:
+    """Return one stored, bounded test result."""
+
+    try:
+        result = runner.get(result_id)
+    except TestResultNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Test result not found.") from error
+    return TestResultResponse.model_validate(result)

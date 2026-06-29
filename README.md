@@ -2,7 +2,7 @@
 
 Sagent ist ein local-first, Mac-first Personal AI Agent in Entwicklung. Langfristig soll er wie ein eigener Coding-Agent arbeiten: Projekte lesen, Änderungen planen, Code vorbereiten, Tests ausführen, Diffs erklären und Änderungen erst nach ausdrücklicher menschlicher Freigabe übernehmen.
 
-Das Repository enthält eine lokal ausführbare Minimalversion: eine deterministische Agent-API, eine einfache Codex-nahe Weboberfläche und einen getesteten Sicherheitskern für begrenzte Dateiänderungen. Es gibt weiterhin keine LLM-Anbindung, keine freie Shell und keine unkontrollierten Systemwerkzeuge. Die Datei-Tools sind in MVP 1.C bewusst noch nicht mit API oder UI verbunden.
+Das Repository enthält eine lokal ausführbare Minimalversion: eine deterministische Agent-API, eine Codex-nahe Weboberfläche, sichere ChangeSets und einen allowlist-basierten TestRunner. Es gibt weiterhin keine LLM-Anbindung, keine freie Shell und keine unkontrollierten Systemwerkzeuge. Die Datei-Tools sind bewusst noch nicht mit API oder UI verbunden.
 
 ## Projektkontext
 
@@ -32,7 +32,7 @@ apps/
 packages/
   agent-core/    ChangeSets, Diffs und inhaltsgebundene Approval-Logik
   memory/        Markdown-basiertes Memory-System
-  tools/         WorkspaceGuard und begrenzte Dateiwerkzeuge
+  tools/         WorkspaceGuard, Dateiwerkzeuge und sicherer TestRunner
   shared/        Gemeinsame Verträge und Hilfsfunktionen
 docs/            Produkt-, Architektur- und Betriebsdokumentation
 ```
@@ -73,7 +73,8 @@ Danach sind verfügbar:
 Die API kann auch separat gestartet werden:
 
 ```bash
-uv run uvicorn sagent_agent_api.main:app \
+PYTHONPATH=apps/agent-api/src:packages/tools/src:packages/agent-core/src \
+  uv run uvicorn sagent_agent_api.main:app \
   --app-dir apps/agent-api/src \
   --reload \
   --host 127.0.0.1 \
@@ -104,7 +105,7 @@ pnpm build
 
 ## Status
 
-**MVP 1.C abgeschlossen.** Sagent kann Dateiänderungen als unveränderliche ChangeSets mit alten und neuen Inhalten sowie Unified Diff vorbereiten. `WorkspaceGuard` blockiert Workspace-Ausbrüche und sensible Pfade; geschrieben wird erst nach exakter, hash-gebundener Freigabe und erneuter Prüfung des Ausgangszustands. Als Nächstes folgt MVP 1.D mit einem eng allowlist-basierten TestRunner; weiterhin ohne LLM-Aufrufe oder freie Shell.
+**MVP 1.D abgeschlossen.** Nach einer menschlichen Task-Freigabe zeigt Sagent ausschließlich serverseitig registrierte Testprofile. Der Nutzer bestätigt den exakten Befehl; der Runner startet ihn ohne freie Shell, mit bereinigter Umgebung, Timeout, CPU-/Dateideskriptorgrenzen und gekürzten, redigierten Logs. Ergebnisse bleiben lokal abrufbar. Als Nächstes folgt MVP 1.E mit sicherem Git-Status-, Diff- und Branch-Workflow.
 
 ## Lizenz
 

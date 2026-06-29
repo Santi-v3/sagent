@@ -36,6 +36,7 @@ body {
 }
 
 button,
+select,
 textarea {
   font: inherit;
 }
@@ -426,6 +427,255 @@ button {
   opacity: 0.48;
 }
 
+.test-status {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--surface-active);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.test-status.running {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+.test-status.passed {
+  background: #edf8f0;
+  color: var(--success);
+}
+
+.test-status.failed {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.test-controls {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.35fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.test-controls > label {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.test-controls select {
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 34px 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  outline: 0;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.test-command {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--sidebar);
+}
+
+.test-command svg {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  color: var(--muted);
+}
+
+.test-command code {
+  overflow: hidden;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.test-run-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--text);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.test-run-button:hover:not(:disabled) {
+  background: #0d0d0c;
+}
+
+.test-run-button:disabled {
+  cursor: wait;
+  opacity: 0.48;
+}
+
+.test-run-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.test-profile-loading {
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.test-inline-error {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 18px;
+  padding: 11px 12px;
+  border: 1px solid #f0cac6;
+  border-radius: 9px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.test-inline-error svg {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+}
+
+.test-inline-error button {
+  margin-left: auto;
+  padding: 3px;
+  border: 0;
+  background: transparent;
+  color: currentColor;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.test-result {
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+}
+
+.test-result.passed {
+  border-color: #bfe2c9;
+}
+
+.test-result.failed {
+  border-color: #f0cac6;
+}
+
+.test-result-summary {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 16px;
+}
+
+.test-result-summary > svg {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+}
+
+.test-result.passed .test-result-summary > svg {
+  color: var(--success);
+}
+
+.test-result.failed .test-result-summary > svg {
+  color: var(--danger);
+}
+
+.test-result-summary div {
+  display: grid;
+  gap: 3px;
+}
+
+.test-result-summary strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.test-result-summary span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.test-logs {
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--line);
+  background: #2b2a28;
+  color: #f5f3ef;
+}
+
+.test-logs-heading {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  color: #bdb9b1;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.test-log-label {
+  display: block;
+  margin: 12px 0 5px;
+  color: #9d9992;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.test-logs pre {
+  max-height: 300px;
+  margin: 0;
+  overflow: auto;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.test-logs > p {
+  color: #bdb9b1;
+}
+
 .loading-state {
   padding: 28px 0 42px;
   color: var(--muted);
@@ -554,6 +804,7 @@ button {
 }
 
 button:focus-visible,
+select:focus-visible,
 textarea:focus-visible {
   outline: 2px solid #4b76d1;
   outline-offset: 2px;
@@ -636,6 +887,18 @@ textarea:focus-visible {
 
   .approval-button {
     justify-content: center;
+    width: 100%;
+  }
+
+  .test-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .test-controls > label {
+    grid-column: auto;
+  }
+
+  .test-run-button {
     width: 100%;
   }
 }

@@ -2,7 +2,7 @@
 
 Lokale Next.js-Oberfläche für die erste technische Minimalversion von Sagent.
 
-Sie sendet Aufgaben an die lokale Agent-API, zeigt Plan, Risiken und Änderungsvorschlag und ermöglicht Freigeben, Ablehnen oder Überarbeitung anfordern. Verbindungsfehler und Retry werden sichtbar behandelt. Es gibt keine Authentifizierung, Modellwahl oder produktiven Agent-Tools.
+Sie sendet Aufgaben an die lokale Agent-API, zeigt Plan, Risiken und Änderungsvorschlag und ermöglicht Freigeben, Ablehnen oder Überarbeitung anfordern. Nach einer Freigabe kann der Nutzer ein sichtbares Allowlist-Testprofil starten und Status sowie begrenzte Logs prüfen. Verbindungsfehler und Retry werden sichtbar behandelt. Es gibt keine Authentifizierung, Modellwahl oder LLM-Anbindung.
 
 ## Start
 

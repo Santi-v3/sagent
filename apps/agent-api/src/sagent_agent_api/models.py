@@ -5,7 +5,7 @@ from enum import StrEnum
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class HealthResponse(BaseModel):
@@ -91,3 +91,41 @@ class ApprovalResponse(BaseModel):
 
     message: str
     task: PlannedTask
+
+
+class TestProfileResponse(BaseModel):
+    """An allowlisted command that can be reviewed before execution."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    profile_id: str
+    command: str
+    working_directory: str
+    timeout_seconds: float
+
+
+class TestRunRequest(BaseModel):
+    """Explicit confirmation of one displayed test profile for an approved task."""
+
+    task_id: UUID
+    profile_id: str = Field(pattern=r"^[a-z][a-z0-9-]{0,63}$")
+    expected_command: str = Field(min_length=1, max_length=500)
+    confirmed: Literal[True]
+
+
+class TestResultResponse(BaseModel):
+    """Bounded and redacted output from one allowlisted test run."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    result_id: UUID
+    profile_id: str
+    command: str
+    exit_code: int
+    stdout: str
+    stderr: str
+    passed: bool
+    created_at: datetime
+    duration_ms: int = Field(ge=0)
+    timed_out: bool
+    output_truncated: bool

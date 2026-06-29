@@ -36,7 +36,7 @@ Zentrale Zustandsmaschine für `intake → inspect → plan → propose → appr
 
 ### `packages/tools`
 
-Kleine, einzeln prüfbare Tools mit typisierten Eingaben und Ausgaben. MVP 1.C enthält den `WorkspaceGuard` und `FileTool` für begrenzte UTF-8-Textdateien. Schreibmethoden prüfen einen intern signierten Nachweis des Agent-Core erneut. Kein Tool erhält pauschalen Shell- oder Dateisystemzugriff.
+Kleine, einzeln prüfbare Tools mit typisierten Eingaben und Ausgaben. MVP 1.C enthält den `WorkspaceGuard` und `FileTool` für begrenzte UTF-8-Textdateien. MVP 1.D ergänzt feste Testprofile, begrenzte Prozessausführung und redigierte Ergebnisse. Schreibmethoden prüfen einen intern signierten Nachweis des Agent-Core erneut. Kein Tool erhält pauschalen Shell- oder Dateisystemzugriff.
 
 ### `packages/memory`
 

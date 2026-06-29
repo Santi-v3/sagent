@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "uv run python -m compileall -q src",
-    "dev": "uv run uvicorn sagent_agent_api.main:app --app-dir src --reload --host 127.0.0.1 --port 8765",
+    "dev": "PYTHONPATH=src:../../packages/tools/src:../../packages/agent-core/src uv run uvicorn sagent_agent_api.main:app --app-dir src --reload --host 127.0.0.1 --port 8765",
     "format": "uv run ruff format src tests",
     "lint": "uv run ruff check src tests",
     "test": "uv run pytest tests",

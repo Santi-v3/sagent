@@ -71,3 +71,10 @@ Dieses Dokument ist ein leichtgewichtiges Decision Log. Neue Entscheidungen erha
 - **Datum:** 2026-06-29
 - **Entscheidung:** Dateiänderungen werden zuerst mit kanonischen relativen Pfaden, altem und neuem Inhalt sowie Unified Diff vorbereitet. Die Freigabe bindet sich an einen SHA-256-Hash dieses exakten ChangeSets. Erst danach erzeugt der Core prozessinterne, HMAC-signierte Schreibnachweise für die enthaltenen Dateioperationen.
 - **Konsequenz:** Ein geänderter Pfad, Inhalt, Operationstyp oder Ausgangszustand entwertet die Freigabe. ChangeSets werden nur einmal angewendet. Die Zustände liegen in MVP 1.C noch ausschließlich im Prozessspeicher; Persistenz und Ablaufzeiten folgen vor einer produktiven Nutzung.
+
+## ADR-011: Testausführung erfolgt nur über sichtbare, feste Profile
+
+- **Status:** Angenommen
+- **Datum:** 2026-06-29
+- **Entscheidung:** Die API akzeptiert keine Befehle oder Argumentlisten aus Requests. Sie bietet ausschließlich serverseitig registrierte Profile an. Ein Lauf benötigt einen bereits freigegebenen Task, `confirmed=true` und den unverändert zurückgesendeten Anzeigebefehl. Der Prozess startet als Argumentliste ohne freie Shell.
+- **Konsequenz:** Unbekannte Profile und veränderte Befehle werden vor Prozessstart blockiert. Timeout, Prozessgruppe, CPU, Dateideskriptoren, Umgebung, Loggröße, Redaction und Ergebnisanzahl sind begrenzt. Da Repository-Tests selbst Code ausführen, bleibt der Runner bis zu einer echten macOS-Sandbox nur für bewusst geprüfte lokale Workspaces freigegeben.

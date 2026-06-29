@@ -44,7 +44,7 @@ Die vollständige strategische Roadmap steht in [`MASTER_PLAN.md`](MASTER_PLAN.m
 
 ## MVP 1.D – Sichere Test-Ausführung
 
-**Status: als Nächstes**
+**Status: abgeschlossen**
 
 - Allowlist-basierter TestRunner ohne freie Shell
 - Strukturierte, begrenzte Testresultate
@@ -52,6 +52,8 @@ Die vollständige strategische Roadmap steht in [`MASTER_PLAN.md`](MASTER_PLAN.m
 - Tests für Erfolg, Fehler, Timeout und verbotene Befehle
 
 ## MVP 1.E – Git-Diff und Branch-Workflow
+
+**Status: als Nächstes**
 
 - Git-Status, Branch und Diff anzeigen
 - Pro Aufgabe auf eigenem Branch arbeiten
