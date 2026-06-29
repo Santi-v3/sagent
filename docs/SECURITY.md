@@ -118,6 +118,16 @@ Der MVP-Git-Vertrag ist noch kein vollständiger Commit-Approval-Flow: Es gibt w
 
 Die technische Loopback- und Cancellation-Grenze ist implementiert und mit Mock-Transports sowie Parallelitäts-Races negativ getestet. Eine Live-Evaluation gegen tatsächlich gestartete LM-Studio-/Ollama-Server bleibt separat, damit Installation, Modellwahl und Ressourcenverbrauch nicht stillschweigend verändert werden.
 
+## Benchmark-Sicherheitsvertrag (MVP 2.C-Grundstein)
+
+- Die Benchmark-CLI baut ohne `--confirmed` keinen Router und führt keinen Netzwerkzugriff aus.
+- Ein bestätigter Lauf benötigt zusätzlich die bestehende vollständige Loopback-Prozesskonfiguration. Nur `127.0.0.1:1234` für LM Studio oder `127.0.0.1:11434` für Ollama ist möglich; `remote_http` bleibt blockiert.
+- Provider, Endpoint, Modell und Prompt sind keine CLI-Argumente. Die Aufgaben stammen aus einem kleinen, versionierten Katalog synthetischer Daten.
+- Die Harness installiert oder startet keine Software und führt keine Modell-Downloads aus.
+- Berichte enthalten keinen Prompt und keinen Modelltext. Sie speichern nur Task-ID, Terminalstatus, begrenzte Zeit-/Längenmetriken, Untrusted- und Cancellation-Flags sowie generische Fehlercodes.
+- Modelltext bleibt untrusted und wird weder ausgeführt noch an Tools, Approval oder Policies weitergereicht.
+- Tests verwenden ausschließlich Mock-Transports. Ein echter Benchmark ist ein separater, ausdrücklich bestätigter Nutzerschritt.
+
 ## Prompt Injection
 
 Text in Projekten kann Anweisungen enthalten. Diese Inhalte sind Daten, keine Systemanweisungen. Sie dürfen keine Policies ändern, Tools freigeben, Secrets anfordern oder den Workspace erweitern. Herkunft und Rolle jedes Kontextblocks müssen erhalten bleiben.

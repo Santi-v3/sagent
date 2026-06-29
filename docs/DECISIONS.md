@@ -106,3 +106,10 @@ Dieses Dokument ist ein leichtgewichtiges Decision Log. Neue Entscheidungen erha
 - **Datum:** 2026-06-29
 - **Entscheidung:** Längere lokale Modellaufrufe erhalten einen eigenen In-Memory-Job-Lebenszyklus. Ein thread-sicherer Cancellation-Token wird bis in den HTTP-Adapter propagiert und schließt bei Abbruch aktive Ressourcen. Job-Snapshots enthalten keinen Prompt und Adapterfehler werden generisch redigiert.
 - **Konsequenz:** UI und weitere Clients können Status und Abbruch später ohne Zugriff auf Endpoint oder Prompt anbieten. Parallelität und Historie bleiben begrenzt; API-Neustart verwirft Jobs. Persistenz, Resume und verteilte Worker benötigen eine spätere Entscheidung.
+
+## ADR-016: Benchmarks nutzen einen festen synthetischen Katalog und Metrikberichte
+
+- **Status:** Angenommen
+- **Datum:** 2026-06-29
+- **Entscheidung:** Der erste lokale Modellvergleich wird als opt-in CLI auf den bestehenden Loopback- und ModelJob-Verträgen aufgebaut. Aufgaben, Tokenlimits und Cancellation-Probe sind versioniert und nicht request-steuerbar. Ohne `--confirmed` wird nicht einmal der Router gebaut. Berichte enthalten weder Prompt noch Modelltext.
+- **Konsequenz:** Tests bleiben vollständig offline und deterministisch; Live-Läufe sind reproduzierbar und können keine privaten Projektinhalte aufnehmen. Providerinstallation, Modell-Downloads, Remote-Endpunkte, Qualitätsranking und Ergebnis-Persistenz bleiben außerhalb dieses Inkrements.

@@ -64,6 +64,9 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Loopback-Literale, Providerports, Redirects, Proxies und Request-/Response-Größen absichern
 - [x] Bestätigten `POST /models/complete` ohne frei wählbaren Endpoint bereitstellen
 - [ ] LM Studio und Ollama anhand von Installation, API-Kompatibilität, Streaming und Mac-Ressourcen vergleichen
+- [x] Reproduzierbaren Benchmark-Plan mit festen synthetischen Aufgaben und Metrikdefinitionen dokumentieren
+- [x] Opt-in Benchmark-CLI mit `--confirmed`, bestehender Loopback-Konfiguration und prompt-freier Metrikausgabe implementieren
+- [x] Benchmark-Harness ausschließlich mit Mock-Transports deterministisch testen
 - [x] Modelltext strikt als nicht vertrauenswürdige Eingabe behandeln; Tool-Policies bleiben deterministisch
 - [x] Timeout, Redirect, Connection-Fehler, fehlerhafte Antworten und übergroße lokale Responses testen
 - [x] Aktiven Abbruch einer bereits laufenden Modellgenerierung implementieren und testen
@@ -71,6 +74,7 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Prompt-freie Status-, Result- und Cancel-Endpunkte implementieren
 - [x] Echten lokalen Modellaufruf ausschließlich als expliziten, bestätigten API-Opt-in aktivierbar machen
 - [ ] Live-Aufruf mit LM Studio und Ollama auf dem Ziel-Mac prüfen
+- [ ] Ersten echten Benchmark erst nach bewusster Provider-/Modellvorbereitung und ausdrücklicher Nutzerbestätigung ausführen
 - [ ] Modellwahl, Jobstatus und Abbruch nach Live-Evaluation in die UI integrieren
 
 ## Noch blockiert bis zu den Sicherheitsinkrementen

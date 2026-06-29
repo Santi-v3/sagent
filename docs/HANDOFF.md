@@ -2,10 +2,10 @@
 
 ## Projektstatus
 
-- **Phase:** MVP 1, MVP 2.A und MVP 2.B abgeschlossen
+- **Phase:** MVP 1, MVP 2.A und MVP 2.B abgeschlossen; MVP 2.C Benchmark-Grundstein implementiert
 - **Stand:** 2026-06-29
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** MVP 2.C – Live-Evaluation von LM Studio, Ollama und einem ersten Coding-Modell auf dem Ziel-Mac
+- **Aktueller Fokus:** Benchmark-Harness prüfen; erster Live-Lauf ausschließlich nach bewusster Nutzerfreigabe und manuell vorbereitetem lokalen Provider
 
 ## Fertiggestellt
 
@@ -74,6 +74,12 @@
 - Job-Snapshots prompt-frei gehalten, interne Requests nach Terminalstatus verworfen und Adapterfehler generisch redigiert
 - Race-, Queue-, Capacity-, Success-, Failure-, wiederholte Cancel- und aktive Stream-Close-Fälle in Core und API getestet
 - 61 fokussierte Model-/Cancellation-Tests und insgesamt 121 Python-Tests erfolgreich; Ruff, ESLint, TypeScript, Python-Kompilierung, Produktionsbuild und API-Shutdown geprüft
+- Reproduzierbaren lokalen Benchmark-Plan in `docs/LOCAL_MODEL_BENCHMARKS.md` mit festen Providerprofilen, Sicherheitsregeln, Metriken und manuellen Befehlen dokumentiert
+- Drei harmlose, versionierte synthetische Aufgaben für Refactor-Plan, Testfälle und Cancellation-Probe definiert
+- Opt-in Benchmark-Harness und CLI ergänzt: ohne `--confirmed` kein Routerbau, mit Bestätigung weiterhin vollständige Loopback-Prozesskonfiguration erforderlich
+- Benchmark-Berichte auf Task-ID, Status, Zeit-/Längenmetriken, Untrusted-/Cancellation-Flags und generische Fehlercodes begrenzt; weder Prompt noch Modelltext werden ausgegeben
+- Harness- und CLI-Tests ausschließlich mit Mock-Transports umgesetzt; kein echter Modellaufruf, keine Installation und kein Download durchgeführt
+- 9 fokussierte Benchmark-Harness-/CLI-Tests und insgesamt 130 Python-Tests erfolgreich; Ruff, ESLint, TypeScript, Python-Kompilierung und Produktionsbuild bestanden
 
 ## MVP-1-Abschlussaudit
 
@@ -104,15 +110,17 @@
 - Modelljobs sind nur prozesslokal; API-Neustart verwirft Status und Ergebnis
 - Cancellation ist für den nicht streamenden HTTP-Job umgesetzt, aber noch nicht in der Weboberfläche sichtbar
 - Die Kompatibilität ist gegen die offiziellen LM-Studio-/Ollama-Verträge und Mock-Transports geprüft, aber noch nicht gegen einen tatsächlich laufenden lokalen Modellserver
+- Die Benchmark-Harness ist vorbereitet, aber es wurde noch kein Live-Benchmark und kein Qualitätsvergleich durchgeführt
+- Benchmark-Ausgabe ist absichtlich flüchtig; eine persistente Ergebnisablage benötigt einen eigenen Datenschutz- und Redaction-Review
 
 ## Nächster sinnvoller Schritt
 
-MVP 2.C als kontrollierte lokale Evaluation durchführen:
+MVP 2.C erst nach Review dieses Grundsteins als kontrollierte lokale Evaluation durchführen:
 
 1. Nutzer wählt und startet LM Studio oder Ollama bewusst auf dem Ziel-Mac; Sagent installiert oder lädt kein Modell ungefragt.
-2. Einen kleinen, Mac-tauglichen Coding-Modellkandidaten und eine feste Benchmark-Aufgabe dokumentieren.
-3. `GET /models` und bestätigtes `POST /models/complete` gegen den echten Loopback-Server prüfen.
-4. Latenz, Speicherbedarf, Antwortqualität, Token-Nutzung und Fehlerverhalten reproduzierbar protokollieren.
+2. Einen kleinen, bereits lokal vorhandenen Coding-Modellkandidaten bewusst auswählen; nichts automatisch installieren oder laden.
+3. Die feste Benchmark-CLI einmal gegen den bewusst gestarteten Loopback-Server ausführen.
+4. Nur die prompt- und antworttextfreie Metrikausgabe prüfen; Qualität und Ressourcen separat manuell notieren.
 5. Danach denselben Ablauf mit dem zweiten Provider und mindestens einem zweiten Coding-Modell vergleichen.
 6. Erst auf Basis dieser Daten Default-Modell, Streaming-Inkrement sowie UI-Modellwahl und Jobsteuerung entscheiden.
 
@@ -144,4 +152,4 @@ Der Nutzer prüft den PR. Kein Merge und kein Auto-Merge ohne seine ausdrücklic
 
 ## Startprompt für eine Folgesession
 
-> Lies docs/MASTER_PLAN.md und docs/LOCAL_MODELS.md vollständig, danach SECURITY.md, DECISIONS.md, TASKS.md und HANDOFF.md. Führe MVP 2.C nur mit einem vom Nutzer bewusst gestarteten lokalen LM-Studio- oder Ollama-Server durch. Installiere oder lade nichts ungefragt. Nutze eine feste Coding-Benchmark, protokolliere Latenz, Speicher, Token und Qualität und vergleiche mindestens zwei Provider-/Modellkombinationen. Keine Remote-Endpunkte, Zugangsdaten, Tool-Autorität oder freie Shell.
+> Lies docs/MASTER_PLAN.md, docs/LOCAL_MODELS.md und docs/LOCAL_MODEL_BENCHMARKS.md vollständig, danach SECURITY.md, DECISIONS.md, TASKS.md und HANDOFF.md. Prüfe zuerst den Benchmark-Grundstein. Führe einen echten Lauf nur nach ausdrücklicher Nutzerbestätigung mit einem bewusst gestarteten lokalen LM-Studio- oder Ollama-Server und bereits vorhandenem Modell aus. Installiere oder lade nichts. Keine Remote-Endpunkte, Zugangsdaten, Tool-Autorität oder freie Shell.

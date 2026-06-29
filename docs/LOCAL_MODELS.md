@@ -79,3 +79,5 @@ Terminale Jobs können nicht nachträglich abgebrochen werden. Ein bereits abgeb
 - MLX-Adapter
 
 Bis zur Live-Evaluation bleibt der deterministische Fake der Standardroute. Jobzustände liegen nur im Arbeitsspeicher und gehen beim API-Neustart verloren.
+
+Der sichere, noch nicht live ausgeführte Versuchsplan und die opt-in CLI stehen in [`LOCAL_MODEL_BENCHMARKS.md`](LOCAL_MODEL_BENCHMARKS.md).
