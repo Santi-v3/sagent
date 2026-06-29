@@ -219,3 +219,27 @@ class ModelPreviewResponse(BaseModel):
     output_tokens: int = Field(ge=0)
     untrusted: Literal[True]
     simulated: Literal[True]
+
+
+class LocalModelCompletionRequest(BaseModel):
+    """Explicitly confirmed call to one preconfigured loopback adapter."""
+
+    adapter_id: str = Field(pattern=r"^[a-z][a-z0-9._-]{0,63}$")
+    prompt: str = Field(min_length=1, max_length=8_000)
+    capability: Literal["chat", "coding"] = "chat"
+    max_output_tokens: int = Field(default=256, ge=1, le=2_048)
+    confirmed: Literal[True]
+
+
+class LocalModelCompletionResponse(BaseModel):
+    """Untrusted text returned from an explicitly configured loopback adapter."""
+
+    request_id: UUID
+    adapter_id: str
+    model: str
+    content: str
+    finish_reason: Literal["stop", "length"]
+    input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+    untrusted: Literal[True]
+    simulated: Literal[False]

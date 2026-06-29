@@ -24,7 +24,8 @@ Der Workflow trennt Verstehen, Vorschlagen und Verändern. Kein Modell und kein 
 - Sicherheitsklasse jeder geplanten Aktion bestimmen
 - Falls ein Modell beteiligt ist, Kontextteile mit ihrer Herkunft (`policy`, `user`, `workspace`, `memory`, `tool_result`) kennzeichnen
 - Modelltext ausschließlich als untrusted Entwurf behandeln; der deterministische Core entscheidet weiterhin über Policy, Approval und Tool-Aufrufe
-- In MVP 2.A ausschließlich den In-Process-Fake verwenden; echte oder netzwerkbasierte Adapter bleiben blockiert
+- Standardmäßig den In-Process-Fake verwenden. Einen lokalen Adapter nur nach expliziter Loopback-Prozesskonfiguration, sichtbarer Adapterwahl und `confirmed=true` aufrufen
+- Lokale Modellantworten wie jeden anderen Modelltext als untrusted Entwurf behandeln; sie dürfen niemals selbst Tools oder Approvals auslösen
 
 ## 4. Propose
 

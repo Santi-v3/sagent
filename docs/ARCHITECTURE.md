@@ -47,7 +47,9 @@ ModelRouter -- capability route --> allowed adapter transport
 limit + identity validation <--- untrusted text response
 ```
 
-Die Transport-Allowlist enthält derzeit nur `in_process`. `loopback_http` für LM Studio/Ollama und `remote_http` sind modelliert, aber blockiert. Der Adaptervertrag kennt nur Text-Completion; Tool-Aufrufe, Dateioperationen, Shell und Policy-Entscheidungen sind nicht Teil der Schnittstelle.
+Die Standard-Transport-Allowlist enthält nur `in_process`. MVP 2.B kann nach expliziter Prozesskonfiguration zusätzlich genau einen `loopback_http`-Adapter für LM Studio oder Ollama registrieren. `remote_http` bleibt blockiert. Der Adaptervertrag kennt nur Text-Completion; Tool-Aufrufe, Dateioperationen, Shell und Policy-Entscheidungen sind nicht Teil der Schnittstelle.
+
+Der Loopback-Adapter sendet den gemeinsamen OpenAI-kompatiblen Vertrag `POST /v1/chat/completions`. Endpoint, Providerprofil und Modell werden beim Routerbau fixiert. Ein API-Request kann diese Werte nicht verändern und muss den registrierten Adapter ausdrücklich mit `confirmed=true` auswählen.
 
 ### `packages/tools`
 

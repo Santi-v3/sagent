@@ -92,3 +92,10 @@ Dieses Dokument ist ein leichtgewichtiges Decision Log. Neue Entscheidungen erha
 - **Datum:** 2026-06-29
 - **Entscheidung:** Modellintegration beginnt mit einem provider-neutralen Text-Completion-Vertrag. Eingabeteile behalten ihre Herkunft, Fähigkeiten werden über feste Routen gewählt und jede Adapterbeschreibung deklariert eine Transportklasse. Der Router erlaubt zunächst ausschließlich In-Process-Adapter. Antworten sind immer untrusted und können keine Tools autorisieren oder repräsentieren.
 - **Konsequenz:** Der deterministische Fake ermöglicht API- und Sicherheitstests ohne Modellserver. LM Studio, Ollama oder andere OpenAI-kompatible Server benötigen einen eigenen Loopback-Transport mit URL-, Redirect-, Timeout-, Streaming- und Größen-Policies. Remote-Endpunkte bleiben außerhalb des local-first Scopes, bis eine spätere Entscheidung sie ausdrücklich zulässt.
+
+## ADR-014: Lokale Modelle nutzen feste Providerprofile statt frei wählbarer URLs
+
+- **Status:** Angenommen
+- **Datum:** 2026-06-29
+- **Entscheidung:** Der erste echte Modelltransport unterstützt nur den gemeinsamen OpenAI-kompatiblen Chat-Completions-Vertrag von LM Studio und Ollama. LM Studio ist an `127.0.0.1:1234`, Ollama an `127.0.0.1:11434` gebunden. Ein Request wählt nur einen zuvor registrierten Adapter; URL, Port, Modell und Provider stammen ausschließlich aus der beim Prozessstart fixierten Konfiguration.
+- **Konsequenz:** SSRF auf andere lokale Dienste, DNS-/Redirect-Ausbrüche, Request-Credentials und frei injizierbare Endpoints bleiben blockiert. Abweichende Ports, Authentifizierung, Streaming, Responses API, Tools und Remote-Provider benötigen jeweils eine neue Architektur- und Sicherheitsentscheidung.

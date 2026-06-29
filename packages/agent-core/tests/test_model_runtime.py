@@ -122,15 +122,17 @@ def test_router_uses_explicit_capability_routes() -> None:
 
 
 def test_router_blocks_loopback_and_remote_transports_before_execution() -> None:
-    loopback = StaticAdapter(
-        descriptor("lm-studio", transport=ModelTransport.LOOPBACK_HTTP)
-    )
-    router = ModelRouter([loopback], {ModelCapability.CODING: "lm-studio"})
+    for adapter_id, transport in (
+        ("lm-studio", ModelTransport.LOOPBACK_HTTP),
+        ("remote-provider", ModelTransport.REMOTE_HTTP),
+    ):
+        adapter = StaticAdapter(descriptor(adapter_id, transport=transport))
+        router = ModelRouter([adapter], {ModelCapability.CODING: adapter_id})
 
-    with pytest.raises(ModelTransportBlockedError, match="loopback_http"):
-        router.complete(request())
+        with pytest.raises(ModelTransportBlockedError, match=transport.value):
+            router.complete(request())
 
-    assert loopback.call_count == 0
+        assert adapter.call_count == 0
 
 
 def test_router_blocks_non_simulated_adapters_before_execution() -> None:

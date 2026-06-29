@@ -27,7 +27,7 @@ Zunächst ist Sagent ein persönliches Werkzeug für den Eigentümer dieses Repo
 - Allgemeiner Shell-Zugriff
 - Zugriff außerhalb eines expliziten Workspace
 - Cloud-Synchronisierung oder Telemetrie
-- Bezahlte APIs oder produktive LLM-Aufrufe
+- Bezahlte oder entfernte Modell-APIs sowie unkontrollierte produktive LLM-Aufrufe
 - Plugin-Marktplatz, Multi-Agent-Schwärme oder selbstständige Deployment-Aktionen
 - Vollständige IDE oder komplexe native macOS-App
 

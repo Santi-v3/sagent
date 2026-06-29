@@ -6,6 +6,14 @@ from sagent_agent_core.changes import (
     ChangeSetNotFoundError,
     ChangeSetService,
 )
+from sagent_agent_core.loopback_model import (
+    LoopbackEndpoint,
+    LoopbackModelConnectionError,
+    LoopbackModelError,
+    LoopbackModelProtocolError,
+    LoopbackModelTimeoutError,
+    LoopbackOpenAIChatAdapter,
+)
 from sagent_agent_core.model_runtime import (
     FakeModelAdapter,
     ModelAdapter,
@@ -48,6 +56,12 @@ __all__ = [
     "FileAccessError",
     "FileChange",
     "FileTool",
+    "LoopbackEndpoint",
+    "LoopbackModelConnectionError",
+    "LoopbackModelError",
+    "LoopbackModelProtocolError",
+    "LoopbackModelTimeoutError",
+    "LoopbackOpenAIChatAdapter",
     "FakeModelAdapter",
     "ModelAdapter",
     "ModelAdapterBlockedError",
