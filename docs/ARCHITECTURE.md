@@ -32,7 +32,22 @@ Lokale FastAPI. Sie verwaltet den derzeit flüchtigen Task-Workflow und transpor
 
 ### `packages/agent-core`
 
-Zentrale Zustandsmaschine für `intake → inspect → plan → propose → approve → apply → verify → complete`. MVP 1.C implementiert hier unveränderliche ChangeSets, Unified Diffs, Proposal-Hashes und den einmaligen Approval-/Apply-Lebenszyklus. LangGraph kann später diese Zustandsmaschine implementieren, ist aber keine Voraussetzung für MVP 1.
+Zentrale Zustandsmaschine für `intake → inspect → plan → propose → approve → apply → verify → complete`. MVP 1.C implementiert hier unveränderliche ChangeSets, Unified Diffs, Proposal-Hashes und den einmaligen Approval-/Apply-Lebenszyklus. MVP 2.A ergänzt einen provider-neutralen `ModelRouter`, dessen Adapter ausschließlich untrusted Text erzeugen und keine Tool-Autorität erhalten. LangGraph kann später diese Zustandsmaschine implementieren, ist aber keine Voraussetzung für die bisherigen Inkremente.
+
+### Modellgrenze in MVP 2.A
+
+```text
+source-labelled text parts
+          |
+          v
+ModelRouter -- capability route --> allowed adapter transport
+          |                              |
+          |                        in_process only
+          v                              v
+limit + identity validation <--- untrusted text response
+```
+
+Die Transport-Allowlist enthält derzeit nur `in_process`. `loopback_http` für LM Studio/Ollama und `remote_http` sind modelliert, aber blockiert. Der Adaptervertrag kennt nur Text-Completion; Tool-Aufrufe, Dateioperationen, Shell und Policy-Entscheidungen sind nicht Teil der Schnittstelle.
 
 ### `packages/tools`
 

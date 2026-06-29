@@ -22,6 +22,9 @@ Der Workflow trennt Verstehen, Vorschlagen und Verändern. Kein Modell und kein 
 - Betroffene Dateien und erwartete Auswirkungen nennen
 - Test- und Rückfallstrategie festlegen
 - Sicherheitsklasse jeder geplanten Aktion bestimmen
+- Falls ein Modell beteiligt ist, Kontextteile mit ihrer Herkunft (`policy`, `user`, `workspace`, `memory`, `tool_result`) kennzeichnen
+- Modelltext ausschließlich als untrusted Entwurf behandeln; der deterministische Core entscheidet weiterhin über Policy, Approval und Tool-Aufrufe
+- In MVP 2.A ausschließlich den In-Process-Fake verwenden; echte oder netzwerkbasierte Adapter bleiben blockiert
 
 ## 4. Propose
 
