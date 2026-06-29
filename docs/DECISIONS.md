@@ -97,5 +97,5 @@ Dieses Dokument ist ein leichtgewichtiges Decision Log. Neue Entscheidungen erha
 
 - **Status:** Angenommen
 - **Datum:** 2026-06-29
-- **Entscheidung:** Der erste echte Modelltransport unterstützt nur den gemeinsamen OpenAI-kompatiblen Chat-Completions-Vertrag von LM Studio und Ollama. LM Studio ist an den Profilport `1234`, Ollama an `11434` gebunden. Ein Request wählt nur einen zuvor registrierten Adapter; URL, Port, Modell und Provider stammen ausschließlich aus der beim Prozessstart fixierten Konfiguration.
+- **Entscheidung:** Der erste echte Modelltransport unterstützt nur den gemeinsamen OpenAI-kompatiblen Chat-Completions-Vertrag von LM Studio und Ollama. LM Studio ist an `127.0.0.1:1234`, Ollama an `127.0.0.1:11434` gebunden. Ein Request wählt nur einen zuvor registrierten Adapter; URL, Port, Modell und Provider stammen ausschließlich aus der beim Prozessstart fixierten Konfiguration.
 - **Konsequenz:** SSRF auf andere lokale Dienste, DNS-/Redirect-Ausbrüche, Request-Credentials und frei injizierbare Endpoints bleiben blockiert. Abweichende Ports, Authentifizierung, Streaming, Responses API, Tools und Remote-Provider benötigen jeweils eine neue Architektur- und Sicherheitsentscheidung.
