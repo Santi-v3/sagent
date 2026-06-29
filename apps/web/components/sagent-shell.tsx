@@ -2,33 +2,104 @@
 
 import {
   ArrowUp,
+  ArrowsClockwise,
   CheckCircle,
   Circle,
+  FileCode,
+  HourglassMedium,
+  ShieldCheck,
+  Warning,
   WarningCircle,
+  XCircle,
 } from "@phosphor-icons/react";
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 
-type TaskResponse = {
-  status: "accepted";
+type ApprovalState = "pending" | "approved" | "rejected" | "needs_changes";
+type ApprovalDecision = Exclude<ApprovalState, "pending">;
+
+type PlanStep = {
+  position: number;
+  title: string;
+  description: string;
+};
+
+type ChangeProposal = {
+  summary: string;
+  risk_level: "low" | "medium" | "high";
+  affected_files: string[];
+  required_approvals: string[];
+};
+
+type PlannedTask = {
+  task_id: string;
+  task: string;
+  goal: string;
+  steps: PlanStep[];
+  risks: string[];
+  next_actions: string[];
+  proposal: ChangeProposal;
+  approval_state: ApprovalState;
+  created_at: string;
+  updated_at: string;
+};
+
+type ApprovalResponse = {
   message: string;
-  next_steps: string[];
+  task: PlannedTask;
 };
 
 const API_URL = process.env.NEXT_PUBLIC_AGENT_API_URL ?? "http://127.0.0.1:8765";
 
 const sampleTasks = [
-  "API-Verbindung prüfen",
+  "Approval-Flow simulieren",
   "Agent-Datenmodell planen",
-  "UI-Komponente beschreiben",
-  "Test-Setup vorbereiten",
+  "WorkspaceGuard vorbereiten",
+  "Test-Setup erweitern",
 ];
+
+const approvalCopy: Record<ApprovalState, { label: string; message: string }> = {
+  pending: {
+    label: "Freigabe ausstehend",
+    message: "Prüfe Plan, Risiken und Änderungsvorschlag, bevor du entscheidest.",
+  },
+  approved: {
+    label: "Freigegeben",
+    message: "Der Vorschlag ist freigegeben. Diese Simulation führt trotzdem nichts aus.",
+  },
+  rejected: {
+    label: "Abgelehnt",
+    message: "Der Vorschlag wurde verworfen und wird nicht ausgeführt.",
+  },
+  needs_changes: {
+    label: "Überarbeitung nötig",
+    message: "Der Vorschlag benötigt Änderungen, bevor eine neue Freigabe möglich ist.",
+  },
+};
+
+const riskCopy: Record<ChangeProposal["risk_level"], string> = {
+  low: "niedrig",
+  medium: "mittel",
+  high: "hoch",
+};
+
+function ApprovalIcon({ state }: { state: ApprovalState }) {
+  if (state === "approved") return <CheckCircle weight="regular" aria-hidden="true" />;
+  if (state === "rejected") return <XCircle weight="regular" aria-hidden="true" />;
+  if (state === "needs_changes") {
+    return <ArrowsClockwise weight="regular" aria-hidden="true" />;
+  }
+  return <HourglassMedium weight="regular" aria-hidden="true" />;
+}
 
 export function SagentShell() {
   const [task, setTask] = useState("");
   const [submittedTask, setSubmittedTask] = useState("");
-  const [result, setResult] = useState<TaskResponse | null>(null);
+  const [result, setResult] = useState<PlannedTask | null>(null);
+  const [approvalMessage, setApprovalMessage] = useState("");
   const [error, setError] = useState("");
+  const [retryDecision, setRetryDecision] = useState<ApprovalDecision | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isApprovalLoading, setIsApprovalLoading] = useState(false);
   const [isApiOnline, setIsApiOnline] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -49,11 +120,13 @@ export function SagentShell() {
 
     setIsLoading(true);
     setError("");
+    setRetryDecision(null);
     setResult(null);
+    setApprovalMessage("");
     setSubmittedTask(normalizedTask);
 
     try {
-      const response = await fetch(`${API_URL}/agent/task`, {
+      const response = await fetch(`${API_URL}/agent/plan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ task: normalizedTask }),
@@ -63,7 +136,7 @@ export function SagentShell() {
         throw new Error(`API request failed with status ${response.status}`);
       }
 
-      const data = (await response.json()) as TaskResponse;
+      const data = (await response.json()) as PlannedTask;
       setResult(data);
       setTask("");
       setIsApiOnline(true);
@@ -73,6 +146,45 @@ export function SagentShell() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  async function decide(decision: ApprovalDecision) {
+    if (!result || result.approval_state !== "pending" || isApprovalLoading) return;
+
+    setIsApprovalLoading(true);
+    setError("");
+    setRetryDecision(decision);
+
+    try {
+      const response = await fetch(`${API_URL}/agent/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task_id: result.task_id, decision }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Approval request failed with status ${response.status}`);
+      }
+
+      const data = (await response.json()) as ApprovalResponse;
+      setResult(data.task);
+      setApprovalMessage(data.message);
+      setRetryDecision(null);
+      setIsApiOnline(true);
+    } catch {
+      setError("Die Freigabeentscheidung konnte nicht gespeichert werden.");
+      setIsApiOnline(false);
+    } finally {
+      setIsApprovalLoading(false);
+    }
+  }
+
+  function retryLastAction() {
+    if (retryDecision) {
+      void decide(retryDecision);
+      return;
+    }
+    void submitTask();
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -130,34 +242,120 @@ export function SagentShell() {
             ) : (
               <div className="empty-state">
                 <p className="message-label">Lokaler Developer-Agent</p>
-                <h1>Was soll Sagent bauen?</h1>
+                <h1>Was soll Sagent planen?</h1>
                 <p>
-                  Aufgaben werden in dieser Minimalversion nur lokal angenommen und noch
-                  nicht ausgeführt.
+                  Sagent simuliert einen sicheren Plan und wartet vor jeder möglichen
+                  Änderung auf deine Entscheidung.
                 </p>
               </div>
             )}
 
             {isLoading ? (
               <div className="loading-state" role="status">
-                Aufgabe wird lokal verarbeitet …
+                Sicherer Plan wird lokal erstellt …
               </div>
             ) : null}
 
             {result ? (
               <article className="message agent-message">
                 <p className="message-label">Sagent</p>
-                <div className="result-status">
-                  <CheckCircle weight="regular" aria-hidden="true" />
-                  <span>Angenommen</span>
+                <div className={`approval-status status-${result.approval_state}`}>
+                  <ApprovalIcon state={result.approval_state} />
+                  <span>{approvalCopy[result.approval_state].label}</span>
                 </div>
-                <p>{result.message}</p>
-                <h2>Nächste Schritte</h2>
-                <ol>
-                  {result.next_steps.map((step) => (
-                    <li key={step}>{step}</li>
-                  ))}
-                </ol>
+                <p>{result.goal}</p>
+
+                <section className="workflow-section" aria-labelledby="plan-heading">
+                  <h2 id="plan-heading">Plan</h2>
+                  <ol className="plan-steps">
+                    {result.steps.map((step) => (
+                      <li key={step.position}>
+                        <div>
+                          <strong>{step.title}</strong>
+                          <p>{step.description}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+
+                <section className="workflow-section" aria-labelledby="risks-heading">
+                  <h2 id="risks-heading">Risiken</h2>
+                  <ul className="risk-list">
+                    {result.risks.map((risk) => (
+                      <li key={risk}>
+                        <Warning weight="regular" aria-hidden="true" />
+                        <span>{risk}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+
+                <section className="workflow-section" aria-labelledby="proposal-heading">
+                  <div className="section-heading-row">
+                    <h2 id="proposal-heading">Änderungsvorschlag</h2>
+                    <span className={`risk-badge risk-${result.proposal.risk_level}`}>
+                      Risiko: {riskCopy[result.proposal.risk_level]}
+                    </span>
+                  </div>
+                  <p>{result.proposal.summary}</p>
+                  <dl className="proposal-details">
+                    <div>
+                      <dt>
+                        <FileCode weight="regular" aria-hidden="true" />
+                        Betroffene Bereiche
+                      </dt>
+                      <dd>
+                        {result.proposal.affected_files.length
+                          ? result.proposal.affected_files.join(", ")
+                          : "Nach sicherer Projektanalyse festzulegen"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>
+                        <ShieldCheck weight="regular" aria-hidden="true" />
+                        Benötigte Freigabe
+                      </dt>
+                      <dd>Menschliche Prüfung</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section className="workflow-section approval-section" aria-labelledby="approval-heading">
+                  <h2 id="approval-heading">Entscheidung</h2>
+                  <p>{approvalMessage || approvalCopy[result.approval_state].message}</p>
+                  {result.approval_state === "pending" ? (
+                    <div className="approval-actions">
+                      <button
+                        type="button"
+                        className="approval-button approve"
+                        disabled={isApprovalLoading}
+                        onClick={() => void decide("approved")}
+                      >
+                        <CheckCircle weight="regular" aria-hidden="true" />
+                        Freigeben
+                      </button>
+                      <button
+                        type="button"
+                        className="approval-button revise"
+                        disabled={isApprovalLoading}
+                        onClick={() => void decide("needs_changes")}
+                      >
+                        <ArrowsClockwise weight="regular" aria-hidden="true" />
+                        Überarbeiten
+                      </button>
+                      <button
+                        type="button"
+                        className="approval-button reject"
+                        disabled={isApprovalLoading}
+                        onClick={() => void decide("rejected")}
+                      >
+                        <XCircle weight="regular" aria-hidden="true" />
+                        Ablehnen
+                      </button>
+                    </div>
+                  ) : null}
+                </section>
               </article>
             ) : null}
           </div>
@@ -180,7 +378,7 @@ export function SagentShell() {
               <div className="composer-footer">
                 <span>Shift + Enter für neue Zeile</span>
                 <button type="submit" disabled={!task.trim() || isLoading}>
-                  <span>{isLoading ? "Wird gesendet" : "Senden"}</span>
+                  <span>{isLoading ? "Plant" : "Plan erstellen"}</span>
                   <ArrowUp weight="bold" aria-hidden="true" />
                 </button>
               </div>
@@ -190,7 +388,7 @@ export function SagentShell() {
               <div className="error-banner" role="alert">
                 <WarningCircle weight="regular" aria-hidden="true" />
                 <span>{error}</span>
-                <button type="button" onClick={() => void submitTask()}>
+                <button type="button" onClick={retryLastAction}>
                   Erneut versuchen
                 </button>
               </div>

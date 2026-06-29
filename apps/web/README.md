@@ -2,7 +2,7 @@
 
 Lokale Next.js-Oberfläche für die erste technische Minimalversion von Sagent.
 
-Sie sendet Aufgaben an die lokale Agent-API, zeigt die strukturierte Platzhalterantwort und behandelt Verbindungsfehler. Es gibt keine Authentifizierung, Modellwahl oder produktiven Agent-Tools.
+Sie sendet Aufgaben an die lokale Agent-API, zeigt Plan, Risiken und Änderungsvorschlag und ermöglicht Freigeben, Ablehnen oder Überarbeitung anfordern. Verbindungsfehler und Retry werden sichtbar behandelt. Es gibt keine Authentifizierung, Modellwahl oder produktiven Agent-Tools.
 
 ## Start
 

@@ -28,7 +28,7 @@ Bei Widersprüchen wird nichts stillschweigend überschrieben: Die Abweichung wi
 ```text
 apps/
   web/           Lokale Next.js-Oberfläche
-  agent-api/     Lokale FastAPI mit deterministischer Task-Antwort
+  agent-api/     Lokale FastAPI mit Task-, Plan- und Approval-Workflow
 packages/
   agent-core/    Orchestrierung, Policies und Approval-Logik
   memory/        Markdown-basiertes Memory-System
@@ -104,7 +104,7 @@ pnpm build
 
 ## Status
 
-**MVP 1.A abgeschlossen.** Die lokale FastAPI, deterministische Task-Verarbeitung, API-Tests und Codex-nahe Next.js-Oberfläche laufen. Als Nächstes folgt MVP 1.B: ein simulierter Plan- und Approval-Workflow, weiterhin ohne echte Dateiänderungen oder Modellaufrufe.
+**MVP 1.B abgeschlossen.** Sagent erzeugt deterministische Pläne mit Ziel, Schritten, Risiken, nächsten Aktionen und Änderungsvorschlag. Freigeben, Ablehnen und Überarbeitung anfordern funktionieren über API und Codex-nahe UI. Als Nächstes folgt MVP 1.C mit WorkspaceGuard, sicheren Dateioperationen und Diffs; weiterhin ohne LLM-Aufrufe.
 
 ## Lizenz
 

@@ -1,35 +1,35 @@
 # Design QA
 
 - **Source visual truth:** `/Users/santi/.codex/generated_images/019f10a0-9219-7553-a3d3-b37a6f3011c3/exec-db4aa589-99bb-405e-a2bf-ab52e34a377e.png`
-- **Implementation screenshot:** `/Users/santi/Documents/Sagent Personal Agent/.sagent/design-qa/implementation-production.jpg`
-- **Viewport:** 950 × 654 CSS pixels for the captured responsive state; desktop geometry was additionally evaluated at 1440 × 1024.
-- **State:** Successful deterministic task response. Error, retry, empty and mobile states were checked separately.
-- **Full-view comparison evidence:** `/Users/santi/Documents/Sagent Personal Agent/.sagent/design-qa/comparison.png`
-- **Focused-region comparison evidence:** `/Users/santi/Documents/Sagent Personal Agent/.sagent/design-qa/comparison-composer.png`
+- **Implementation screenshot:** `/Users/santi/Documents/Sagent Personal Agent/.sagent/design-qa/mvp1b-final.jpg`
+- **Viewport:** 1280 × 720 CSS pixels for desktop; responsive behavior additionally checked at 390 × 844.
+- **State:** Pending plan with full TaskPlanner, risks, ChangeProposal and approval actions. Approved and needs-changes states were checked separately.
+- **Full-view comparison evidence:** `/Users/santi/Documents/Sagent Personal Agent/.sagent/design-qa/mvp1b-comparison.png`
+- **Focused-region comparison evidence:** `/Users/santi/Documents/Sagent Personal Agent/.sagent/design-qa/mvp1b-comparison-approval.png`
 
 ## Findings
 
 No actionable P0, P1 or P2 findings remain.
 
-- **Fonts and typography:** System UI typography matches the restrained Codex direction. The responsive capture intentionally keeps readable product sizes instead of shrinking the desktop design proportionally.
-- **Spacing and layout rhythm:** Sidebar, thread, dividers and composer follow the source hierarchy. A discovered short-viewport overlap between `next_steps` and the composer was fixed by preventing the thread content from shrinking.
-- **Colors and visual tokens:** Warm neutral surfaces, quiet borders, green success and red error tokens match the source intent with accessible contrast.
-- **Image and icon fidelity:** The reference contains no raster content that the application needs. All interface icons use Phosphor rather than handcrafted SVG or CSS substitutes.
-- **Copy and content:** Copy differs intentionally because the implementation displays the real deterministic API contract rather than the mock's illustrative agent claims.
-- **Interaction and accessibility:** Submit, Enter/Shift+Enter, sample-task selection, loading, disabled, offline, retry and success states work. Controls are keyboard-addressable and labeled.
-- **Responsiveness:** At 390 × 844 the sidebar collapses, the composer remains usable and document width equals viewport width.
+- **Fonts and typography:** System UI typography, hierarchy and readable line lengths remain aligned with the restrained Codex direction.
+- **Spacing and layout rhythm:** Sidebar, thread, lightweight separators and composer preserve the source structure. The longer planning workflow scrolls naturally instead of compressing or overlapping the composer.
+- **Colors and visual tokens:** Warm neutral surfaces remain unchanged. Pending, approved, rejected, needs-changes and risk states use restrained semantic colors with accessible contrast.
+- **Image and icon fidelity:** The reference contains no required raster content. All new status, risk, file and approval icons come from the existing Phosphor icon family.
+- **Copy and content:** The implementation adds required product content absent from the original visual target while preserving its concise developer-tool voice.
+- **Interaction and accessibility:** Plan creation, keyboard submission, all three approval decisions, disabled/loading states and retry behavior are functional and labeled.
+- **Responsiveness:** At 390 × 844 the sidebar collapses, document width remains equal to viewport width and all three approval actions become full-width controls.
 
 ## Patches made during QA
 
-- Added a medium-width sidebar layout to preserve the Codex-like proportions.
-- Removed composer/content overlap on short viewports.
-- Added explicit production-server verification without development chrome.
-- Verified the offline error and recovery flow by stopping and restarting the local API.
+- Localized the risk level instead of exposing the internal enum value.
+- Verified terminal approval states remove all decision controls.
+- Verified the production build without development chrome or console warnings.
+- Confirmed the long workflow does not overlap the composer.
 
 ## Follow-up polish
 
-- **P3:** A later iteration may add an intentional mobile navigation control when multiple projects become real product functionality.
-- **P3:** Thread history is fixture content in this MVP and will become session-backed in a later milestone.
+- **P3:** Persisted sessions can later replace fixture history entries.
+- **P3:** A future mobile navigation control becomes useful when multiple real projects exist.
 
 ## Final result
 

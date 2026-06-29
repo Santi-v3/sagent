@@ -10,6 +10,10 @@
   --text: #242321;
   --muted: #77736d;
   --success: #2ba65a;
+  --warning: #9a6718;
+  --warning-bg: #fff8e8;
+  --info: #5c6f91;
+  --info-bg: #f2f5fa;
   --danger: #d64545;
   --danger-bg: #fff5f4;
 }
@@ -218,19 +222,31 @@ button {
   letter-spacing: -0.02em;
 }
 
-.result-status {
+.approval-status {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 22px;
-  color: var(--success);
+  color: var(--warning);
   font-size: 15px;
   font-weight: 500;
 }
 
-.result-status svg {
+.approval-status svg {
   width: 20px;
   height: 20px;
+}
+
+.approval-status.status-approved {
+  color: var(--success);
+}
+
+.approval-status.status-rejected {
+  color: var(--danger);
+}
+
+.approval-status.status-needs_changes {
+  color: var(--info);
 }
 
 .agent-message h2 {
@@ -239,7 +255,7 @@ button {
   font-weight: 600;
 }
 
-.agent-message ol {
+.plan-steps {
   display: grid;
   gap: 14px;
   margin: 0;
@@ -248,8 +264,166 @@ button {
   line-height: 1.5;
 }
 
-.agent-message li {
+.plan-steps li {
   padding-left: 8px;
+}
+
+.plan-steps strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.plan-steps p,
+.workflow-section > p,
+.approval-section > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.workflow-section {
+  margin-top: 34px;
+  padding-top: 30px;
+  border-top: 1px solid var(--line);
+}
+
+.workflow-section h2 {
+  margin-top: 0;
+}
+
+.risk-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.risk-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #5f5543;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.risk-list svg,
+.proposal-details svg {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+}
+
+.risk-list svg {
+  margin-top: 1px;
+  color: var(--warning);
+}
+
+.section-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.section-heading-row h2 {
+  margin: 0;
+}
+
+.risk-badge {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--warning-bg);
+  color: var(--warning);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.proposal-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin: 24px 0 0;
+}
+
+.proposal-details div {
+  min-width: 0;
+}
+
+.proposal-details dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.proposal-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.approval-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.approval-button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.approval-button.approve {
+  border-color: var(--text);
+  background: var(--text);
+  color: #fff;
+}
+
+.approval-button.revise {
+  color: var(--info);
+}
+
+.approval-button.reject {
+  color: var(--danger);
+}
+
+.approval-button:hover:not(:disabled) {
+  border-color: #9f9a92;
+}
+
+.approval-button.approve:hover:not(:disabled) {
+  background: #0d0d0c;
+}
+
+.approval-button:disabled {
+  cursor: wait;
+  opacity: 0.48;
 }
 
 .loading-state {
@@ -442,6 +616,27 @@ textarea:focus-visible {
 
   .composer-footer {
     justify-content: flex-end;
+  }
+
+  .proposal-details {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .section-heading-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .approval-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .approval-button {
+    justify-content: center;
+    width: 100%;
   }
 }
 

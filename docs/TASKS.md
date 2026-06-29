@@ -1,6 +1,6 @@
 # Aufgaben
 
-Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschnitt 23. Jede Aufgabe bleibt klein genug für einen überprüfbaren Branch und Pull Request.
+Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschnitt 25. Jede Aufgabe bleibt klein genug für einen überprüfbaren Branch und Pull Request.
 
 ## Abgeschlossen – MVP 1.A
 
@@ -15,17 +15,26 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Linting, Tests, Build und Browserfluss prüfen
 - [x] `docs/HANDOFF.md` nach Abschluss aktualisieren
 
-## Als Nächstes – MVP 1.B
+## Abgeschlossen – MVP 1.B
 
-- [ ] Domänenmodelle für `TaskPlanner`, `ChangeProposal` und `ApprovalState` definieren
-- [ ] Statuswerte `pending`, `approved`, `rejected`, `needs_changes` implementieren
-- [ ] Endpunkte für Plan, Approval und Task-Status ergänzen
-- [ ] Plan, Risiken und Approve/Reject in der UI anzeigen
-- [ ] Zustandsübergänge und ungültige Approval-Werte testen
+- [x] Domänenmodelle für `TaskPlanner`, `ChangeProposal` und `ApprovalState` definieren
+- [x] Statuswerte `pending`, `approved`, `rejected`, `needs_changes` implementieren
+- [x] Endpunkte für Plan, Approval und Task-Status ergänzen
+- [x] Plan, Risiken und Approve/Reject in der UI anzeigen
+- [x] Zustandsübergänge und ungültige Approval-Werte testen
+
+## Als Nächstes – MVP 1.C
+
+- [ ] `WorkspaceGuard` mit kanonischer Pfadauflösung definieren
+- [ ] Absolute Pfade, Traversal, Symlink-Ausbrüche und sensible Dateien blockieren
+- [ ] `FileTool` für Lesen, Auflisten, Erstellen und Ändern hinter dem Guard entwerfen
+- [ ] `ChangeSet` mit alten/neuen Inhalten und Unified Diff implementieren
+- [ ] Schreibzugriffe an inhaltsgebundene Freigabe koppeln
+- [ ] Negative Sicherheitstests und erlaubten Happy Path ergänzen
 
 ## Noch blockiert bis zu den Sicherheitsinkrementen
 
-- Dateiänderungen erst nach MVP 1.C und getesteter Workspace-/Approval-Logik
+- Dateiänderungen bleiben blockiert, bis Guard, ChangeSet und Approval in MVP 1.C vollständig getestet sind
 - Testbefehle erst nach MVP 1.D und einer expliziten Allowlist
 - Git-Schreibaktionen erst nach MVP 1.E
 - Echte LLMs und Netzwerkzugriff erst ab MVP 2

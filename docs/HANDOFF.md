@@ -2,10 +2,10 @@
 
 ## Projektstatus
 
-- **Phase:** MVP 1.A abgeschlossen
+- **Phase:** MVP 1.B abgeschlossen
 - **Stand:** 2026-06-29
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Vorbereitung des simulierten Plan- und Approval-Workflows in MVP 1.B
+- **Aktueller Fokus:** Vorbereitung von WorkspaceGuard, ChangeSet und sicheren Dateioperationen in MVP 1.C
 
 ## Fertiggestellt
 
@@ -20,24 +20,30 @@
 - pnpm- und uv-Lockfiles erzeugt; Python auf 3.12 gepinnt
 - Lint, TypeScript, pytest, Produktionsbuild und Browserflows erfolgreich geprüft
 - Visueller Abgleich in `design-qa.md` mit `final result: passed` dokumentiert
+- Deterministischen `TaskPlanner` mit Ziel, Schritten, Risiken und nächsten Aktionen implementiert
+- `ChangeProposal` mit Risiko-Level, betroffenen Bereichen und benötigter Freigabe ergänzt
+- In-Memory-Workflow mit `pending`, `approved`, `rejected` und `needs_changes` gebaut
+- `POST /agent/plan`, `GET /agent/tasks/{id}` und `POST /agent/approve` ergänzt
+- Codex-nahe Plan-, Risiko-, Proposal- und Approval-UI umgesetzt
+- 10 API-Tests sowie Desktop-, Mobile- und Approval-Browserflows erfolgreich geprüft
 
 ## Bewusste Grenzen
 
-- Noch kein ausführbarer Agent-Core
+- Workflow-Zustände sind noch nicht persistent und gehen beim API-Neustart verloren
 - Keine LLM- oder Netzwerk-Integration
 - Keine Dateiänderungs- oder Shell-Tools
 - Tasks und Verlauf sind noch nicht persistent
 
 ## Nächster sinnvoller Schritt
 
-MVP 1.B gemäß Abschnitt 24 des Masterplans umsetzen:
+MVP 1.C gemäß Abschnitt 25 des Masterplans umsetzen:
 
-1. `TaskPlanner`, `ChangeProposal` und `ApprovalState` als deterministische Domänenmodelle definieren.
-2. Plan-, Approval- und Task-Status-Endpunkte ergänzen.
-3. Plan, Risiken und Approve/Reject in der UI sichtbar machen.
-4. Zustandsübergänge und ungültige Approval-Werte testen.
+1. `WorkspaceGuard` für kanonische Pfade und sensible Dateien testgetrieben implementieren.
+2. Datei-Tools ausschließlich hinter dem Guard definieren.
+3. Änderungen als `ChangeSet` und Diff vorbereiten, noch ohne ungeprüfte Mutation.
+4. Schreiben an eine inhaltsgebundene Freigabe koppeln.
 
-Auch dabei bleiben Dateioperationen, Shell-Tools und echte Modellaufrufe ausdrücklich ausgeschlossen.
+Shell-Tools, externe Netzwerkzugriffe und echte Modellaufrufe bleiben ausdrücklich ausgeschlossen.
 
 ## Wichtige Leitplanken für die nächste Session
 
@@ -64,4 +70,4 @@ Der Nutzer prüft den PR. Kein Merge und kein Auto-Merge ohne seine ausdrücklic
 
 ## Startprompt für eine Folgesession
 
-> Lies docs/MASTER_PLAN.md vollständig und nutze ihn als strategische Quelle. Lies danach README.md, docs/SECURITY.md, docs/DECISIONS.md, docs/TASKS.md und docs/HANDOFF.md. Implementiere ausschließlich MVP 1.B: einen deterministischen TaskPlanner-, ChangeProposal- und Approval-Workflow mit API und UI, weiterhin ohne LLMs, externe Netzwerkzugriffe oder Datei-/Shell-Tools.
+> Lies docs/MASTER_PLAN.md vollständig und nutze ihn als strategische Quelle. Lies danach README.md, docs/SECURITY.md, docs/DECISIONS.md, docs/TASKS.md und docs/HANDOFF.md. Implementiere ausschließlich MVP 1.C: WorkspaceGuard, sichere Dateioperationen, ChangeSet und Diff mit Approval-Pflicht; weiterhin ohne LLMs, externe Netzwerkzugriffe oder freie Shell-Tools.

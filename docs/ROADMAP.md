@@ -11,6 +11,8 @@ Die vollständige strategische Roadmap steht in [`MASTER_PLAN.md`](MASTER_PLAN.m
 
 ## MVP 1.A – Lokale API und Web-Grundgerüst
 
+**Status: abgeschlossen**
+
 - FastAPI-App mit `GET /health` und simuliertem `POST /agent/task`
 - Strukturierte Antworten ohne Modellaufruf
 - pytest-Tests für beide Endpunkte
@@ -21,6 +23,8 @@ Die vollständige strategische Roadmap steht in [`MASTER_PLAN.md`](MASTER_PLAN.m
 
 ## MVP 1.B – Simulierter Developer-Agent-Workflow
 
+**Status: abgeschlossen**
+
 - `TaskPlanner`, `ChangeProposal` und `ApprovalState`
 - Plan-, Task- und Approval-Endpunkte
 - Plan-, Risiko- und Approval-Anzeige in der UI
@@ -29,6 +33,8 @@ Die vollständige strategische Roadmap steht in [`MASTER_PLAN.md`](MASTER_PLAN.m
 **Grenze:** Der Workflow plant nur und verändert keine Dateien.
 
 ## MVP 1.C – WorkspaceGuard, Dateien und Diffs
+
+**Status: als Nächstes**
 
 - Kanonische Workspace-Grenze und Schutz sensibler Pfade
 - Begrenzte Datei-Tools hinter dem WorkspaceGuard
@@ -47,7 +53,7 @@ Die vollständige strategische Roadmap steht in [`MASTER_PLAN.md`](MASTER_PLAN.m
 
 - Git-Status, Branch und Diff anzeigen
 - Pro Aufgabe auf eigenem Branch arbeiten
-- Kein Push oder Merge ohne ausdrückliche Freigabe
+- Feature-Branch automatisch sichern; kein Merge ohne ausdrückliche Freigabe
 - Sicherheits-, Workflow- und Handoff-Dokumentation aktualisieren
 
 **MVP 1 abgeschlossen:** Wenn zusätzlich alle Kriterien aus Abschnitt 28 des Masterplans erfüllt sind.
