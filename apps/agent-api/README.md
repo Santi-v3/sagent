@@ -12,8 +12,11 @@ Lokale FastAPI für die erste technische Minimalversion von Sagent.
 - `GET /agent/test-profiles` – feste lokale Test-Allowlist anzeigen
 - `POST /agent/run-tests` – exakt angezeigtes Testprofil nach Task-Freigabe starten
 - `GET /agent/test-results/{id}` – begrenztes, redigiertes Ergebnis abrufen
+- `GET /git/status` – lokalen Branch und begrenzten Worktree-Status anzeigen
+- `GET /git/diff` – begrenzten, Secret-redigierten Review-Diff anzeigen
+- `POST /git/branch` – bestätigten lokalen Feature-Branch nach enger Namensregel erstellen
 
-Plan-, Approval- und Testergebnis-Zustände liegen in dieser Version nur im Arbeitsspeicher. Die API führt keine Dateioperationen, freien Shell-Befehle, Modellaufrufe oder beabsichtigten externen Netzwerkzugriffe aus.
+Plan-, Approval- und Testergebnis-Zustände liegen in dieser Version nur im Arbeitsspeicher. Die Git-Endpunkte sind fest an den Repository-Root gebunden. Die API führt keine Dateioperationen, freien Shell-Befehle, Modellaufrufe, Pushes, Merges oder beabsichtigten externen Netzwerkzugriffe aus.
 
 ## Start
 

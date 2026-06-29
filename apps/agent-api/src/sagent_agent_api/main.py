@@ -6,10 +6,15 @@ from uuid import UUID
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
+from sagent_agent_api.git_integration import get_git_tool
 from sagent_agent_api.models import (
     ApprovalRequest,
     ApprovalResponse,
     ApprovalState,
+    GitBranchRequest,
+    GitBranchResponse,
+    GitDiffResponse,
+    GitStatusResponse,
     HealthResponse,
     PlannedTask,
     TaskRequest,
@@ -25,6 +30,11 @@ from sagent_agent_api.workflow import (
     workflow_store,
 )
 from sagent_tools import (
+    GitBranchPolicyError,
+    GitCommandError,
+    GitRepositoryError,
+    GitStateConflictError,
+    GitTool,
     TestCommandMismatchError,
     TestExecutionError,
     TestProfileNotAllowedError,
@@ -34,11 +44,12 @@ from sagent_tools import (
 )
 
 TestRunnerDependency = Annotated[TestRunner, Depends(get_test_runner)]
+GitToolDependency = Annotated[GitTool, Depends(get_git_tool)]
 
 app = FastAPI(
     title="Sagent Agent API",
     description="Local deterministic API placeholder for Sagent.",
-    version="0.3.0",
+    version="0.4.0",
 )
 
 app.add_middleware(
@@ -171,3 +182,46 @@ def get_test_result(
     except TestResultNotFoundError as error:
         raise HTTPException(status_code=404, detail="Test result not found.") from error
     return TestResultResponse.model_validate(result)
+
+
+@app.get("/git/status", response_model=GitStatusResponse)
+def get_git_status(tool: GitToolDependency) -> GitStatusResponse:
+    """Return safe local branch and worktree status."""
+
+    try:
+        result = tool.status()
+    except (GitRepositoryError, GitCommandError) as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    return GitStatusResponse.model_validate(result)
+
+
+@app.get("/git/diff", response_model=GitDiffResponse)
+def get_git_diff(tool: GitToolDependency) -> GitDiffResponse:
+    """Return a bounded and redacted local review diff."""
+
+    try:
+        result = tool.diff()
+    except (GitRepositoryError, GitCommandError) as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    return GitDiffResponse.model_validate(result)
+
+
+@app.post("/git/branch", response_model=GitBranchResponse, status_code=status.HTTP_201_CREATED)
+def create_git_branch(
+    request: GitBranchRequest,
+    tool: GitToolDependency,
+) -> GitBranchResponse:
+    """Create only an explicitly confirmed, policy-compliant local feature branch."""
+
+    try:
+        result = tool.create_branch(request.name, request.expected_current_branch)
+    except GitStateConflictError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except GitBranchPolicyError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except (GitRepositoryError, GitCommandError) as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    return GitBranchResponse(
+        message=f"Local feature branch {request.name} was created.",
+        status=GitStatusResponse.model_validate(result),
+    )

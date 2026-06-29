@@ -17,6 +17,7 @@ from types import MappingProxyType
 from typing import BinaryIO
 from uuid import UUID, uuid4
 
+from sagent_tools.redaction import redact_secrets
 from sagent_tools.workspace import WorkspaceGuard
 
 
@@ -105,15 +106,6 @@ class TestRunner:
     """Run exact registered commands without accepting user-controlled argv."""
 
     _PROFILE_ID = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
-    _SECRET_PATTERNS = (
-        re.compile(r"(?im)\b(api[_-]?key|password|secret|token)\s*[:=]\s*([^\s]+)"),
-        re.compile(r"\b(?:gh[pousr]_|github_pat_|sk-)[A-Za-z0-9_\-]{16,}\b"),
-        re.compile(
-            r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----.*?"
-            r"-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----",
-            re.DOTALL,
-        ),
-    )
 
     def __init__(
         self,
@@ -251,8 +243,8 @@ class TestRunner:
                 stderr_thread.join(timeout=2)
 
         duration_ms = max(0, round((monotonic() - started) * 1_000))
-        stdout = self._redact(stdout_capture.text())
-        stderr = self._redact(stderr_capture.text())
+        stdout = redact_secrets(stdout_capture.text())[0]
+        stderr = redact_secrets(stderr_capture.text())[0]
         output_truncated = stdout_capture.truncated or stderr_capture.truncated
         if stdout_capture.truncated:
             stdout = f"{stdout}\n[Sagent: Ausgabe gekürzt]"
@@ -325,12 +317,3 @@ class TestRunner:
             os.killpg(process.pid, signal.SIGKILL)
         except ProcessLookupError:
             return
-
-    @classmethod
-    def _redact(cls, output: str) -> str:
-        redacted = output
-        redacted = cls._SECRET_PATTERNS[0].sub(
-            lambda match: f"{match.group(1)}=[REDACTED]", redacted
-        )
-        redacted = cls._SECRET_PATTERNS[1].sub("[REDACTED]", redacted)
-        return cls._SECRET_PATTERNS[2].sub("[REDACTED PRIVATE KEY]", redacted)

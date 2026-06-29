@@ -2,10 +2,10 @@
 
 ## Projektstatus
 
-- **Phase:** MVP 1.D abgeschlossen
+- **Phase:** MVP 1 abgeschlossen (MVP 1.A–1.E)
 - **Stand:** 2026-06-29
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Vorbereitung des sicheren Git-Status-, Diff- und Branch-Workflows in MVP 1.E
+- **Aktueller Fokus:** Vorbereitung von MVP 2 – provider-neutraler lokaler Modelladapter, weiterhin hinter den deterministischen Sicherheitsgrenzen
 
 ## Fertiggestellt
 
@@ -41,6 +41,28 @@
 - UI um Profilwahl, sichtbaren Befehl, Loading-, Bestanden-, Fehlgeschlagen- und Log-Zustände erweitert
 - 46 Python-Tests sowie echte Runner-Läufe für pytest, ruff und Web-ESLint erfolgreich geprüft
 - Desktop- und Mobile-Browserfluss für erfolgreiche und fehlgeschlagene Tests ohne Konsolenfehler geprüft
+- Repository-gebundenen `GitTool` mit festem Git-Executable, bereinigter Umgebung, Timeout sowie Output- und Statuslimits implementiert
+- Strukturierten Branch-, Ahead-/Behind- und Worktree-Status mit sichtbarer Warnung auf `main`, `master`, `trunk` und Detached HEAD ergänzt
+- Staged, unstaged und unversionierte Textänderungen als begrenzten Diff zusammengeführt; sensible Pfade verborgen und bekannte Secrets redigiert
+- Lokale Feature-Branch-Erstellung auf `codex/`, `feature/`, `fix/`, `docs/`, `test/` und `chore/` begrenzt und an den angezeigten Ausgangsbranch gebunden
+- Nicht ausführende Commit-Vorbereitung an Conventional-Commit-Message und exakten Diff-Hash gekoppelt; kein Staging und kein Commit
+- Push und Merge im Tool vollständig blockiert; keine Push-/Merge-Routen oder -Buttons ergänzt
+- `GET /git/status`, `GET /git/diff` und bestätigtes `POST /git/branch` implementiert
+- UI um Branch-Badge, Statusübersicht, Dateiliste, `main`-Warnung, lokale Branch-Erstellung und scrollbaren Diff erweitert
+- Git-Tool und API mit 14 fokussierten Tests geprüft; vollständige Projektprüfung siehe letzter Aufgabenabschluss im PR
+- Kriterien für MVP 1 aus Abschnitt 28 des Masterplans gegen Implementierung, Tests und lokale Startfähigkeit auditiert
+
+## MVP-1-Abschlussaudit
+
+- **Struktur und Start:** Monorepo ist getrennt in Web, API, Core, Tools, Memory und Shared; Web und API starten lokal über `pnpm dev`.
+- **Health und Intake:** `GET /health` antwortet strukturiert; Aufgaben können in der Weboberfläche eingegeben und an die lokale API gesendet werden.
+- **Plan und Proposal:** Der deterministische Planner erzeugt Ziel, Schritte, Risiken, nächste Aktionen und einen Änderungsvorschlag.
+- **Human Approval:** Nutzer können Vorschläge freigeben, ablehnen oder Überarbeitung verlangen; ungültige Zustandswechsel werden serverseitig blockiert.
+- **Workspace und Secrets:** `WorkspaceGuard`, sensible Pfadregeln, inhaltsgebundene ChangeSets und Redaction begrenzen Datei- und Logzugriffe.
+- **Diff und Tests:** ChangeSet- und Git-Diffs sind sichtbar; ausschließlich allowlist-basierte Testprofile können nach Freigabe ausgeführt werden, Ergebnisse erscheinen strukturiert in der UI.
+- **Git:** Branch und Status sind sichtbar, `main` erzeugt eine Warnung, Feature-Branch-Erstellung ist eingeschränkt und Push/Merge bleiben blockiert.
+- **Gefährliche Aktionen:** Keine freie Shell, kein allgemeiner Netzwerkzugriff, kein automatischer Commit, kein Push und kein Merge im Sagent-Tool.
+- **Dokumentation:** README, Architektur, Roadmap, Tasks, Decisions, Security, Workflow und dieses Handoff bilden den Stand von MVP 1 ab.
 
 ## Bewusste Grenzen
 
@@ -50,18 +72,22 @@
 - Mehrdatei-ChangeSets sind pro Datei atomar, aber noch keine globale Dateisystemtransaktion
 - Testprozesse haben noch keine echte macOS-Dateisystem-/Netzwerk-Sandbox; nur bewusst geprüfte lokale Workspaces ausführen
 - Tasks und Verlauf sind noch nicht persistent
+- Git-Status und Diff sind an dieses Repository gebunden; eine sichere Workspace-Auswahl ist noch nicht implementiert
+- Die Commit-Vorbereitung ist nur ein unveränderlicher Plan. Sagent kann selbst weder stagen noch committen, pushen oder mergen
+- Secret-Erkennung ist absichtlich konservativ und musterorientiert; ein Treffer blockiert die Commit-Vorbereitung, ersetzt aber keinen manuellen Secret-Scan
+- Die visuelle Git-Ansicht wurde im laufenden Feature-Branch geprüft; der isolierte `main`-Browserdurchlauf wurde durch wiederholte Unterbrechungen der lokalen Browserverbindung nicht vollständig automatisiert. API- und Tool-Tests decken `main`-Warnung und Branch-Wechsel ab
 
 ## Nächster sinnvoller Schritt
 
-MVP 1.E gemäß Abschnitt 27 des Masterplans umsetzen:
+MVP 2 gemäß Roadmap und Masterplan in einem neuen, kleinen Sicherheitsinkrement beginnen:
 
-1. Git-Status, aktuellen Branch und Diff zunächst read-only und strukturiert bereitstellen.
-2. Feature-Branch-Erstellung mit explizitem Schutz vor Arbeit auf `main` implementieren.
-3. Commit-Vorbereitung an sichtbaren Diff und eine exakte Freigabe koppeln.
-4. Push, Force-Push, Merge und Auto-Merge im Agent-Tool ohne gesonderte Freigabe blockieren.
-5. API, UI und negative Tests für `main`-Schutz und verbotene Git-Aktionen ergänzen.
+1. Provider-neutralen `ModelAdapter`-Vertrag definieren, der keine Tool-Berechtigungen besitzt.
+2. Deterministischen Fake-Adapter für Offline-Tests und reproduzierbare Fehlerfälle implementieren.
+3. Lokalen OpenAI-kompatiblen Transport für LM Studio oder Ollama hinter expliziter Konfiguration entwerfen.
+4. Timeout, Abbruch, Streaming-Grenzen, ungültige Modellantworten und nicht erreichbaren lokalen Server testen.
+5. Erst nach diesem Vertrags- und Sicherheitsreview einen echten lokalen Modellaufruf in API oder UI freigeben.
 
-Shell-Tools, externe Netzwerkzugriffe und echte Modellaufrufe bleiben ausdrücklich ausgeschlossen.
+Kostenpflichtige APIs, externe Modellendpunkte, freie Shell und Modell-gesteuerte Policy-Entscheidungen bleiben ausdrücklich ausgeschlossen.
 
 ## Wichtige Leitplanken für die nächste Session
 
@@ -72,6 +98,7 @@ Shell-Tools, externe Netzwerkzugriffe und echte Modellaufrufe bleiben ausdrückl
 - Keine freie Shell und keine echten LLM-Aufrufe.
 - Neue Architekturentscheidungen im Decision Log ergänzen.
 - Tests für negative Sicherheitsfälle vor Happy-Path-Komfort priorisieren.
+- Modellantworten in MVP 2 immer als untrusted input behandeln; nur deterministischer Core und Tool-Policies dürfen Aktionen autorisieren.
 
 ## Git-Abschluss jeder Aufgabe
 
@@ -88,4 +115,4 @@ Der Nutzer prüft den PR. Kein Merge und kein Auto-Merge ohne seine ausdrücklic
 
 ## Startprompt für eine Folgesession
 
-> Lies docs/MASTER_PLAN.md vollständig und nutze ihn als strategische Quelle. Lies danach README.md, docs/SECURITY.md, docs/DECISIONS.md, docs/TASKS.md und docs/HANDOFF.md. Implementiere ausschließlich MVP 1.E: sicheren Git-Status, Diff und Feature-Branch-Unterstützung mit Approval-Pflicht; weiterhin ohne LLMs, unkontrollierte Pushes, Merge oder freie Shell-Kommandos.
+> Lies docs/MASTER_PLAN.md vollständig und nutze ihn als strategische Quelle. Lies danach README.md, docs/SECURITY.md, docs/DECISIONS.md, docs/TASKS.md und docs/HANDOFF.md. Beginne MVP 2 ausschließlich mit einem provider-neutralen ModelAdapter-Vertrag und einem deterministischen Fake-Adapter. Behalte alle Tool-, Workspace- und Approval-Entscheidungen außerhalb des Modells; noch keine kostenpflichtige API, kein externer Modellendpunkt und keine freie Shell.

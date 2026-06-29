@@ -42,22 +42,33 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Teststatus und begrenzte Logs in der UI anzeigen
 - [x] Erfolg, Fehler, Timeout und verbotene Befehle testen
 
-## Als Nächstes – MVP 1.E
+## Abgeschlossen – MVP 1.E
 
-- [ ] `GitTool` für Status, aktuellen Branch und Diff als read-only Funktionen implementieren
-- [ ] Feature-Branch-Erstellung mit Schutz für `main` ergänzen
-- [ ] Commit-Vorbereitung an exakte Freigabe und sauberen Diff koppeln
-- [ ] Push und Merge im Agent-Tool weiterhin blockieren, bis eine separate Freigabe vorliegt
-- [ ] `GET /git/status` und `POST /git/branch` ergänzen
-- [ ] Branch-, Status- und Diff-Informationen in der UI anzeigen
-- [ ] `main`-Schutz, verbotenen Push und erlaubten Feature-Branch testen
+- [x] `GitTool` für Status, aktuellen Branch und Diff als begrenzte Funktionen implementieren
+- [x] Feature-Branch-Erstellung mit Warnung und Schutz für `main` ergänzen
+- [x] Commit-Vorbereitung an exakten Diff-Hash und unveränderten Zustand koppeln
+- [x] Push und Merge im Agent-Tool blockieren
+- [x] `GET /git/status`, `GET /git/diff` und `POST /git/branch` ergänzen
+- [x] Branch-, Status- und Diff-Informationen in der UI anzeigen
+- [x] `main`-Schutz, Diff-Redaction, verbotenen Push/Merge und erlaubten Feature-Branch testen
+- [x] Abschlusskriterien aus Abschnitt 28 des Masterplans auditieren
+
+## Als Nächstes – MVP 2
+
+- [ ] Provider-neutralen `ModelAdapter`-Vertrag mit strukturierten Ein- und Ausgaben definieren
+- [ ] Deterministischen Fake-Adapter für Tests und Offline-Entwicklung implementieren
+- [ ] Lokalen OpenAI-kompatiblen Adapter ohne fest eingebettete Zugangsdaten entwerfen
+- [ ] LM Studio und Ollama anhand von Installation, API-Kompatibilität, Streaming und Mac-Ressourcen vergleichen
+- [ ] Modelltext strikt als nicht vertrauenswürdige Eingabe behandeln; Tool-Policies bleiben deterministisch
+- [ ] Timeout, Abbruch, fehlerhafte Antworten und nicht erreichbaren lokalen Modellserver testen
+- [ ] Erst nach separater Freigabe einen echten lokalen Modellaufruf in API und UI aktivieren
 
 ## Noch blockiert bis zu den Sicherheitsinkrementen
 
 - Dateiänderungen bleiben außerhalb des internen Core-Services blockiert, bis API- und UI-Anbindung einen eigenen Sicherheitsreview erhalten
 - Testbefehle ausschließlich über die implementierte Allowlist und nach menschlicher Freigabe
-- Git-Schreibaktionen erst nach MVP 1.E
-- Echte LLMs und Netzwerkzugriff erst ab MVP 2
+- Git-Commit, Push und Merge bleiben ohne eigenen Approval-Flow blockiert
+- Echte lokale LLM-Aufrufe und lokaler Netzwerkzugriff erst nach dem MVP-2-Vertrags- und Sicherheitsreview
 
 ## Definition of Done
 

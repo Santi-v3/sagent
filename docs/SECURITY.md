@@ -70,6 +70,19 @@ Die ChangeSet-Zustände sind noch nicht persistent, und mehrere Dateien bilden n
 
 Diese Maßnahmen verhindern freie Shell-Kommandos und begrenzen versehentliche Nebenwirkungen. Sie sind noch keine OS-Sandbox: absichtlicher Raw-Socket-Zugriff oder Dateizugriff durch bösartigen Repository-Testcode ist technisch weiterhin möglich. Solche Workspaces dürfen erst nach einer späteren macOS-Sandbox ausgeführt werden.
 
+## Implementierter Git-Sicherheitsvertrag (MVP 1.E)
+
+- `GitTool` akzeptiert genau einen kanonischen Workspace, der dem Git-Repository-Root entsprechen muss. Verschachtelte oder übergeordnete Repositories werden abgewiesen.
+- Git wird über einen vertrauenswürdigen absoluten Executable-Pfad, feste interne Argumentlisten, `shell=False`, geschlossenes stdin, deaktivierte Prompts und eine neu aufgebaute Umgebung gestartet. Globale und System-Konfiguration, Hooks, Pager, externe Diff-Programme und Textconv bleiben deaktiviert.
+- Read-only-Aufrufe setzen `GIT_OPTIONAL_LOCKS=0`. Laufzeit, stdout, stderr und die Zahl der Status-Einträge sind begrenzt; eine gesamte Prozessgruppe wird bei Timeout beendet.
+- Statuspfade werden gegen die Workspace-Secret-Policy geprüft. Sensible Pfade erscheinen nur als `[sensitive path hidden]` und werden nicht an Diff-Befehle übergeben.
+- Der Review-Diff umfasst staged, unstaged und unversionierte erlaubte Textdateien. Er ist größenbegrenzt, markiert Kürzungen und redigiert bekannte Token-, Secret-, Passwort-, API-Key- und Private-Key-Muster.
+- Lokale Branch-Erstellung benötigt `confirmed=true`, den unveränderten angezeigten Ausgangsbranch und einen Namen mit `codex/`, `feature/`, `fix/`, `docs/`, `test/` oder `chore/`. Auf `main`, `master`, `trunk` und Detached HEAD wird sichtbar gewarnt.
+- Die Commit-Vorbereitung ist rein deklarativ: Sie staged und committet nichts. Sie wird auf geschützten Branches sowie bei leerem, verändertem, gekürztem oder redigiertem Diff blockiert und akzeptiert nur eine einzelne Conventional-Commit-Betreffzeile.
+- Push und Merge sind Methoden, die immer einen Policy-Fehler auslösen. API und UI besitzen keine entsprechenden Routen oder Aktionen. Force-Push und Auto-Merge sind ebenfalls nicht verfügbar.
+
+Der MVP-Git-Vertrag ist noch kein vollständiger Commit-Approval-Flow: Es gibt weder Staging noch Commit-Ausführung. Die bestehende Codex-Session kann den geprüften Feature-Branch gemäß dem dokumentierten Repository-Workflow committen und pushen; der in Sagent eingebaute Agent darf das noch nicht.
+
 ## Prompt Injection
 
 Text in Projekten kann Anweisungen enthalten. Diese Inhalte sind Daten, keine Systemanweisungen. Sie dürfen keine Policies ändern, Tools freigeben, Secrets anfordern oder den Workspace erweitern. Herkunft und Rolle jedes Kontextblocks müssen erhalten bleiben.

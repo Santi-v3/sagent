@@ -53,16 +53,25 @@ Der Workflow trennt Verstehen, Vorschlagen und Verändern. Kein Modell und kein 
 - Finalen Diff und unerwartete Änderungen prüfen
 - Bei Fehlern keine zusätzlichen Reparaturen ohne neuen Vorschlag durchführen
 
-## 8. Report und Handoff
+## 8. Git Review
+
+- Repository-Root, Branch und Worktree-Status über den begrenzten `GitTool` erfassen
+- Auf `main`, `master`, `trunk` oder Detached HEAD keine Commit-Vorbereitung zulassen
+- Falls nötig nur nach sichtbarer Bestätigung einen policy-konformen lokalen Feature-Branch erstellen
+- Staged, unstaged und unversionierte Änderungen als begrenzten, Secret-redigierten Diff anzeigen
+- Commit-Metadaten nur für den unveränderten, vollständigen und nicht redigierten Diff vorbereiten; dabei weder stagen noch committen
+- Push und Merge im Sagent-Tool blockieren, bis dafür ein separater Approval-Flow implementiert und freigegeben ist
+
+## 9. Report und Handoff
 
 - Ergebnis, Tests, verbleibende Risiken und nächste Schritte zusammenfassen
 - Audit-Log abschließen
 - Nur freigegebene, langfristig relevante Fakten ins Memory schreiben
 - `docs/HANDOFF.md` aktualisieren, wenn die Arbeit über Sessions fortgesetzt wird
 
-## 9. Verbindlicher Git-Abschluss
+## 10. Verbindlicher Git-Abschluss für die Coding-Session
 
-Jede abgeschlossene Aufgabe folgt exakt diesem Ablauf:
+Dieser Repository-Abschluss wird derzeit durch die beaufsichtigte Coding-Session ausgeführt, nicht durch den eingebauten Sagent-`GitTool`. Jede abgeschlossene Aufgabe folgt exakt diesem Ablauf:
 
 1. Codex arbeitet auf einem Feature-Branch, niemals direkt auf `main`.
 2. Codex führt die relevanten Tests, Linter, Typprüfungen und Builds aus.

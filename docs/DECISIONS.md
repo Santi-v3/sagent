@@ -78,3 +78,10 @@ Dieses Dokument ist ein leichtgewichtiges Decision Log. Neue Entscheidungen erha
 - **Datum:** 2026-06-29
 - **Entscheidung:** Die API akzeptiert keine Befehle oder Argumentlisten aus Requests. Sie bietet ausschließlich serverseitig registrierte Profile an. Ein Lauf benötigt einen bereits freigegebenen Task, `confirmed=true` und den unverändert zurückgesendeten Anzeigebefehl. Der Prozess startet als Argumentliste ohne freie Shell.
 - **Konsequenz:** Unbekannte Profile und veränderte Befehle werden vor Prozessstart blockiert. Timeout, Prozessgruppe, CPU, Dateideskriptoren, Umgebung, Loggröße, Redaction und Ergebnisanzahl sind begrenzt. Da Repository-Tests selbst Code ausführen, bleibt der Runner bis zu einer echten macOS-Sandbox nur für bewusst geprüfte lokale Workspaces freigegeben.
+
+## ADR-012: Git-Inspektion und Git-Mutation bleiben getrennt
+
+- **Status:** Angenommen
+- **Datum:** 2026-06-29
+- **Entscheidung:** MVP 1.E stellt Branch, Status und einen begrenzten, Secret-redigierten Diff über feste Git-Argumentlisten bereit. Als einzige Mutation darf ein ausdrücklich bestätigter, policy-konformer lokaler Feature-Branch erstellt werden. Eine Commit-Vorbereitung erzeugt nur Metadaten, die an den sichtbaren Diff-Hash gebunden sind; sie staged und committet nicht. Push und Merge sind im Tool immer blockiert.
+- **Konsequenz:** Die Weboberfläche kann den Repository-Zustand prüfbar machen, besitzt aber keine Remote-Aktion. Sensible, gekürzte oder nachträglich veränderte Diffs blockieren die Commit-Vorbereitung. Ein späterer Commit-, Push- oder Merge-Flow benötigt eigene serverseitige Approval-Verträge und neue negative Sicherheitstests. Der beaufsichtigte Codex-Repository-Abschluss aus ADR-009 bleibt davon getrennt.

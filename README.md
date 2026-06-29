@@ -2,7 +2,7 @@
 
 Sagent ist ein local-first, Mac-first Personal AI Agent in Entwicklung. Langfristig soll er wie ein eigener Coding-Agent arbeiten: Projekte lesen, Änderungen planen, Code vorbereiten, Tests ausführen, Diffs erklären und Änderungen erst nach ausdrücklicher menschlicher Freigabe übernehmen.
 
-Das Repository enthält eine lokal ausführbare Minimalversion: eine deterministische Agent-API, eine Codex-nahe Weboberfläche, sichere ChangeSets und einen allowlist-basierten TestRunner. Es gibt weiterhin keine LLM-Anbindung, keine freie Shell und keine unkontrollierten Systemwerkzeuge. Die Datei-Tools sind bewusst noch nicht mit API oder UI verbunden.
+Das Repository enthält MVP 1 als lokal ausführbare Minimalversion: eine deterministische Agent-API, eine Codex-nahe Weboberfläche, sichere ChangeSets, einen allowlist-basierten TestRunner sowie begrenzte Git-Status-, Diff- und Branch-Funktionen. Es gibt weiterhin keine LLM-Anbindung, keine freie Shell und keine unkontrollierten Systemwerkzeuge. Die Datei-Tools sind bewusst noch nicht mit API oder UI verbunden; Push und Merge sind im Agent-Tool nicht verfügbar.
 
 ## Projektkontext
 
@@ -32,7 +32,7 @@ apps/
 packages/
   agent-core/    ChangeSets, Diffs und inhaltsgebundene Approval-Logik
   memory/        Markdown-basiertes Memory-System
-  tools/         WorkspaceGuard, Dateiwerkzeuge und sicherer TestRunner
+  tools/         WorkspaceGuard, Datei-, Test- und begrenzte Git-Werkzeuge
   shared/        Gemeinsame Verträge und Hilfsfunktionen
 docs/            Produkt-, Architektur- und Betriebsdokumentation
 ```
@@ -70,6 +70,8 @@ Danach sind verfügbar:
 - API-Status: `http://127.0.0.1:8765/health`
 - Interaktive API-Dokumentation: `http://127.0.0.1:8765/docs`
 
+Die Weboberfläche zeigt nach einer Task-Freigabe Testprofile sowie den lokalen Git-Status und den redigierten Diff. Einen neuen lokalen Branch kann sie nur mit den Präfixen `codex/`, `feature/`, `fix/`, `docs/`, `test/` oder `chore/` erstellen. Es gibt keine UI- oder API-Aktion für Push oder Merge.
+
 Die API kann auch separat gestartet werden:
 
 ```bash
@@ -105,7 +107,7 @@ pnpm build
 
 ## Status
 
-**MVP 1.D abgeschlossen.** Nach einer menschlichen Task-Freigabe zeigt Sagent ausschließlich serverseitig registrierte Testprofile. Der Nutzer bestätigt den exakten Befehl; der Runner startet ihn ohne freie Shell, mit bereinigter Umgebung, Timeout, CPU-/Dateideskriptorgrenzen und gekürzten, redigierten Logs. Ergebnisse bleiben lokal abrufbar. Als Nächstes folgt MVP 1.E mit sicherem Git-Status-, Diff- und Branch-Workflow.
+**MVP 1 abgeschlossen.** Der lokale Workflow deckt Task-Planung, Proposal und Approval, sichere interne ChangeSets, allowlist-basierte Tests sowie redigierten Git-Status und Diff ab. Feature-Branches können lokal nach enger Namensregel erstellt werden; Arbeit auf `main` erzeugt eine Warnung. Commit-Vorbereitung verändert Git nicht, Push und Merge bleiben blockiert. Als Nächstes folgt MVP 2 mit einem zunächst lokalen, austauschbaren Modelladapter hinter denselben Sicherheitsgrenzen.
 
 ## Lizenz
 

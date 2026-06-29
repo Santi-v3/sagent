@@ -53,17 +53,20 @@ Die vollständige strategische Roadmap steht in [`MASTER_PLAN.md`](MASTER_PLAN.m
 
 ## MVP 1.E – Git-Diff und Branch-Workflow
 
-**Status: als Nächstes**
+**Status: abgeschlossen**
 
-- Git-Status, Branch und Diff anzeigen
-- Pro Aufgabe auf eigenem Branch arbeiten
-- Feature-Branch automatisch sichern; kein Merge ohne ausdrückliche Freigabe
-- Sicherheits-, Workflow- und Handoff-Dokumentation aktualisieren
+- Strukturierter Git-Status, aktueller Branch und begrenzter, redigierter Diff
+- Lokale Feature-Branch-Erstellung mit enger Namensregel und Zustandsvergleich
+- Nicht ausführende Commit-Vorbereitung, gebunden an einen sichtbaren Diff-Hash
+- Push und Merge im Agent-Tool blockiert; kein Merge ohne ausdrückliche Freigabe
+- Git-Ansicht in der Weboberfläche und negative Sicherheitsprüfungen
+- Sicherheits-, Workflow- und Handoff-Dokumentation aktualisiert
 
-**MVP 1 abgeschlossen:** Wenn zusätzlich alle Kriterien aus Abschnitt 28 des Masterplans erfüllt sind.
+**MVP 1 abgeschlossen:** Die Kriterien aus Abschnitt 28 des Masterplans wurden am 2026-06-29 gegen Implementierung, Tests und lokale Startprüfung auditiert.
 
 ## MVP 2 – Echtes LLM und Modell-Router
 
+- Zuerst einen provider-neutralen Modellvertrag und deterministischen Fake-Adapter definieren
 - Adapter für lokale OpenAI-kompatible Endpunkte
 - LM Studio, Ollama und später MLX evaluieren
 - Coding-Modelle anhand reproduzierbarer Aufgaben vergleichen

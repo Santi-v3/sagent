@@ -7,7 +7,10 @@ import {
   CircleNotch,
   Circle,
   FileCode,
+  GitBranch,
+  GitDiff as GitDiffIcon,
   HourglassMedium,
+  LockKey,
   Play,
   ShieldCheck,
   TerminalWindow,
@@ -71,6 +74,40 @@ type TestResult = {
   output_truncated: boolean;
 };
 
+type GitFileStatus = {
+  path: string;
+  index_status: string;
+  worktree_status: string;
+  original_path: string | null;
+  sensitive: boolean;
+};
+
+type GitStatus = {
+  branch: string | null;
+  detached: boolean;
+  is_main: boolean;
+  clean: boolean;
+  ahead: number;
+  behind: number;
+  head_sha: string | null;
+  files: GitFileStatus[];
+  warning: string | null;
+};
+
+type GitDiffState = {
+  patch: string;
+  diff_hash: string;
+  file_count: number;
+  truncated: boolean;
+  secrets_redacted: boolean;
+  sensitive_paths_hidden: number;
+};
+
+type GitBranchResponse = {
+  message: string;
+  status: GitStatus;
+};
+
 const API_URL = process.env.NEXT_PUBLIC_AGENT_API_URL ?? "http://127.0.0.1:8765";
 
 const sampleTasks = [
@@ -131,6 +168,13 @@ export function SagentShell() {
   const [isTestProfilesLoading, setIsTestProfilesLoading] = useState(false);
   const [isTestLoading, setIsTestLoading] = useState(false);
   const [retryTest, setRetryTest] = useState(false);
+  const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
+  const [gitDiff, setGitDiff] = useState<GitDiffState | null>(null);
+  const [gitError, setGitError] = useState("");
+  const [branchName, setBranchName] = useState("");
+  const [branchMessage, setBranchMessage] = useState("");
+  const [isGitLoading, setIsGitLoading] = useState(true);
+  const [isBranchLoading, setIsBranchLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -139,6 +183,34 @@ export function SagentShell() {
     fetch(`${API_URL}/health`, { signal: controller.signal })
       .then((response) => setIsApiOnline(response.ok))
       .catch(() => setIsApiOnline(false));
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    Promise.all([
+      fetch(`${API_URL}/git/status`, { signal: controller.signal }),
+      fetch(`${API_URL}/git/diff`, { signal: controller.signal }),
+    ])
+      .then(async ([statusResponse, diffResponse]) => {
+        if (!statusResponse.ok || !diffResponse.ok) {
+          throw new Error("Git snapshot request failed");
+        }
+        const [statusData, diffData] = (await Promise.all([
+          statusResponse.json(),
+          diffResponse.json(),
+        ])) as [GitStatus, GitDiffState];
+        setGitStatus(statusData);
+        setGitDiff(diffData);
+        setGitError("");
+      })
+      .catch((requestError: unknown) => {
+        if (requestError instanceof DOMException && requestError.name === "AbortError") return;
+        setGitError("Git-Status konnte nicht sicher geladen werden.");
+      })
+      .finally(() => setIsGitLoading(false));
 
     return () => controller.abort();
   }, []);
@@ -291,6 +363,71 @@ export function SagentShell() {
     }
   }
 
+  async function refreshGit() {
+    setIsGitLoading(true);
+    setGitError("");
+
+    try {
+      const [statusResponse, diffResponse] = await Promise.all([
+        fetch(`${API_URL}/git/status`),
+        fetch(`${API_URL}/git/diff`),
+      ]);
+      if (!statusResponse.ok || !diffResponse.ok) {
+        throw new Error("Git snapshot request failed");
+      }
+      const [statusData, diffData] = (await Promise.all([
+        statusResponse.json(),
+        diffResponse.json(),
+      ])) as [GitStatus, GitDiffState];
+      setGitStatus(statusData);
+      setGitDiff(diffData);
+      setIsApiOnline(true);
+    } catch {
+      setGitError("Git-Status konnte nicht sicher geladen werden.");
+      setIsApiOnline(false);
+    } finally {
+      setIsGitLoading(false);
+    }
+  }
+
+  async function createFeatureBranch(event: FormEvent) {
+    event.preventDefault();
+    const normalizedName = branchName.trim();
+    if (!gitStatus || !normalizedName || isBranchLoading) return;
+
+    setIsBranchLoading(true);
+    setGitError("");
+    setBranchMessage("");
+    try {
+      const response = await fetch(`${API_URL}/git/branch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: normalizedName,
+          expected_current_branch: gitStatus.branch,
+          confirmed: true,
+        }),
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { detail?: string } | null;
+        setGitError(payload?.detail ?? "Der lokale Feature-Branch wurde abgelehnt.");
+        setIsApiOnline(true);
+        return;
+      }
+      const data = (await response.json()) as GitBranchResponse;
+      setGitStatus(data.status);
+      setBranchMessage(`Lokaler Branch „${data.status.branch}“ wurde erstellt.`);
+      setBranchName("");
+      setIsApiOnline(true);
+      await refreshGit();
+    } catch {
+      setGitError("Der lokale Feature-Branch konnte nicht erstellt werden.");
+      setIsApiOnline(false);
+    } finally {
+      setIsBranchLoading(false);
+    }
+  }
+
   function retryLastAction() {
     if (retryTest) {
       void runTests();
@@ -342,9 +479,17 @@ export function SagentShell() {
       <section className="workspace">
         <header className="topbar">
           <strong>sagent</strong>
-          <div className={isApiOnline ? "api-state online" : "api-state"}>
-            <Circle weight="fill" aria-hidden="true" />
-            <span>{isApiOnline ? "Lokal" : "Offline"}</span>
+          <div className="topbar-state">
+            {gitStatus?.branch ? (
+              <div className={gitStatus.is_main ? "branch-state protected" : "branch-state"}>
+                <GitBranch weight="regular" aria-hidden="true" />
+                <span>{gitStatus.branch}</span>
+              </div>
+            ) : null}
+            <div className={isApiOnline ? "api-state online" : "api-state"}>
+              <Circle weight="fill" aria-hidden="true" />
+              <span>{isApiOnline ? "Lokal" : "Offline"}</span>
+            </div>
           </div>
         </header>
 
@@ -599,6 +744,170 @@ export function SagentShell() {
                             <p>Der Testlauf hat keine Ausgabe erzeugt.</p>
                           ) : null}
                         </div>
+                      </div>
+                    ) : null}
+                  </section>
+                ) : null}
+
+                {result.approval_state === "approved" ? (
+                  <section className="workflow-section git-section" aria-labelledby="git-heading">
+                    <div className="section-heading-row">
+                      <h2 id="git-heading">Git</h2>
+                      <span
+                        className={`git-status-badge ${
+                          gitStatus?.is_main
+                            ? "protected"
+                            : gitStatus?.clean
+                              ? "clean"
+                              : "changed"
+                        }`}
+                      >
+                        {isGitLoading
+                          ? "Lädt"
+                          : gitStatus?.is_main
+                            ? "Geschützt"
+                            : gitStatus?.clean
+                              ? "Sauber"
+                              : `${gitStatus?.files.length ?? 0} Änderungen`}
+                      </span>
+                    </div>
+                    <p>
+                      Status und Diff sind lokal und read-only. Push, Merge und automatischer Commit
+                      bleiben blockiert.
+                    </p>
+
+                    {gitError ? (
+                      <div className="test-inline-error" role="alert">
+                        <WarningCircle weight="regular" aria-hidden="true" />
+                        <span>{gitError}</span>
+                        <button type="button" onClick={() => void refreshGit()}>
+                          Erneut laden
+                        </button>
+                      </div>
+                    ) : null}
+
+                    {gitStatus ? (
+                      <>
+                        {gitStatus.warning ? (
+                          <div className="git-warning" role="status">
+                            <Warning weight="regular" aria-hidden="true" />
+                            <span>{gitStatus.warning}</span>
+                          </div>
+                        ) : null}
+
+                        <div className="git-summary">
+                          <div>
+                            <GitBranch weight="regular" aria-hidden="true" />
+                            <span>
+                              <small>Branch</small>
+                              <strong>{gitStatus.branch ?? "Detached HEAD"}</strong>
+                            </span>
+                          </div>
+                          <div>
+                            <GitDiffIcon weight="regular" aria-hidden="true" />
+                            <span>
+                              <small>Status</small>
+                              <strong>
+                                {gitStatus.clean
+                                  ? "Keine Änderungen"
+                                  : `${gitStatus.files.length} geänderte Dateien`}
+                              </strong>
+                            </span>
+                          </div>
+                          <div>
+                            <LockKey weight="regular" aria-hidden="true" />
+                            <span>
+                              <small>Remote-Aktionen</small>
+                              <strong>Push und Merge blockiert</strong>
+                            </span>
+                          </div>
+                        </div>
+
+                        {gitStatus.files.length ? (
+                          <ul className="git-file-list" aria-label="Geänderte Dateien">
+                            {gitStatus.files.slice(0, 50).map((file, index) => (
+                              <li key={`${file.path}-${index}`}>
+                                <code>
+                                  {file.index_status === " " ? "·" : file.index_status}
+                                  {file.worktree_status === " " ? "·" : file.worktree_status}
+                                </code>
+                                <span>{file.path}</span>
+                              </li>
+                            ))}
+                            {gitStatus.files.length > 50 ? (
+                              <li className="git-file-more">
+                                + {gitStatus.files.length - 50} weitere Dateien
+                              </li>
+                            ) : null}
+                          </ul>
+                        ) : null}
+
+                        <form className="git-branch-form" onSubmit={createFeatureBranch}>
+                          <label htmlFor="branch-name">Neuer lokaler Feature-Branch</label>
+                          <div>
+                            <input
+                              id="branch-name"
+                              value={branchName}
+                              onChange={(event) => setBranchName(event.target.value)}
+                              placeholder="feature/sicherer-workflow"
+                              maxLength={100}
+                              autoComplete="off"
+                            />
+                            <button
+                              type="submit"
+                              disabled={!branchName.trim() || isBranchLoading}
+                            >
+                              {isBranchLoading ? (
+                                <CircleNotch className="spin" weight="bold" aria-hidden="true" />
+                              ) : (
+                                <GitBranch weight="regular" aria-hidden="true" />
+                              )}
+                              {isBranchLoading ? "Wird erstellt" : "Branch erstellen"}
+                            </button>
+                          </div>
+                          <p>Erlaubt: codex/, feature/, fix/, docs/, test/ oder chore/.</p>
+                        </form>
+
+                        {branchMessage ? (
+                          <div className="git-branch-message" role="status">
+                            <CheckCircle weight="regular" aria-hidden="true" />
+                            <span>{branchMessage}</span>
+                          </div>
+                        ) : null}
+
+                        <div className="git-diff-panel">
+                          <div className="git-diff-heading">
+                            <span>Diff</span>
+                            <div>
+                              <code>{gitDiff?.diff_hash.slice(0, 10) ?? "–"}</code>
+                              <button
+                                type="button"
+                                disabled={isGitLoading}
+                                onClick={() => void refreshGit()}
+                              >
+                                <ArrowsClockwise weight="regular" aria-hidden="true" />
+                                Aktualisieren
+                              </button>
+                            </div>
+                          </div>
+                          {gitDiff?.secrets_redacted || gitDiff?.sensitive_paths_hidden ? (
+                            <div className="git-diff-warning">
+                              Sensible Inhalte wurden verborgen. Commit-Vorbereitung ist blockiert.
+                            </div>
+                          ) : null}
+                          {gitDiff?.truncated ? (
+                            <div className="git-diff-warning">
+                              Der Diff wurde gekürzt und kann nicht für einen Commit freigegeben werden.
+                            </div>
+                          ) : null}
+                          <pre tabIndex={0}>
+                            {gitDiff?.patch || "Keine sichtbaren Änderungen im Worktree."}
+                          </pre>
+                        </div>
+                      </>
+                    ) : isGitLoading ? (
+                      <div className="test-profile-loading" role="status">
+                        Git-Status wird geladen …
                       </div>
                     ) : null}
                   </section>

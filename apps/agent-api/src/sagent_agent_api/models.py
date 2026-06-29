@@ -129,3 +129,59 @@ class TestResultResponse(BaseModel):
     duration_ms: int = Field(ge=0)
     timed_out: bool
     output_truncated: bool
+
+
+class GitFileStatusResponse(BaseModel):
+    """One visible Git status entry with sensitive paths hidden."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    path: str
+    index_status: str
+    worktree_status: str
+    original_path: str | None
+    sensitive: bool
+
+
+class GitStatusResponse(BaseModel):
+    """Structured branch and worktree state for the fixed repository."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    branch: str | None
+    detached: bool
+    is_main: bool
+    clean: bool
+    ahead: int = Field(ge=0)
+    behind: int = Field(ge=0)
+    head_sha: str | None
+    files: list[GitFileStatusResponse]
+    warning: str | None
+
+
+class GitDiffResponse(BaseModel):
+    """Bounded and redacted review diff."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    patch: str
+    diff_hash: str
+    file_count: int = Field(ge=0)
+    truncated: bool
+    secrets_redacted: bool
+    sensitive_paths_hidden: int = Field(ge=0)
+
+
+class GitBranchRequest(BaseModel):
+    """Explicit request for one policy-compliant local feature branch."""
+
+    name: str = Field(min_length=3, max_length=100)
+    expected_current_branch: str | None = Field(default=None, max_length=100)
+    confirmed: Literal[True]
+
+
+class GitBranchResponse(BaseModel):
+    """Updated repository state after creating a local feature branch."""
+
+    message: str
+    status: GitStatusResponse
