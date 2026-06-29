@@ -1,5 +1,16 @@
 """Public building blocks for Sagent's deterministic agent core."""
 
+from sagent_agent_core.benchmarks import (
+    SYNTHETIC_BENCHMARK_TASKS,
+    BenchmarkConfigurationError,
+    BenchmarkConfirmationRequiredError,
+    BenchmarkError,
+    BenchmarkObservation,
+    BenchmarkReport,
+    BenchmarkTimeoutError,
+    LocalModelBenchmarkHarness,
+    SyntheticBenchmarkTask,
+)
 from sagent_agent_core.changes import (
     ApprovalError,
     ChangeConflictError,
@@ -56,6 +67,12 @@ from sagent_tools import FileAccessError, FileTool, WorkspaceGuard, WorkspaceSec
 
 __all__ = [
     "ApprovalError",
+    "BenchmarkConfigurationError",
+    "BenchmarkConfirmationRequiredError",
+    "BenchmarkError",
+    "BenchmarkObservation",
+    "BenchmarkReport",
+    "BenchmarkTimeoutError",
     "ChangeConflictError",
     "ChangeOperation",
     "ChangeRequest",
@@ -72,6 +89,7 @@ __all__ = [
     "LoopbackModelProtocolError",
     "LoopbackModelTimeoutError",
     "LoopbackOpenAIChatAdapter",
+    "LocalModelBenchmarkHarness",
     "FakeModelAdapter",
     "ModelAdapter",
     "ModelAdapterBlockedError",
@@ -99,6 +117,8 @@ __all__ = [
     "ModelTransport",
     "ModelTransportBlockedError",
     "ModelUsage",
+    "SYNTHETIC_BENCHMARK_TASKS",
+    "SyntheticBenchmarkTask",
     "WorkspaceGuard",
     "WorkspaceSecurityError",
 ]
