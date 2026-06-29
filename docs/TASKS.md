@@ -60,18 +60,23 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Capability-Router mit fester Transport-Allowlist und Input-/Output-Grenzen implementieren
 - [x] Modellantworten unveränderlich als untrusted markieren und Tool-Call-Strukturen ausschließen
 - [x] Adapter-Discovery und deterministische Offline-Preview in der API bereitstellen
-- [ ] Lokalen OpenAI-kompatiblen Adapter ohne fest eingebettete Zugangsdaten entwerfen
+- [x] Lokalen OpenAI-kompatiblen Adapter ohne fest eingebettete Zugangsdaten implementieren
+- [x] Loopback-Literale, Providerports, Redirects, Proxies und Request-/Response-Größen absichern
+- [x] Bestätigten `POST /models/complete` ohne frei wählbaren Endpoint bereitstellen
 - [ ] LM Studio und Ollama anhand von Installation, API-Kompatibilität, Streaming und Mac-Ressourcen vergleichen
 - [x] Modelltext strikt als nicht vertrauenswürdige Eingabe behandeln; Tool-Policies bleiben deterministisch
-- [ ] Timeout, Abbruch, fehlerhafte Antworten und nicht erreichbaren lokalen Modellserver testen
-- [ ] Erst nach separater Freigabe einen echten lokalen Modellaufruf in API und UI aktivieren
+- [x] Timeout, Redirect, Connection-Fehler, fehlerhafte Antworten und übergroße lokale Responses testen
+- [ ] Aktiven Abbruch einer bereits laufenden Modellgenerierung implementieren und testen
+- [x] Echten lokalen Modellaufruf ausschließlich als expliziten, bestätigten API-Opt-in aktivierbar machen
+- [ ] Live-Aufruf mit LM Studio und Ollama auf dem Ziel-Mac prüfen
+- [ ] Modellwahl und Abbruch erst nach Live-Evaluation in die UI integrieren
 
 ## Noch blockiert bis zu den Sicherheitsinkrementen
 
 - Dateiänderungen bleiben außerhalb des internen Core-Services blockiert, bis API- und UI-Anbindung einen eigenen Sicherheitsreview erhalten
 - Testbefehle ausschließlich über die implementierte Allowlist und nach menschlicher Freigabe
 - Git-Commit, Push und Merge bleiben ohne eigenen Approval-Flow blockiert
-- Echte lokale LLM-Aufrufe und lokaler Netzwerkzugriff erst nach dem MVP-2-Vertrags- und Sicherheitsreview
+- Remote-LLMs und allgemeiner Netzwerkzugriff bleiben blockiert; lokale Aufrufe nur über den geprüften Loopback-Vertrag
 
 ## Definition of Done
 

@@ -54,7 +54,7 @@ pnpm install
 uv sync --dev
 ```
 
-Optional kann `.env.example` nach `.env` kopiert werden. Für den Standardstart sind keine Secrets oder API-Keys erforderlich.
+`.env.example` ist nur eine Referenz und wird nicht automatisch geladen. Für den Standardstart sind keine Secrets oder API-Keys erforderlich. Optionale lokale Modellwerte werden bewusst als Prozessvariablen exportiert; siehe [Lokale Modelle](docs/LOCAL_MODELS.md).
 
 ## Lokal starten
 
@@ -72,7 +72,7 @@ Danach sind verfügbar:
 
 Die Weboberfläche zeigt nach einer Task-Freigabe Testprofile sowie den lokalen Git-Status und den redigierten Diff. Einen neuen lokalen Branch kann sie nur mit den Präfixen `codex/`, `feature/`, `fix/`, `docs/`, `test/` oder `chore/` erstellen. Es gibt keine UI- oder API-Aktion für Push oder Merge.
 
-Die API bietet außerdem `GET /models` und `POST /models/preview`. Beide verwenden ausschließlich den deterministischen In-Process-Fake. Loopback-HTTP, Remote-HTTP, Zugangsdaten und echte Modellserver sind in diesem Inkrement nicht aktiviert.
+Die API bietet außerdem `GET /models` und `POST /models/preview`. Standardmäßig verwenden beide ausschließlich den deterministischen In-Process-Fake. Nach vier expliziten Prozessvariablen kann `POST /models/complete` einen vorkonfigurierten LM-Studio- oder Ollama-Server auf dessen offiziellem Loopback-Port ansprechen. Remote-HTTP, Zugangsdaten und automatische Modellaufrufe bleiben blockiert.
 
 Die API kann auch separat gestartet werden:
 
@@ -104,12 +104,13 @@ pnpm build
 - [Architekturentscheidungen](docs/DECISIONS.md)
 - [Sicherheitsmodell](docs/SECURITY.md)
 - [Memory-Konzept](docs/MEMORY.md)
+- [Lokale Modelle](docs/LOCAL_MODELS.md)
 - [Agent-Workflow](docs/AGENT_WORKFLOW.md)
 - [Session-Handoff](docs/HANDOFF.md)
 
 ## Status
 
-**MVP 1 abgeschlossen; MVP 2.A in Arbeit.** Der lokale Workflow deckt Task-Planung, Proposal und Approval, sichere interne ChangeSets, allowlist-basierte Tests sowie redigierten Git-Status und Diff ab. Der neue `ModelRouter` trennt Fähigkeiten und Transportarten, bewahrt Eingabequellen und behandelt jede Modellantwort als untrusted. Aktuell ist ausschließlich ein deterministischer In-Process-Fake erlaubt. Als Nächstes folgt ein gesondert geprüfter Loopback-Adapter für lokale OpenAI-kompatible Modellserver.
+**MVP 1 sowie MVP 2.A abgeschlossen; MVP 2.B implementiert.** Der `ModelRouter` trennt Fähigkeiten und Transportarten, bewahrt Eingabequellen und behandelt jede Modellantwort als untrusted. Standard bleibt der deterministische In-Process-Fake. Ein echter lokaler Chat-Completion-Aufruf ist nur nach expliziter Loopback-Konfiguration, bestätigtem API-Request und allen URL-/Timeout-/Größen-Gates möglich. Als Nächstes folgt die reproduzierbare Live-Evaluation mit LM Studio und Ollama.
 
 ## Lizenz
 

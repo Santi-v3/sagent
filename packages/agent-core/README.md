@@ -19,7 +19,9 @@ MVP 2.A ergänzt:
 - einen `ModelRouter` mit festen Routen, Input-/Output-Limits und standardmäßiger Sperre für Loopback- und Remote-HTTP
 - Antworten, die technisch unveränderlich als `untrusted=true` markiert sind und keine Tool-Call-Struktur besitzen
 
-Löschen, freie Shell, Netzwerkzugriff, echte LLM-Aufrufe und automatische Git-Aktionen sind nicht Teil dieses Moduls.
+MVP 2.B ergänzt `LoopbackOpenAIChatAdapter` für den gemeinsamen LM-Studio-/Ollama-Vertrag `POST /v1/chat/completions`. Er akzeptiert nur kanonische Loopback-Literale und Profilports, deaktiviert Umgebung-Proxies und Redirects, sendet weder Credentials noch Tool-Definitionen und begrenzt Timeouts sowie Request-/Response-Größe. Die Antwort muss genau eine textuelle Assistant-Choice für das konfigurierte Modell enthalten.
+
+Löschen, freie Shell, Remote-HTTP, automatische Modell-Downloads und automatische Git-Aktionen sind nicht Teil dieses Moduls. Der einzige echte Modellaufruf ist der separat konfigurierte IPv4-Loopback-Vertrag hinter dem API-Bestätigungsgate.
 
 ## Tests
 
