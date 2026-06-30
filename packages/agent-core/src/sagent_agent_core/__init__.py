@@ -17,6 +17,11 @@ from sagent_agent_core.changes import (
     ChangeSetNotFoundError,
     ChangeSetService,
 )
+from sagent_agent_core.local_provider_metadata import (
+    LOCAL_PROVIDER_PROFILES,
+    LocalProviderProfile,
+    get_local_provider_profile,
+)
 from sagent_agent_core.loopback_model import (
     LoopbackEndpoint,
     LoopbackModelConnectionError,
@@ -89,6 +94,8 @@ __all__ = [
     "LoopbackModelProtocolError",
     "LoopbackModelTimeoutError",
     "LoopbackOpenAIChatAdapter",
+    "LOCAL_PROVIDER_PROFILES",
+    "LocalProviderProfile",
     "LocalModelBenchmarkHarness",
     "FakeModelAdapter",
     "ModelAdapter",
@@ -121,4 +128,5 @@ __all__ = [
     "SyntheticBenchmarkTask",
     "WorkspaceGuard",
     "WorkspaceSecurityError",
+    "get_local_provider_profile",
 ]

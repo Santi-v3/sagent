@@ -5,7 +5,7 @@
 - **Phase:** MVP 1, MVP 2.A und MVP 2.B abgeschlossen; MVP 2.C Benchmark-Grundstein implementiert
 - **Stand:** 2026-06-30
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Offline-Konsistenz von Python-Benchmark-Policy und Web-Metadaten absichern; erster Live-Lauf ausschließlich nach bewusster Nutzerfreigabe und manuell vorbereitetem lokalen Provider
+- **Aktueller Fokus:** Öffentliche unveränderliche Core-Metadaten für feste lokale Providerprofile absichern; erster Live-Lauf ausschließlich nach bewusster Nutzerfreigabe und manuell vorbereitetem lokalen Provider
 
 ## Fertiggestellt
 
@@ -86,6 +86,9 @@
 - Python-/Web-Vertragstest ergänzt, der Providerprofile und feste Ports aus der Routerkonfiguration, Task-IDs aus dem Core-Katalog sowie Befehl und read-only UI-Grenzen deterministisch abgleicht
 - Der Vertragstest liest ausschließlich versionierte lokale Dateien und importiert bestehende Konstanten; keine Runtime-Kopplung, API-Route, Providerprüfung oder Netzwerkaktion ergänzt
 - 4 fokussierte Offline-Vertragstests, 4 bestehende UI-Sicherheitschecks und insgesamt 134 Python-Tests erfolgreich; Ruff, ESLint, TypeScript, Python-Kompilierung und Next.js-Produktionsbuild bestanden
+- Öffentliche `LOCAL_PROVIDER_PROFILES` als Tuple aus unveränderlichen Profilen ergänzt; IDs, Labels, Adapter-IDs, IPv4-Loopback-Host und Ports liegen damit im Core statt in einer privaten API-Dict
+- Router, Benchmark-Allowlist und Offline-Vertragstest lesen dieselben Core-Metadaten; die Web-App behält ihre statische JSON-Datei und erhält keine Python-Runtime-Abhängigkeit
+- 4 neue Core-Metadaten-Tests, 4 Offline-Vertragstests, 4 UI-Sicherheitschecks und insgesamt 138 Python-Tests erfolgreich; Ruff, ESLint, TypeScript, Python-Kompilierung und Next.js-Produktionsbuild bestanden
 
 ## MVP-1-Abschlussaudit
 
