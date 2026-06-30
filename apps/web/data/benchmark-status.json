@@ -1,0 +1,35 @@
+{
+  "status": "Benchmark-Harness vorhanden",
+  "liveRunStatus": "Noch kein echter Benchmark durchgeführt",
+  "confirmationState": "confirmation_required",
+  "providers": [
+    {
+      "name": "LM Studio",
+      "endpoint": "127.0.0.1:1234"
+    },
+    {
+      "name": "Ollama",
+      "endpoint": "127.0.0.1:11434"
+    }
+  ],
+  "tasks": [
+    {
+      "taskId": "safe-refactor-plan",
+      "title": "Sicherer Refactor-Plan",
+      "description": "Drei Schritte für eine eingebettete, synthetische Beispiel-Funktion."
+    },
+    {
+      "taskId": "deterministic-test-cases",
+      "title": "Deterministische Testfälle",
+      "description": "Drei reproduzierbare Tests für eine synthetische Additionsfunktion."
+    },
+    {
+      "taskId": "cancellation-probe",
+      "title": "Cancellation-Probe",
+      "description": "Ein begrenzter Abbruchtest mit harmlosen Platzhalterdaten."
+    }
+  ],
+  "safeCommand": "PYTHONPATH=apps/agent-api/src:packages/agent-core/src:packages/tools/src \\\n  uv run python -m sagent_agent_api.benchmark_cli",
+  "privacyNotice": "Prompts und Modelltexte werden nicht in Benchmark-Ergebnissen gespeichert.",
+  "trustNotice": "Modellantworten bleiben untrusted und erhalten keine Tool-Autorität."
+}

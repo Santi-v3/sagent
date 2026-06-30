@@ -72,6 +72,8 @@ Danach sind verfügbar:
 
 Die Weboberfläche zeigt nach einer Task-Freigabe Testprofile sowie den lokalen Git-Status und den redigierten Diff. Einen neuen lokalen Branch kann sie nur mit den Präfixen `codex/`, `feature/`, `fix/`, `docs/`, `test/` oder `chore/` erstellen. Es gibt keine UI- oder API-Aktion für Push oder Merge.
 
+Zusätzlich zeigt sie den Benchmark-Harness-Status, die beiden festen Loopback-Provider und den synthetischen Aufgabenkatalog read-only an. Der sichtbare Start-Button bleibt deaktiviert; die Seite führt weder beim Laden noch durch eine andere UI-Aktion einen Benchmark oder Providercheck aus.
+
 Die API bietet außerdem `GET /models` und `POST /models/preview`. Standardmäßig verwenden beide ausschließlich den deterministischen In-Process-Fake. Nach vier expliziten Prozessvariablen kann `POST /models/complete` einen vorkonfigurierten LM-Studio- oder Ollama-Server auf dessen offiziellem Loopback-Port ansprechen. Für längere Aufrufe stehen begrenzte Jobs mit Start, Status und aktivem Cancel zur Verfügung. Remote-HTTP, Zugangsdaten und automatische Modellaufrufe bleiben blockiert.
 
 Die API kann auch separat gestartet werden:
