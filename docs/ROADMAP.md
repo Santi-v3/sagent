@@ -68,7 +68,8 @@ Die vollständige strategische Roadmap steht in [`MASTER_PLAN.md`](MASTER_PLAN.m
 
 - **MVP 2.A abgeschlossen:** provider-neutraler Modellvertrag, deterministischer Fake-Adapter, Capability-Router und Transport-Allowlist
 - **MVP 2.B abgeschlossen:** abgesicherter opt-in Loopback-Adapter sowie begrenzte, aktiv abbrechbare Modelljobs
-- **MVP 2.C als Nächstes:** reproduzierbare Live-Evaluation mit LM Studio und Ollama sowie erstem Coding-Modell
+- **MVP 2.C Grundstein implementiert:** feste synthetische Aufgaben, prompt-freie Metriken und standardmäßig blockierte opt-in Benchmark-CLI
+- **MVP 2.C Live-Schritt offen:** reproduzierbare Evaluation mit bewusst gestarteten LM-Studio-/Ollama-Instanzen und bereits vorhandenen Modellen
 - Adapter für lokale OpenAI-kompatible Endpunkte
 - LM Studio, Ollama und später MLX evaluieren
 - Coding-Modelle anhand reproduzierbarer Aufgaben vergleichen

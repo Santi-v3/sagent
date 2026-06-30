@@ -2,7 +2,7 @@
 
 Sagent ist ein local-first, Mac-first Personal AI Agent in Entwicklung. Langfristig soll er wie ein eigener Coding-Agent arbeiten: Projekte lesen, Änderungen planen, Code vorbereiten, Tests ausführen, Diffs erklären und Änderungen erst nach ausdrücklicher menschlicher Freigabe übernehmen.
 
-Das Repository enthält MVP 1 als lokal ausführbare Minimalversion und den ersten Baustein von MVP 2: eine deterministische Agent-API, eine Codex-nahe Weboberfläche, sichere ChangeSets, einen allowlist-basierten TestRunner, begrenzte Git-Funktionen sowie einen provider-neutralen Modellvertrag mit Offline-Fake und Transport-Allowlist. Es gibt weiterhin keinen echten LLM-Aufruf, keine freie Shell und keine unkontrollierten Systemwerkzeuge. Die Datei-Tools sind bewusst noch nicht mit API oder UI verbunden; Push und Merge sind im Agent-Tool nicht verfügbar.
+Das Repository enthält MVP 1 als lokal ausführbare Minimalversion und die ersten Bausteine von MVP 2: eine deterministische Agent-API, eine Codex-nahe Weboberfläche, sichere ChangeSets, einen allowlist-basierten TestRunner, begrenzte Git-Funktionen sowie einen provider-neutralen Modellvertrag mit Offline-Fake und Transport-Allowlist. Im Standardbetrieb gibt es keinen echten LLM-Aufruf; ein lokaler Aufruf ist nur über den bestätigten IPv4-Loopback-Vertrag möglich. Freie Shell und unkontrollierte Systemwerkzeuge bleiben ausgeschlossen. Die Datei-Tools sind bewusst noch nicht mit API oder UI verbunden; Push und Merge sind im Agent-Tool nicht verfügbar.
 
 ## Projektkontext
 
@@ -94,6 +94,17 @@ pnpm build
 
 `pnpm check` führt ESLint, ruff, TypeScript-Prüfung und pytest aus.
 
+## Lokale Benchmark-Harness
+
+Der sichere Standardaufruf führt keinen Modell- oder Netzwerkaufruf aus und endet mit `confirmation_required`:
+
+```bash
+PYTHONPATH=apps/agent-api/src:packages/agent-core/src:packages/tools/src \
+  uv run python -m sagent_agent_api.benchmark_cli
+```
+
+Ein echter lokaler Lauf benötigt zusätzlich `--confirmed` und die vollständige bestehende LM-Studio-/Ollama-Loopback-Konfiguration. Die Harness verwendet nur feste synthetische Aufgaben und gibt weder Prompts noch Modelltext aus. Anleitung: [Lokale Modell-Benchmarks](docs/LOCAL_MODEL_BENCHMARKS.md).
+
 ## Dokumentation
 
 - [Masterplan](docs/MASTER_PLAN.md)
@@ -105,12 +116,13 @@ pnpm build
 - [Sicherheitsmodell](docs/SECURITY.md)
 - [Memory-Konzept](docs/MEMORY.md)
 - [Lokale Modelle](docs/LOCAL_MODELS.md)
+- [Lokale Modell-Benchmarks](docs/LOCAL_MODEL_BENCHMARKS.md)
 - [Agent-Workflow](docs/AGENT_WORKFLOW.md)
 - [Session-Handoff](docs/HANDOFF.md)
 
 ## Status
 
-**MVP 1 sowie MVP 2.A abgeschlossen; MVP 2.B implementiert.** Der `ModelRouter` trennt Fähigkeiten und Transportarten, bewahrt Eingabequellen und behandelt jede Modellantwort als untrusted. Standard bleibt der deterministische In-Process-Fake. Ein echter lokaler Chat-Completion-Aufruf ist nur nach expliziter Loopback-Konfiguration, bestätigtem API-Request und allen URL-/Timeout-/Größen-Gates möglich. Laufende Aufrufe können über einen prompt-freien Jobstatus aktiv abgebrochen werden. Als Nächstes folgt die reproduzierbare Live-Evaluation mit LM Studio und Ollama.
+**MVP 1 sowie MVP 2.A und 2.B abgeschlossen; MVP 2.C vorbereitet.** Der `ModelRouter` trennt Fähigkeiten und Transportarten, bewahrt Eingabequellen und behandelt jede Modellantwort als untrusted. Standard bleibt der deterministische In-Process-Fake. Ein echter lokaler Chat-Completion-Aufruf ist nur nach expliziter Loopback-Konfiguration, bestätigtem API-Request und allen URL-/Timeout-/Größen-Gates möglich. Die neue Benchmark-Harness ist offline testbar und standardmäßig blockiert; ein echter Benchmark wurde noch nicht durchgeführt.
 
 ## Lizenz
 
