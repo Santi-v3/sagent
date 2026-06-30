@@ -68,6 +68,7 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Opt-in Benchmark-CLI mit `--confirmed`, bestehender Loopback-Konfiguration und prompt-freier Metrikausgabe implementieren
 - [x] Benchmark-Harness ausschließlich mit Mock-Transports deterministisch testen
 - [x] Sicheren Benchmark-Status, feste Provider und synthetische Aufgaben read-only in der Weboberfläche anzeigen
+- [x] Offline-Vertragstest für Providerprofile, Task-IDs und read-only UI-Grenzen ergänzen
 - [x] Modelltext strikt als nicht vertrauenswürdige Eingabe behandeln; Tool-Policies bleiben deterministisch
 - [x] Timeout, Redirect, Connection-Fehler, fehlerhafte Antworten und übergroße lokale Responses testen
 - [x] Aktiven Abbruch einer bereits laufenden Modellgenerierung implementieren und testen
