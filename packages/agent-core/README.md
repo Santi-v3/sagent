@@ -23,6 +23,8 @@ MVP 2.B ergänzt `LoopbackOpenAIChatAdapter` für den gemeinsamen LM-Studio-/Oll
 
 Der Cancellation-Baustein ergänzt einen thread-sicheren, idempotenten `ModelCancellationToken`, der aktive HTTP-Client-/Response-Ressourcen schließt. `ModelJobService` führt höchstens eine kleine konfigurierte Zahl von Workern und Job-Snapshots, speichert keine Prompts in API-Snapshots, begrenzt die Historie und unterscheidet `queued`, `running`, `cancelling`, `succeeded`, `failed` und `cancelled`.
 
+Der MVP-2.C-Grundstein ergänzt `LocalModelBenchmarkHarness` mit drei festen synthetischen Aufgaben. Ein Lauf benötigt explizite Bestätigung und einen bereits konfigurierten nicht simulierten Loopback-Adapter. Der Bericht enthält nur Metriken und generische Statuswerte, niemals Prompt oder Modelltext.
+
 Löschen, freie Shell, Remote-HTTP, automatische Modell-Downloads und automatische Git-Aktionen sind nicht Teil dieses Moduls. Der einzige echte Modellaufruf ist der separat konfigurierte IPv4-Loopback-Vertrag hinter dem API-Bestätigungsgate.
 
 ## Tests
