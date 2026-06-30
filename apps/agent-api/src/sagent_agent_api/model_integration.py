@@ -13,12 +13,8 @@ from sagent_agent_core import (
     ModelContractError,
     ModelRouter,
     ModelTransport,
+    get_local_provider_profile,
 )
-
-_LOCAL_PROVIDERS = {
-    "lm-studio": 1_234,
-    "ollama": 11_434,
-}
 
 
 def build_model_router(environment: Mapping[str, str] | None = None) -> ModelRouter:
@@ -42,19 +38,18 @@ def build_model_router(environment: Mapping[str, str] | None = None) -> ModelRou
             raise ModelContractError(
                 "Local model configuration requires SAGENT_NETWORK_ENABLED=loopback."
             )
-        try:
-            allowed_port = _LOCAL_PROVIDERS[provider]
-        except KeyError as error:
+        profile = get_local_provider_profile(provider)
+        if profile is None:
             raise ModelContractError(
                 "SAGENT_LLM_PROVIDER must be lm-studio or ollama in loopback mode."
-            ) from error
+            )
         if not base_url or not model:
             raise ModelContractError("Local model base URL and model identifier are required.")
         local_adapter = LoopbackOpenAIChatAdapter(
-            LoopbackEndpoint(base_url, allowed_ports=frozenset({allowed_port})),
+            LoopbackEndpoint(base_url, allowed_ports=frozenset({profile.port})),
             model,
-            adapter_id=f"local-{provider}",
-            provider=provider,
+            adapter_id=profile.adapter_id,
+            provider=profile.provider_id,
         )
         adapters.append(local_adapter)
         allowed_transports.add(ModelTransport.LOOPBACK_HTTP)

@@ -6,6 +6,7 @@ from contextlib import suppress
 from dataclasses import dataclass, field
 from time import monotonic, sleep
 
+from sagent_agent_core.local_provider_metadata import LOCAL_PROVIDER_PROFILES
 from sagent_agent_core.model_jobs import (
     ModelJobConflictError,
     ModelJobNotFoundError,
@@ -40,10 +41,6 @@ class BenchmarkTimeoutError(BenchmarkError):
 
 
 _TASK_ID = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
-_ALLOWED_ADAPTERS = {
-    "local-lm-studio": "lm-studio",
-    "local-ollama": "ollama",
-}
 _TERMINAL_STATES = frozenset(
     {ModelJobState.SUCCEEDED, ModelJobState.FAILED, ModelJobState.CANCELLED}
 )
@@ -168,7 +165,14 @@ class LocalModelBenchmarkHarness:
             (item for item in router.list_adapters() if item.adapter_id == adapter_id),
             None,
         )
-        expected_provider = _ALLOWED_ADAPTERS.get(adapter_id)
+        expected_provider = next(
+            (
+                profile.provider_id
+                for profile in LOCAL_PROVIDER_PROFILES
+                if profile.adapter_id == adapter_id
+            ),
+            None,
+        )
         if (
             expected_provider is None
             or descriptor is None

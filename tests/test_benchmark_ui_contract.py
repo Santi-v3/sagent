@@ -4,8 +4,7 @@ import json
 import re
 from pathlib import Path
 
-from sagent_agent_api.model_integration import _LOCAL_PROVIDERS
-from sagent_agent_core import SYNTHETIC_BENCHMARK_TASKS
+from sagent_agent_core import LOCAL_PROVIDER_PROFILES, SYNTHETIC_BENCHMARK_TASKS
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 WEB_ROOT = REPOSITORY_ROOT / "apps" / "web"
@@ -19,15 +18,14 @@ def load_ui_metadata() -> dict[str, object]:
 
 def test_ui_provider_profiles_match_python_loopback_policy() -> None:
     metadata = load_ui_metadata()
-    ui_profiles = {
-        profile["name"]: profile["endpoint"] for profile in metadata["providers"]
-    }
+    ui_profiles = tuple(
+        (profile["name"], profile["endpoint"]) for profile in metadata["providers"]
+    )
 
-    assert _LOCAL_PROVIDERS == {"lm-studio": 1_234, "ollama": 11_434}
-    assert ui_profiles == {
-        "LM Studio": f"127.0.0.1:{_LOCAL_PROVIDERS['lm-studio']}",
-        "Ollama": f"127.0.0.1:{_LOCAL_PROVIDERS['ollama']}",
-    }
+    assert ui_profiles == tuple(
+        (profile.label, f"{profile.host}:{profile.port}")
+        for profile in LOCAL_PROVIDER_PROFILES
+    )
 
 
 def test_ui_task_ids_match_synthetic_benchmark_catalog() -> None:
