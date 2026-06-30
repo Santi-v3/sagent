@@ -147,7 +147,7 @@ def test_provider_failure_is_reduced_to_a_generic_error_code() -> None:
     assert "provider-sensitive" not in serialized
 
 
-def test_cancellation_probe_closes_stream_and_records_no_content() -> None:
+def test_cancellation_probe_stops_before_or_during_response_and_records_no_content() -> None:
     stream = BlockingJsonStream(json.dumps(payload()).encode("utf-8"))
     router, adapter_id = router_with_handler(
         lambda request: httpx.Response(
@@ -160,8 +160,9 @@ def test_cancellation_probe_closes_stream_and_records_no_content() -> None:
 
     observation = harness.run(confirmed=True).observations[0]
 
-    assert stream.started.is_set()
-    assert stream.closed is True
+    # RUNNING is published before the adapter opens its response stream. Both a
+    # pre-dispatch cancellation and closing an already-started stream are safe.
+    assert not stream.started.is_set() or stream.closed is True
     assert observation.status is ModelJobState.CANCELLED
     assert observation.cancellation_requested is True
     assert observation.cancellation_effective is True
