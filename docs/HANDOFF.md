@@ -5,7 +5,7 @@
 - **Phase:** MVP 1, MVP 2.A und MVP 2.B abgeschlossen; MVP 2.C Benchmark-Grundstein implementiert
 - **Stand:** 2026-06-30
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Statische Benchmark-Information in der Weboberfläche prüfen; erster Live-Lauf ausschließlich nach bewusster Nutzerfreigabe und manuell vorbereitetem lokalen Provider
+- **Aktueller Fokus:** Offline-Konsistenz von Python-Benchmark-Policy und Web-Metadaten absichern; erster Live-Lauf ausschließlich nach bewusster Nutzerfreigabe und manuell vorbereitetem lokalen Provider
 
 ## Fertiggestellt
 
@@ -83,6 +83,9 @@
 - Read-only Benchmark-Sektion in der Weboberfläche ergänzt: Harness-Status, exakte Loopback-Provider, drei feste Task-IDs, sicherer unbestätigter CLI-Aufruf und Datenschutzgrenzen
 - Start-Button bewusst deaktiviert; keine Benchmark-API-Route, keine Providerprüfung und keine automatische Ausführung beim Seitenladen ergänzt
 - Statischen UI-Sicherheitsvertrag mit Node-Bordmitteln getestet: nur erlaubte Provider, fester Task-Katalog, kein `--confirmed`, keine Ergebnistextfelder und kein Netzwerkpfad in der Komponente
+- Python-/Web-Vertragstest ergänzt, der Providerprofile und feste Ports aus der Routerkonfiguration, Task-IDs aus dem Core-Katalog sowie Befehl und read-only UI-Grenzen deterministisch abgleicht
+- Der Vertragstest liest ausschließlich versionierte lokale Dateien und importiert bestehende Konstanten; keine Runtime-Kopplung, API-Route, Providerprüfung oder Netzwerkaktion ergänzt
+- 4 fokussierte Offline-Vertragstests, 4 bestehende UI-Sicherheitschecks und insgesamt 134 Python-Tests erfolgreich; Ruff, ESLint, TypeScript, Python-Kompilierung und Next.js-Produktionsbuild bestanden
 
 ## MVP-1-Abschlussaudit
 
@@ -116,6 +119,7 @@
 - Die Benchmark-Harness ist vorbereitet, aber es wurde noch kein Live-Benchmark und kein Qualitätsvergleich durchgeführt
 - Benchmark-Ausgabe ist absichtlich flüchtig; eine persistente Ergebnisablage benötigt einen eigenen Datenschutz- und Redaction-Review
 - Die Weboberfläche zeigt Benchmark-Metadaten nur statisch; sie kann keinen Benchmark starten und prüft keinen Providerstatus
+- Python und Web behalten getrennte Runtime-Metadaten; ein Offline-Test stoppt bei Drift, ohne eine neue Laufzeitabhängigkeit zwischen beiden Stacks einzuführen
 
 ## Nächster sinnvoller Schritt
 
