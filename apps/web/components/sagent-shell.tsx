@@ -20,6 +20,8 @@ import {
 } from "@phosphor-icons/react";
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 
+import { BenchmarkStatus } from "@/components/benchmark-status";
+
 type ApprovalState = "pending" | "approved" | "rejected" | "needs_changes";
 type ApprovalDecision = Exclude<ApprovalState, "pending">;
 
@@ -914,6 +916,8 @@ export function SagentShell() {
                 ) : null}
               </article>
             ) : null}
+
+            <BenchmarkStatus />
           </div>
 
           <div className="composer-wrap">

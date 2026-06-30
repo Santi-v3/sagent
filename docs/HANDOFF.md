@@ -3,9 +3,9 @@
 ## Projektstatus
 
 - **Phase:** MVP 1, MVP 2.A und MVP 2.B abgeschlossen; MVP 2.C Benchmark-Grundstein implementiert
-- **Stand:** 2026-06-29
+- **Stand:** 2026-06-30
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Benchmark-Harness prüfen; erster Live-Lauf ausschließlich nach bewusster Nutzerfreigabe und manuell vorbereitetem lokalen Provider
+- **Aktueller Fokus:** Statische Benchmark-Information in der Weboberfläche prüfen; erster Live-Lauf ausschließlich nach bewusster Nutzerfreigabe und manuell vorbereitetem lokalen Provider
 
 ## Fertiggestellt
 
@@ -80,6 +80,9 @@
 - Benchmark-Berichte auf Task-ID, Status, Zeit-/Längenmetriken, Untrusted-/Cancellation-Flags und generische Fehlercodes begrenzt; weder Prompt noch Modelltext werden ausgegeben
 - Harness- und CLI-Tests ausschließlich mit Mock-Transports umgesetzt; kein echter Modellaufruf, keine Installation und kein Download durchgeführt
 - 9 fokussierte Benchmark-Harness-/CLI-Tests und insgesamt 130 Python-Tests erfolgreich; Ruff, ESLint, TypeScript, Python-Kompilierung und Produktionsbuild bestanden
+- Read-only Benchmark-Sektion in der Weboberfläche ergänzt: Harness-Status, exakte Loopback-Provider, drei feste Task-IDs, sicherer unbestätigter CLI-Aufruf und Datenschutzgrenzen
+- Start-Button bewusst deaktiviert; keine Benchmark-API-Route, keine Providerprüfung und keine automatische Ausführung beim Seitenladen ergänzt
+- Statischen UI-Sicherheitsvertrag mit Node-Bordmitteln getestet: nur erlaubte Provider, fester Task-Katalog, kein `--confirmed`, keine Ergebnistextfelder und kein Netzwerkpfad in der Komponente
 
 ## MVP-1-Abschlussaudit
 
@@ -112,6 +115,7 @@
 - Die Kompatibilität ist gegen die offiziellen LM-Studio-/Ollama-Verträge und Mock-Transports geprüft, aber noch nicht gegen einen tatsächlich laufenden lokalen Modellserver
 - Die Benchmark-Harness ist vorbereitet, aber es wurde noch kein Live-Benchmark und kein Qualitätsvergleich durchgeführt
 - Benchmark-Ausgabe ist absichtlich flüchtig; eine persistente Ergebnisablage benötigt einen eigenen Datenschutz- und Redaction-Review
+- Die Weboberfläche zeigt Benchmark-Metadaten nur statisch; sie kann keinen Benchmark starten und prüft keinen Providerstatus
 
 ## Nächster sinnvoller Schritt
 
