@@ -70,6 +70,7 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Sicheren Benchmark-Status, feste Provider und synthetische Aufgaben read-only in der Weboberfläche anzeigen
 - [x] Offline-Vertragstest für Providerprofile, Task-IDs und read-only UI-Grenzen ergänzen
 - [x] Lokale Providerprofile als öffentliche unveränderliche Core-Metadaten definieren
+- [x] Sicheres manuelles Ollama-Runbook für einen später separat bestätigten ersten Live-Benchmark dokumentieren
 - [x] Modelltext strikt als nicht vertrauenswürdige Eingabe behandeln; Tool-Policies bleiben deterministisch
 - [x] Timeout, Redirect, Connection-Fehler, fehlerhafte Antworten und übergroße lokale Responses testen
 - [x] Aktiven Abbruch einer bereits laufenden Modellgenerierung implementieren und testen

@@ -91,6 +91,11 @@ PYTHONPATH=apps/agent-api/src:packages/agent-core/src:packages/tools/src \
 
 ## Manueller Lauf mit Ollama
 
+Für den ersten späteren Ollama-Live-Lauf gilt zusätzlich das
+[`OLLAMA_LIVE_BENCHMARK_RUNBOOK.md`](OLLAMA_LIVE_BENCHMARK_RUNBOOK.md). Es verlangt
+eine getrennte Bestandsprüfung, Modellauswahl und Laufbestätigung und schließt
+Cloud-Modelle sowie automatische Downloads aus.
+
 Ollama und das bereits vorhandene Modell zuerst bewusst lokal starten. Danach im selben Terminal:
 
 ```bash
