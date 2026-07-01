@@ -134,6 +134,8 @@
 - Die Weboberfläche zeigt Benchmark-Metadaten nur statisch; sie kann keinen Benchmark starten und prüft keinen Providerstatus
 - Python und Web behalten getrennte Runtime-Metadaten; ein Offline-Test stoppt bei Drift, ohne eine neue Laufzeitabhängigkeit zwischen beiden Stacks einzuführen
 - Die Cloud-Provider-Policy ist ausschließlich ein Zielvertrag. `remote_http` bleibt technisch blockiert; DeepSeek ist nicht registriert und besitzt weder Endpoint noch API-Key-Konfiguration
+- `CloudProviderDisabledError` als unabhängiger Guard jenseits der Transport-Allowlist implementiert; `ModelRouter` blockiert `remote_http` zusätzlich über `cloud_providers_enabled=False`
+- 14 Cloud-Guard-Tests decken sechs Sicherheitsdimensionen ab: remote_http-Blockade, Provider-Allowlist, Impersonationsschutz, Fallback-Verbot, Tool-Autoritätsausschluss und Secret-Scan
 
 ## Nächster sinnvoller Schritt
 
