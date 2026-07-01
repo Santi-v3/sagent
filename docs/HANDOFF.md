@@ -5,7 +5,7 @@
 - **Phase:** MVP 1, MVP 2.A und MVP 2.B abgeschlossen; MVP 2.C Benchmark-Grundstein implementiert
 - **Stand:** 2026-07-01
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Cloud-Approval-Preview als offline Preview-Funktion abgeschlossen; als Nächstes Integration in den Router und separate Sicherheits-Provider-Prüfung
+- **Aktueller Fokus:** Cloud-Approval-Preview lokal in der Web-UI sichtbar; `remote_http` und Cloud-Ausführung bleiben blockiert
 
 ## Fertiggestellt
 
@@ -141,10 +141,15 @@
 - 18 fokussierte Tests in `test_cloud_approval.py`: Default-Denial, Secrets-Verbot, Repo-Dump-Verbot, unbekannte/lokale Provider blockiert, gültige Freigabe erkannt, Approval erzeugt keinen Transport/Endpoint/API-Key
 - `CloudApprovalPreview` als frozen Dataclass und `build_cloud_approval_preview()` als reine Offline-Transformationsfunktion ergänzt
 - 11 Preview-Tests: denied by default, gültige Freigabe angezeigt, Disclosure-Felder, Risiko-Hinweise, keine Endpoints/API-Keys, kein Providerbau, keine Dateileserechte, frozen
+- Lokale read-only API-Route `POST /cloud/approval-preview` ergänzt; sie transformiert ausschließlich sichere Metadaten und besitzt keinen Provider-, Datei- oder Netzwerkzugriff
+- Statische Cloud-Approval-Preview-UI mit `Preview only`, `Local metadata only` und `Cloud execution: No` ergänzt
+- UI über die bestehende lokale API-Basis an die Preview-Route angebunden; Request bleibt denied und enthält nur Provider-ID, Zweck, Bestätigungsflags und leere Disclosure-Metadaten
+- API-Responses werden vor Anzeige erneut gegen den denied Vertrag geprüft; bei Fehler oder unerwarteter Response bleibt die versionierte JSON-Vorschau als sicherer Offline-Fallback sichtbar
+- Das UI-Wiring führt keinen Cloud-Aufruf aus, aktiviert keinen Transport und akzeptiert weder Prompt-/Datei-/Diff-Inhalte noch Secrets oder Modellantworten
 
 ## Nächster sinnvoller Schritt
 
-Der Approval-Contract liegt als offline Datenstruktur vor. Nächste Schritte vor jeder Cloud-Implementierung:
+Approval-Contract, lokale Preview-Route und read-only UI-Wiring liegen vor. Nächste Schritte vor jeder Cloud-Implementierung:
 
 1. DeepSeek-Vertrag, Datenschutz, Aufbewahrung und Kosten separat prüfen; noch nichts implementieren oder verbinden.
 2. Provider-/Modell-Allowlist, Datenmanifest, Redaction, Secretbezug und doppelte Freigabebindung als getrennte negative Testverträge abschließen.
