@@ -919,7 +919,7 @@ export function SagentShell() {
             ) : null}
 
             <BenchmarkStatus />
-            <CloudApprovalPreview />
+            <CloudApprovalPreview apiUrl={API_URL} />
           </div>
 
           <div className="composer-wrap">

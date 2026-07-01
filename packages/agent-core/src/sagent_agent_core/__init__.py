@@ -1,17 +1,5 @@
 """Public building blocks for Sagent's deterministic agent core."""
 
-from sagent_agent_core.cloud_approval import (
-    CLOUD_PROVIDER_IDS,
-    CloudApprovalDecision,
-    CloudApprovalError,
-    CloudApprovalPreview,
-    CloudApprovalRequest,
-    CloudApprovalScope,
-    CloudDataDisclosure,
-    CloudPurpose,
-    build_cloud_approval_preview,
-    is_cloud_approval_valid,
-)
 from sagent_agent_core.benchmarks import (
     SYNTHETIC_BENCHMARK_TASKS,
     BenchmarkConfigurationError,
@@ -28,6 +16,18 @@ from sagent_agent_core.changes import (
     ChangeConflictError,
     ChangeSetNotFoundError,
     ChangeSetService,
+)
+from sagent_agent_core.cloud_approval import (
+    CLOUD_PROVIDER_IDS,
+    CloudApprovalDecision,
+    CloudApprovalError,
+    CloudApprovalPreview,
+    CloudApprovalRequest,
+    CloudApprovalScope,
+    CloudDataDisclosure,
+    CloudPurpose,
+    build_cloud_approval_preview,
+    is_cloud_approval_valid,
 )
 from sagent_agent_core.local_provider_metadata import (
     LOCAL_PROVIDER_PROFILES,
@@ -94,6 +94,7 @@ __all__ = [
     "CloudApprovalScope",
     "CloudDataDisclosure",
     "build_cloud_approval_preview",
+    "is_cloud_approval_valid",
     "CloudProviderDisabledError",
     "CloudPurpose",
     "CLOUD_PROVIDER_IDS",
