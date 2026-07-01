@@ -5,7 +5,7 @@
 - **Phase:** MVP 1, MVP 2.A und MVP 2.B abgeschlossen; MVP 2.C Benchmark-Grundstein implementiert
 - **Stand:** 2026-07-01
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Ersten Ollama-Live-Negativtest diagnostizieren; vor jeder Wiederholung Ollama und `gemma4:latest` außerhalb von Sagent manuell prüfen
+- **Aktueller Fokus:** Optionalen Cloud-Provider-Scope sicher abgrenzen; local-first und blockiertes `remote_http` bleiben unverändert
 
 ## Fertiggestellt
 
@@ -95,6 +95,10 @@
 - Ersten bestätigten Ollama-Live-Benchmark mit `gemma4:latest` ausschließlich auf `127.0.0.1:11434` ausgeführt; beide regulären Tasks endeten ohne Modelloutput mit `reachable=false` und `local_model_job_failed`
 - `cancellation-probe` nach etwa 120 Sekunden wirksam abgebrochen; keine Prompts oder Modellantworttexte gespeichert, keine Tool-Autorität, Downloads, Cloud- oder Remote-HTTP-Nutzung
 - Lauf als sicheren Negativtest statt Modellvergleich eingeordnet; Worktree blieb anschließend sauber
+- `docs/CLOUD_PROVIDER_POLICY.md` als reines Sicherheits- und Architekturkonzept für spätere optionale Cloud-Provider ergänzt
+- DeepSeek Cloud als eigenen, standardmäßig deaktivierten `remote_http`-Provider für große Coding-/Reasoning-Aufgaben eingeordnet; keine Vermischung mit Ollama, LM Studio oder Loopback
+- Laufgebundene Nutzerfreigabe, sichtbares Datenmanifest, Datenminimierung, Secret-Ausschluss, fehlenden Local-to-Cloud-Fallback und untrusted Antworten ohne Tool-Autorität festgelegt
+- Keine Cloud-Runtime, API-Route, Endpoint-, Modell- oder Secret-Konfiguration implementiert und keinen Cloud-/Provideraufruf durchgeführt
 
 ## MVP-1-Abschlussaudit
 
@@ -129,15 +133,16 @@
 - Benchmark-Ausgabe ist absichtlich flüchtig; eine persistente Ergebnisablage benötigt einen eigenen Datenschutz- und Redaction-Review
 - Die Weboberfläche zeigt Benchmark-Metadaten nur statisch; sie kann keinen Benchmark starten und prüft keinen Providerstatus
 - Python und Web behalten getrennte Runtime-Metadaten; ein Offline-Test stoppt bei Drift, ohne eine neue Laufzeitabhängigkeit zwischen beiden Stacks einzuführen
+- Die Cloud-Provider-Policy ist ausschließlich ein Zielvertrag. `remote_http` bleibt technisch blockiert; DeepSeek ist nicht registriert und besitzt weder Endpoint noch API-Key-Konfiguration
 
 ## Nächster sinnvoller Schritt
 
-Den fehlgeschlagenen ersten Lauf vor jeder weiteren Sagent-Ausführung manuell eingrenzen:
+Das Cloud-Konzept vor jeder Implementierung separat reviewen und den lokalen Negativtest unabhängig davon manuell eingrenzen:
 
-1. Nutzer prüft lokal außerhalb von Sagent, ob Ollama läuft und `gemma4:latest` direkt erreichbar ist; Sagent führt diesen Providercheck nicht aus.
-2. Ist das Modell nicht direkt erreichbar, wird kein Sagent-Benchmark wiederholt und es erfolgt keine automatische Reparatur oder Installation.
-3. Nur bei positivem manuellen Befund darf der Nutzer später genau einen weiteren Lauf mit denselben festen Loopback-Werten ausdrücklich bestätigen.
-4. Auch dann werden ausschließlich prompt- und antworttextfreie Metriken ausgewertet; ein Qualitätsvergleich benötigt erfolgreiche, separat freigegebene Läufe.
+1. Für Cloud zunächst DeepSeek-Vertrag, Datenschutz, Aufbewahrung, Kosten und einen festen Remote-HTTP-Threat-Model-Entwurf prüfen; noch nichts implementieren oder verbinden.
+2. Provider-/Modell-Allowlist, Datenmanifest, Redaction, Secretbezug und doppelte Freigabebindung als getrennte negative Testverträge spezifizieren.
+3. Unabhängig davon prüft der Nutzer lokal außerhalb von Sagent, ob Ollama läuft und `gemma4:latest` direkt erreichbar ist; Sagent führt diesen Providercheck nicht aus.
+4. Ohne positiven lokalen Befund wird kein Sagent-Benchmark wiederholt. Ein späterer Cloud-Lauf benötigt ein eigenes Implementierungs- und Freigabeinkrement.
 
 Kostenpflichtige APIs, externe Modellendpunkte, freie Shell und Modell-gesteuerte Policy-Entscheidungen bleiben ausdrücklich ausgeschlossen.
 
@@ -147,7 +152,8 @@ Kostenpflichtige APIs, externe Modellendpunkte, freie Shell und Modell-gesteuert
 - Jede Aufgabe auf einem Feature-Branch abschließen: testen, committen, Branch pushen und PR gegen `main` erstellen.
 - Niemals ohne ausdrückliche Nutzerbestätigung mergen oder Auto-Merge aktivieren.
 - Datei-Schreibzugriffe ausschließlich über den getesteten ChangeSet-/Approval-Vertrag führen.
-- Keine freie Shell, kein Remote-Modell und keine automatische Installation oder Modell-Downloads.
+- Keine freie Shell, kein aktiviertes Remote-Modell und keine automatische Installation oder Modell-Downloads.
+- `docs/CLOUD_PROVIDER_POLICY.md` ist für jede spätere Cloud-Arbeit verbindlich; Konzeptfreigabe ist keine Runtime- oder Datenfreigabe.
 - Neue Architekturentscheidungen im Decision Log ergänzen.
 - Tests für negative Sicherheitsfälle vor Happy-Path-Komfort priorisieren.
 - Modellantworten in MVP 2 immer als untrusted input behandeln; nur deterministischer Core und Tool-Policies dürfen Aktionen autorisieren.
@@ -167,4 +173,4 @@ Der Nutzer prüft den PR. Kein Merge und kein Auto-Merge ohne seine ausdrücklic
 
 ## Startprompt für eine Folgesession
 
-> Lies docs/MASTER_PLAN.md, docs/LOCAL_MODELS.md, docs/LOCAL_MODEL_BENCHMARKS.md und docs/OLLAMA_LIVE_BENCHMARK_RUNBOOK.md vollständig, danach SECURITY.md, DECISIONS.md, TASKS.md und HANDOFF.md. Der erste bestätigte Ollama-Lauf mit `gemma4:latest` war ein sicherer Negativtest ohne erfolgreichen Modelloutput. Führe keinen weiteren Benchmark oder Providercheck aus. Der Nutzer prüft zunächst außerhalb von Sagent manuell, ob Ollama und das Modell direkt erreichbar sind. Nur bei positivem Befund und neuer ausdrücklicher Bestätigung ist später genau ein weiterer Lauf zulässig. Installiere oder lade nichts. Keine Remote-Endpunkte, Zugangsdaten, Tool-Autorität oder freie Shell.
+> Lies docs/MASTER_PLAN.md und docs/CLOUD_PROVIDER_POLICY.md vollständig, danach LOCAL_MODELS.md, LOCAL_MODEL_BENCHMARKS.md, OLLAMA_LIVE_BENCHMARK_RUNBOOK.md, SECURITY.md, DECISIONS.md, TASKS.md und HANDOFF.md. Local-first bleibt Standard; `remote_http` ist weiterhin blockiert. DeepSeek Cloud ist nur eine spätere optionale Provider-Idee für große Coding-/Reasoning-Aufgaben, kein Ollama-Modell und kein automatischer Fallback. Implementiere oder verbinde nichts ohne eigenes Security-Inkrement. Keine Secrets, privaten Daten, Remote-Endpunkte, Tool-Autorität, Downloads oder freie Shell.

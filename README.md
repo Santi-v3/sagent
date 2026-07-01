@@ -76,6 +76,12 @@ Zusätzlich zeigt sie den Benchmark-Harness-Status, die beiden festen Loopback-P
 
 Die API bietet außerdem `GET /models` und `POST /models/preview`. Standardmäßig verwenden beide ausschließlich den deterministischen In-Process-Fake. Nach vier expliziten Prozessvariablen kann `POST /models/complete` einen vorkonfigurierten LM-Studio- oder Ollama-Server auf dessen offiziellem Loopback-Port ansprechen. Für längere Aufrufe stehen begrenzte Jobs mit Start, Status und aktivem Cancel zur Verfügung. Remote-HTTP, Zugangsdaten und automatische Modellaufrufe bleiben blockiert.
 
+Eine spätere optionale Cloud-Nutzung ist nur als Sicherheits- und Architekturkonzept
+dokumentiert. DeepSeek Cloud wäre ein eigener, standardmäßig deaktivierter Provider
+für große Coding-/Reasoning-Aufgaben und niemals ein Ollama-Profil oder automatischer
+Fallback. Es gibt noch keine Integration, Endpoint-, Secret- oder Runtime-Freigabe;
+siehe [Cloud-Provider-Policy](docs/CLOUD_PROVIDER_POLICY.md).
+
 Die API kann auch separat gestartet werden:
 
 ```bash
@@ -119,6 +125,7 @@ Für den ersten späteren Live-Lauf ist Ollama vorgesehen. Das [Ollama-Live-Benc
 - [Architekturentscheidungen](docs/DECISIONS.md)
 - [Sicherheitsmodell](docs/SECURITY.md)
 - [Memory-Konzept](docs/MEMORY.md)
+- [Cloud-Provider-Policy](docs/CLOUD_PROVIDER_POLICY.md)
 - [Lokale Modelle](docs/LOCAL_MODELS.md)
 - [Lokale Modell-Benchmarks](docs/LOCAL_MODEL_BENCHMARKS.md)
 - [Ollama-Live-Benchmark-Runbook](docs/OLLAMA_LIVE_BENCHMARK_RUNBOOK.md)
@@ -127,7 +134,7 @@ Für den ersten späteren Live-Lauf ist Ollama vorgesehen. Das [Ollama-Live-Benc
 
 ## Status
 
-**MVP 1 sowie MVP 2.A und 2.B abgeschlossen; MVP 2.C vorbereitet.** Der `ModelRouter` trennt Fähigkeiten und Transportarten, bewahrt Eingabequellen und behandelt jede Modellantwort als untrusted. Standard bleibt der deterministische In-Process-Fake. Ein echter lokaler Chat-Completion-Aufruf ist nur nach expliziter Loopback-Konfiguration, bestätigtem API-Request und allen URL-/Timeout-/Größen-Gates möglich. Die neue Benchmark-Harness ist offline testbar und standardmäßig blockiert; ein echter Benchmark wurde noch nicht durchgeführt.
+**MVP 1 sowie MVP 2.A und 2.B abgeschlossen; MVP 2.C vorbereitet.** Der `ModelRouter` trennt Fähigkeiten und Transportarten, bewahrt Eingabequellen und behandelt jede Modellantwort als untrusted. Standard bleibt der deterministische In-Process-Fake. Ein echter lokaler Chat-Completion-Aufruf ist nur nach expliziter Loopback-Konfiguration, bestätigtem API-Request und allen URL-/Timeout-/Größen-Gates möglich. Der erste bestätigte Ollama-Benchmark war ein sicherer Negativtest ohne Modelloutput. Cloud-Provider sind nur konzeptionell beschrieben; `remote_http` bleibt blockiert.
 
 ## Lizenz
 
