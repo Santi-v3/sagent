@@ -88,6 +88,8 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Local-first Cloud-Provider-Policy mit Datenklassifikation und fehlendem automatischem Fallback dokumentieren
 - [x] DeepSeek Cloud als späteren optionalen `remote_http`-Provider für große Coding-/Reasoning-Aufgaben architektonisch von Ollama und LM Studio trennen
 - [x] Laufgebundenes Datenmanifest, explizite Nutzerfreigabe und fehlende Tool-Autorität als Mindestvertrag festlegen
+- [x] Offline-Cloud-Provider-Guard als unabhängigen Testvertrag implementiert (`CloudProviderDisabledError`, `cloud_providers_enabled`-Flag)
+- [x] 14 Cloud-Guard-Tests decken remote_http-Blockade, lokale Provider-Allowlist, Fallback-Verbot, Tool-Autoritätsausschluss und Secret-Scan ab
 - [ ] Vor jeder Implementierung DeepSeek-Vertrag, Datenschutz, Kosten, Aufbewahrung und feste Provider-/Modell-Allowlist separat prüfen
 - [ ] Provider-spezifisches Remote-HTTP-Threat-Model und negative Offline-Tests entwerfen
 - [ ] Lokale Secret-Verwaltung, Redaction und Freigabebindung separat implementieren und reviewen
