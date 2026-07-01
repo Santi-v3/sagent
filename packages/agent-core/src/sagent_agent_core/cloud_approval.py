@@ -145,3 +145,94 @@ def is_cloud_approval_valid(decision: CloudApprovalDecision) -> bool:
     if decision.request.provider_id not in CLOUD_PROVIDER_IDS:
         return False
     return True
+
+
+@dataclass(frozen=True, slots=True)
+class CloudApprovalPreview:
+    """Offline preview of a cloud approval request and its current decision status.
+
+    This is a pure data transformation of CloudApprovalRequest and
+    CloudApprovalDecision into a user-facing summary. It does not read files,
+    make network calls, build providers, or activate remote_http.
+    """
+
+    provider_id: str
+    purpose: str
+    scope: str
+    explicit_confirmed: bool
+    is_approved: bool
+
+    repo_context_included: bool
+    diffs_included: bool
+    files_included: bool
+    data_was_redacted: bool
+    secrets_excluded: bool
+    full_repo_dump_blocked: bool
+    bytes_estimate: int
+
+    approval_status: str
+    is_valid: bool
+    risk_hints: tuple[str, ...]
+
+
+def build_cloud_approval_preview(
+    request: CloudApprovalRequest,
+    decision: CloudApprovalDecision | None = None,
+) -> CloudApprovalPreview:
+    """Build an offline preview from a CloudApprovalRequest and optional decision.
+
+    Args:
+        request: the immutable approval request.
+        decision: an optional decision; if None the preview shows
+                  'no_decision'.
+
+    Returns:
+        A CloudApprovalPreview containing only metadata from the contract.
+        No files, network, endpoints, API keys, or provider objects are
+        touched.
+    """
+    if decision is not None and decision.request is not None and decision.request is not request:
+        raise CloudApprovalError(
+            "The decision's request must match the provided request argument."
+        )
+
+    approved = decision is not None and decision.approved
+    explicit_confirmed = decision is not None and decision.explicit_confirmed
+
+    if decision is not None:
+        valid = is_cloud_approval_valid(decision)
+        status = "approved" if valid else "denied"
+    else:
+        valid = False
+        status = "no_decision"
+
+    hints: list[str] = []
+    hints.append("cloud processing means external data transfer")
+    if request.disclosure.repo_context_included:
+        hints.append("repository context included")
+    if request.disclosure.diffs_included:
+        hints.append("diffs included")
+    if request.disclosure.files_included:
+        hints.append("specific files included")
+    if not request.disclosure.secrets_excluded:
+        hints.append("secrets are NOT excluded")
+    if request.disclosure.full_repo_dump:
+        hints.append("full repository dump included")
+
+    return CloudApprovalPreview(
+        provider_id=request.provider_id,
+        purpose=str(request.purpose),
+        scope=str(request.scope),
+        explicit_confirmed=explicit_confirmed,
+        is_approved=approved,
+        repo_context_included=request.disclosure.repo_context_included,
+        diffs_included=request.disclosure.diffs_included,
+        files_included=request.disclosure.files_included,
+        data_was_redacted=request.disclosure.data_was_redacted,
+        secrets_excluded=request.disclosure.secrets_excluded,
+        full_repo_dump_blocked=not request.disclosure.full_repo_dump,
+        bytes_estimate=request.disclosure.bytes_estimate,
+        approval_status=status,
+        is_valid=valid,
+        risk_hints=tuple(hints),
+    )
