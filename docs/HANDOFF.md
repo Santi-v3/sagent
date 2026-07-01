@@ -3,9 +3,9 @@
 ## Projektstatus
 
 - **Phase:** MVP 1, MVP 2.A und MVP 2.B abgeschlossen; MVP 2.C Benchmark-Grundstein implementiert
-- **Stand:** 2026-06-30
+- **Stand:** 2026-07-01
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Ersten Ollama-Live-Benchmark anhand des manuellen Runbooks vorbereiten; Modellwahl und Lauf bleiben getrennt und ausdrücklich nutzerbestätigt
+- **Aktueller Fokus:** Ersten Ollama-Live-Negativtest diagnostizieren; vor jeder Wiederholung Ollama und `gemma4:latest` außerhalb von Sagent manuell prüfen
 
 ## Fertiggestellt
 
@@ -92,6 +92,9 @@
 - `docs/OLLAMA_LIVE_BENCHMARK_RUNBOOK.md` als rein manuelle Vorbereitung für den ersten Ollama-Lauf ergänzt; nur `127.0.0.1:11434` und bereits lokal vorhandene Modelle sind zulässig
 - Cloud-Modelle, das Suffix `:cloud`, `glm-5.2:cloud`, automatische Installation, `ollama pull`, `ollama run`, Downloads und Providererkennung im Runbook ausdrücklich ausgeschlossen
 - Getrennte Freigabepunkte für die spätere exakte Modellwahl und einen einzelnen `--confirmed`-Lauf sowie CLI-/API-Abbruchwege und prompt-/antworttextfreie Datenregeln dokumentiert
+- Ersten bestätigten Ollama-Live-Benchmark mit `gemma4:latest` ausschließlich auf `127.0.0.1:11434` ausgeführt; beide regulären Tasks endeten ohne Modelloutput mit `reachable=false` und `local_model_job_failed`
+- `cancellation-probe` nach etwa 120 Sekunden wirksam abgebrochen; keine Prompts oder Modellantworttexte gespeichert, keine Tool-Autorität, Downloads, Cloud- oder Remote-HTTP-Nutzung
+- Lauf als sicheren Negativtest statt Modellvergleich eingeordnet; Worktree blieb anschließend sauber
 
 ## MVP-1-Abschlussaudit
 
@@ -121,22 +124,20 @@
 - Es gibt noch kein Streaming, keine automatische Modellserver-Erkennung und keinen echten Modellvergleich
 - Modelljobs sind nur prozesslokal; API-Neustart verwirft Status und Ergebnis
 - Cancellation ist für den nicht streamenden HTTP-Job umgesetzt, aber noch nicht in der Weboberfläche sichtbar
-- Die Kompatibilität ist gegen die offiziellen LM-Studio-/Ollama-Verträge und Mock-Transports geprüft, aber noch nicht gegen einen tatsächlich laufenden lokalen Modellserver
-- Die Benchmark-Harness ist vorbereitet, aber es wurde noch kein Live-Benchmark und kein Qualitätsvergleich durchgeführt
+- Die Kompatibilität ist gegen die offiziellen LM-Studio-/Ollama-Verträge und Mock-Transports geprüft; der erste Ollama-Live-Lauf lieferte jedoch keinen erfolgreichen Modelloutput
+- Ein bestätigter Live-Benchmark wurde als sicherer Negativtest durchgeführt; ein Qualitätsvergleich wurde nicht durchgeführt und darf daraus nicht abgeleitet werden
 - Benchmark-Ausgabe ist absichtlich flüchtig; eine persistente Ergebnisablage benötigt einen eigenen Datenschutz- und Redaction-Review
 - Die Weboberfläche zeigt Benchmark-Metadaten nur statisch; sie kann keinen Benchmark starten und prüft keinen Providerstatus
 - Python und Web behalten getrennte Runtime-Metadaten; ein Offline-Test stoppt bei Drift, ohne eine neue Laufzeitabhängigkeit zwischen beiden Stacks einzuführen
 
 ## Nächster sinnvoller Schritt
 
-MVP 2.C erst nach Review dieses Grundsteins anhand des Ollama-Runbooks als kontrollierte lokale Evaluation durchführen:
+Den fehlgeschlagenen ersten Lauf vor jeder weiteren Sagent-Ausführung manuell eingrenzen:
 
-1. Nutzer führt `ollama list` später selbst aus; Sagent startet oder prüft den Provider nicht.
-2. Eine dort bereits vorhandene Modell-ID ohne `:cloud` separat mitteilen und bestätigen; `glm-5.2:cloud` bleibt ausgeschlossen.
-3. Erst nach einer zweiten ausdrücklichen Bestätigung die feste Benchmark-CLI einmal gegen `127.0.0.1:11434` ausführen.
-4. Nur die prompt- und antworttextfreie Metrikausgabe prüfen; Qualität und Ressourcen separat manuell notieren.
-5. Danach denselben Ablauf mit dem zweiten Provider und mindestens einem zweiten Coding-Modell vergleichen.
-6. Erst auf Basis dieser Daten Default-Modell, Streaming-Inkrement sowie UI-Modellwahl und Jobsteuerung entscheiden.
+1. Nutzer prüft lokal außerhalb von Sagent, ob Ollama läuft und `gemma4:latest` direkt erreichbar ist; Sagent führt diesen Providercheck nicht aus.
+2. Ist das Modell nicht direkt erreichbar, wird kein Sagent-Benchmark wiederholt und es erfolgt keine automatische Reparatur oder Installation.
+3. Nur bei positivem manuellen Befund darf der Nutzer später genau einen weiteren Lauf mit denselben festen Loopback-Werten ausdrücklich bestätigen.
+4. Auch dann werden ausschließlich prompt- und antworttextfreie Metriken ausgewertet; ein Qualitätsvergleich benötigt erfolgreiche, separat freigegebene Läufe.
 
 Kostenpflichtige APIs, externe Modellendpunkte, freie Shell und Modell-gesteuerte Policy-Entscheidungen bleiben ausdrücklich ausgeschlossen.
 
@@ -166,4 +167,4 @@ Der Nutzer prüft den PR. Kein Merge und kein Auto-Merge ohne seine ausdrücklic
 
 ## Startprompt für eine Folgesession
 
-> Lies docs/MASTER_PLAN.md, docs/LOCAL_MODELS.md, docs/LOCAL_MODEL_BENCHMARKS.md und docs/OLLAMA_LIVE_BENCHMARK_RUNBOOK.md vollständig, danach SECURITY.md, DECISIONS.md, TASKS.md und HANDOFF.md. Prüfe zuerst den Benchmark-Grundstein. Für den ersten Live-Lauf gilt Ollama auf `127.0.0.1:11434`; der Nutzer muss zuerst separat eine bereits lokal vorhandene Modell-ID ohne `:cloud` bestätigen und danach den einzelnen Lauf ausdrücklich freigeben. Installiere oder lade nichts. Keine Remote-Endpunkte, Zugangsdaten, Tool-Autorität oder freie Shell.
+> Lies docs/MASTER_PLAN.md, docs/LOCAL_MODELS.md, docs/LOCAL_MODEL_BENCHMARKS.md und docs/OLLAMA_LIVE_BENCHMARK_RUNBOOK.md vollständig, danach SECURITY.md, DECISIONS.md, TASKS.md und HANDOFF.md. Der erste bestätigte Ollama-Lauf mit `gemma4:latest` war ein sicherer Negativtest ohne erfolgreichen Modelloutput. Führe keinen weiteren Benchmark oder Providercheck aus. Der Nutzer prüft zunächst außerhalb von Sagent manuell, ob Ollama und das Modell direkt erreichbar sind. Nur bei positivem Befund und neuer ausdrücklicher Bestätigung ist später genau ein weiterer Lauf zulässig. Installiere oder lade nichts. Keine Remote-Endpunkte, Zugangsdaten, Tool-Autorität oder freie Shell.
