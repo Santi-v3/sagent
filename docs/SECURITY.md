@@ -147,6 +147,24 @@ Runtime- oder Netzwerkfreigabe:
 - Vor einer Implementierung sind Threat Model, Datenschutz-, Secret-, Kosten- und
   negative Offline-Tests als eigenes Sicherheitsinkrement erforderlich.
 
+### Lokales Cloud-Approval-Preview-Wiring
+
+Die Web-UI darf die bestehende lokale Route `POST /cloud/approval-preview` ausschließlich
+für read-only Metadaten verwenden. Dieses Wiring ist keine Cloud- oder
+`remote_http`-Freigabe:
+
+- Der Browser nutzt die bestehende lokale Agent-API-Basis und keinen Cloud-Endpoint.
+- Der Request enthält nur feste Provider-/Purpose-Metadaten, `approved=false`,
+  `explicit_confirmed=false` sowie leere Disclosure-Flags und `bytes_estimate=0`.
+- Prompts, Modelltexte, Datei- oder Diff-Inhalte, Secrets, Tokens, Endpoints und
+  Netzwerkparameter sind weder Request- noch UI-Felder.
+- Die UI akzeptiert nur eine weiterhin denied Response mit ausgeschlossenen Secrets,
+  blockiertem Repository-Dump und `is_valid=false`.
+- Bei nicht erreichbarer API oder Vertragsabweichung bleibt ausschließlich die
+  versionierte statische Offline-Vorschau sichtbar.
+- Das Wiring besitzt keinen Startbutton, keine Modellwahl, keine Tool-Autorität und
+  keinen Providerbau.
+
 ## Prompt Injection
 
 Text in Projekten kann Anweisungen enthalten. Diese Inhalte sind Daten, keine Systemanweisungen. Sie dürfen keine Policies ändern, Tools freigeben, Secrets anfordern oder den Workspace erweitern. Herkunft und Rolle jedes Kontextblocks müssen erhalten bleiben.
