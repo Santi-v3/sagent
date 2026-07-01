@@ -2,7 +2,11 @@
 
 ## Status und Ziel
 
-Diese Datei definiert den reproduzierbaren Benchmark-Grundstein für MVP 2.C. Es wurde noch kein echter Benchmark ausgeführt. Die Harness vergleicht später bewusst gestartete lokale LM-Studio-/Ollama-Instanzen anhand derselben harmlosen synthetischen Aufgaben und gibt ausschließlich Metriken aus.
+Diese Datei definiert den reproduzierbaren Benchmark-Grundstein für MVP 2.C. Ein erster
+ausdrücklich bestätigter Ollama-Live-Lauf wurde als sicherer Negativtest ausgeführt; er
+lieferte keinen erfolgreichen Modelloutput. Die Harness vergleicht erst nach weiteren
+separat bestätigten Läufen lokale LM-Studio-/Ollama-Instanzen anhand derselben harmlosen
+synthetischen Aufgaben und gibt ausschließlich Metriken aus.
 
 Nicht Teil dieses Schritts sind Installation, Modell-Download, automatische Provider-Erkennung, Remote-HTTP, Modellwahl, Qualitätsranking oder ein Default-Modell.
 
@@ -63,6 +67,20 @@ Der Katalog ist im Code fixiert. Es gibt bewusst kein freies Prompt-Argument.
 | `error_code` | Nur generischer Code, niemals Provider- oder Modellfehlertext |
 
 Nicht gemessen werden Qualität, Tokens pro Sekunde, Energieverbrauch oder Speicherbedarf. Diese Metriken benötigen einen späteren, separat freigegebenen Live-Evaluationsschritt.
+
+## Erster Live-Negativtest
+
+Der erste bestätigte Lauf verwendete `gemma4:latest` über Ollama ausschließlich auf
+`127.0.0.1:11434`. `safe-refactor-plan` und `deterministic-test-cases` endeten mit
+`reachable=false` und `local_model_job_failed`; es wurde kein erfolgreicher
+Modelloutput empfangen. Die `cancellation-probe` wurde nach etwa 120 Sekunden wirksam
+abgebrochen.
+
+Damit ist die sichere Fehler- und Cancellation-Behandlung live belegt, aber weder
+Provider-Kompatibilität noch Modellqualität. Aus diesem Lauf darf kein Qualitätsranking
+abgeleitet werden. Prompts und Modellantworttexte wurden nicht gespeichert,
+`prompt_stored` blieb `false`, und es entstand keine Tool-Autorität. Der Lauf nutzte
+weder Downloads noch Cloud oder Remote-HTTP; der Worktree blieb sauber.
 
 ## Sicherer Standardaufruf
 
