@@ -2,7 +2,6 @@ import {
   CheckCircle,
   Cloud,
   FileCode,
-  GitDiff as GitDiffIcon,
   LockKey,
   ShieldCheck,
   Warning,

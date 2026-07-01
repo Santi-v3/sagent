@@ -41,7 +41,7 @@ test("cloud approval preview component has no API key or endpoint fields", () =>
 });
 
 test("cloud approval preview component uses no direct network calls", () => {
-  assert.doesNotMatch(componentSource, /\b(fetch|XMLHttpRequest|WebSocket)\b/);
+  assert.doesNotMatch(componentSource, /\b(fetch|XMLHttpRequest|WebSocket|EventSource)\b/);
 });
 
 test("cloud approval preview component contains no DeepSeek execution", () => {
