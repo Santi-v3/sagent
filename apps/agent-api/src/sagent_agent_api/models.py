@@ -255,6 +255,51 @@ class ModelJobCreateRequest(BaseModel):
     confirmed: Literal[True]
 
 
+class CloudApprovalPreviewDisclosureRequest(BaseModel):
+    """Safe disclosure metadata for a cloud approval preview request."""
+
+    repo_context_included: bool = False
+    diffs_included: bool = False
+    files_included: bool = False
+    data_was_redacted: bool = False
+    bytes_estimate: int = 0
+
+
+class CloudApprovalPreviewRequest(BaseModel):
+    """Read-only metadata request for an offline cloud approval preview.
+
+    No files, endpoints, API keys, or network configuration is accepted.
+    """
+
+    provider_id: str = "deepseek-cloud"
+    purpose: Literal["coding", "architecture", "debugging"] = "coding"
+    disclosure: CloudApprovalPreviewDisclosureRequest = CloudApprovalPreviewDisclosureRequest()
+    approved: bool = False
+    explicit_confirmed: bool = False
+
+
+class CloudApprovalPreviewResponse(BaseModel):
+    """Offline preview of a cloud approval request — no provider or network access."""
+
+    provider_id: str
+    purpose: str
+    scope: str
+    explicit_confirmed: bool
+    is_approved: bool
+
+    repo_context_included: bool
+    diffs_included: bool
+    files_included: bool
+    data_was_redacted: bool
+    secrets_excluded: bool
+    full_repo_dump_blocked: bool
+    bytes_estimate: int
+
+    approval_status: str
+    is_valid: bool
+    risk_hints: list[str]
+
+
 class ModelJobResponse(BaseModel):
     """Prompt-free lifecycle snapshot for one bounded model job."""
 
