@@ -15,6 +15,8 @@ from sagent_agent_api.models import (
     ApprovalRequest,
     ApprovalResponse,
     ApprovalState,
+    CloudApprovalPreviewRequest,
+    CloudApprovalPreviewResponse,
     GitBranchRequest,
     GitBranchResponse,
     GitDiffResponse,
@@ -41,6 +43,11 @@ from sagent_agent_api.workflow import (
     workflow_store,
 )
 from sagent_agent_core import (
+    CloudApprovalDecision,
+    CloudApprovalError,
+    CloudApprovalRequest,
+    CloudDataDisclosure,
+    CloudPurpose,
     LoopbackModelError,
     ModelAdapterBlockedError,
     ModelAdapterExecutionError,
@@ -59,6 +66,7 @@ from sagent_agent_core import (
     ModelRouter,
     ModelTransport,
     ModelTransportBlockedError,
+    build_cloud_approval_preview,
 )
 from sagent_tools import (
     GitBranchPolicyError,
@@ -394,6 +402,65 @@ def complete_local_model(
         output_tokens=response.usage.output_tokens,
         untrusted=response.untrusted,
         simulated=False,
+    )
+
+
+@app.post(
+    "/cloud/approval-preview",
+    response_model=CloudApprovalPreviewResponse,
+)
+def get_cloud_approval_preview(
+    request: CloudApprovalPreviewRequest,
+) -> CloudApprovalPreviewResponse:
+    """Build an offline cloud approval preview from safe metadata.
+
+    No network, no provider, no remote_http activation, no file access,
+    and no API keys or secrets are involved.
+    """
+    disclosure = CloudDataDisclosure(
+        repo_context_included=request.disclosure.repo_context_included,
+        diffs_included=request.disclosure.diffs_included,
+        files_included=request.disclosure.files_included,
+        data_was_redacted=request.disclosure.data_was_redacted,
+        bytes_estimate=request.disclosure.bytes_estimate,
+    )
+    try:
+        runtime_request = CloudApprovalRequest(
+            provider_id=request.provider_id,
+            purpose=CloudPurpose(request.purpose),
+            disclosure=disclosure,
+        )
+    except CloudApprovalError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+    decision: CloudApprovalDecision | None = None
+    if request.approved and request.explicit_confirmed:
+        decision = CloudApprovalDecision(
+            approved=True,
+            explicit_confirmed=True,
+            request=runtime_request,
+        )
+
+    preview = build_cloud_approval_preview(runtime_request, decision)
+
+    return CloudApprovalPreviewResponse(
+        provider_id=preview.provider_id,
+        purpose=preview.purpose,
+        scope=preview.scope,
+        explicit_confirmed=preview.explicit_confirmed,
+        is_approved=preview.is_approved,
+        repo_context_included=preview.repo_context_included,
+        diffs_included=preview.diffs_included,
+        files_included=preview.files_included,
+        data_was_redacted=preview.data_was_redacted,
+        secrets_excluded=preview.secrets_excluded,
+        full_repo_dump_blocked=preview.full_repo_dump_blocked,
+        bytes_estimate=preview.bytes_estimate,
+        approval_status=preview.approval_status,
+        is_valid=preview.is_valid,
+        risk_hints=list(preview.risk_hints),
     )
 
 
