@@ -5,7 +5,7 @@
 - **Phase:** MVP 1, MVP 2.A und MVP 2.B abgeschlossen; MVP 2.C Benchmark-Grundstein implementiert
 - **Stand:** 2026-06-30
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Öffentliche unveränderliche Core-Metadaten für feste lokale Providerprofile absichern; erster Live-Lauf ausschließlich nach bewusster Nutzerfreigabe und manuell vorbereitetem lokalen Provider
+- **Aktueller Fokus:** Ersten Ollama-Live-Benchmark anhand des manuellen Runbooks vorbereiten; Modellwahl und Lauf bleiben getrennt und ausdrücklich nutzerbestätigt
 
 ## Fertiggestellt
 
@@ -89,6 +89,9 @@
 - Öffentliche `LOCAL_PROVIDER_PROFILES` als Tuple aus unveränderlichen Profilen ergänzt; IDs, Labels, Adapter-IDs, IPv4-Loopback-Host und Ports liegen damit im Core statt in einer privaten API-Dict
 - Router, Benchmark-Allowlist und Offline-Vertragstest lesen dieselben Core-Metadaten; die Web-App behält ihre statische JSON-Datei und erhält keine Python-Runtime-Abhängigkeit
 - 4 neue Core-Metadaten-Tests, 4 Offline-Vertragstests, 4 UI-Sicherheitschecks und insgesamt 138 Python-Tests erfolgreich; Ruff, ESLint, TypeScript, Python-Kompilierung und Next.js-Produktionsbuild bestanden
+- `docs/OLLAMA_LIVE_BENCHMARK_RUNBOOK.md` als rein manuelle Vorbereitung für den ersten Ollama-Lauf ergänzt; nur `127.0.0.1:11434` und bereits lokal vorhandene Modelle sind zulässig
+- Cloud-Modelle, das Suffix `:cloud`, `glm-5.2:cloud`, automatische Installation, `ollama pull`, `ollama run`, Downloads und Providererkennung im Runbook ausdrücklich ausgeschlossen
+- Getrennte Freigabepunkte für die spätere exakte Modellwahl und einen einzelnen `--confirmed`-Lauf sowie CLI-/API-Abbruchwege und prompt-/antworttextfreie Datenregeln dokumentiert
 
 ## MVP-1-Abschlussaudit
 
@@ -126,11 +129,11 @@
 
 ## Nächster sinnvoller Schritt
 
-MVP 2.C erst nach Review dieses Grundsteins als kontrollierte lokale Evaluation durchführen:
+MVP 2.C erst nach Review dieses Grundsteins anhand des Ollama-Runbooks als kontrollierte lokale Evaluation durchführen:
 
-1. Nutzer wählt und startet LM Studio oder Ollama bewusst auf dem Ziel-Mac; Sagent installiert oder lädt kein Modell ungefragt.
-2. Einen kleinen, bereits lokal vorhandenen Coding-Modellkandidaten bewusst auswählen; nichts automatisch installieren oder laden.
-3. Die feste Benchmark-CLI einmal gegen den bewusst gestarteten Loopback-Server ausführen.
+1. Nutzer führt `ollama list` später selbst aus; Sagent startet oder prüft den Provider nicht.
+2. Eine dort bereits vorhandene Modell-ID ohne `:cloud` separat mitteilen und bestätigen; `glm-5.2:cloud` bleibt ausgeschlossen.
+3. Erst nach einer zweiten ausdrücklichen Bestätigung die feste Benchmark-CLI einmal gegen `127.0.0.1:11434` ausführen.
 4. Nur die prompt- und antworttextfreie Metrikausgabe prüfen; Qualität und Ressourcen separat manuell notieren.
 5. Danach denselben Ablauf mit dem zweiten Provider und mindestens einem zweiten Coding-Modell vergleichen.
 6. Erst auf Basis dieser Daten Default-Modell, Streaming-Inkrement sowie UI-Modellwahl und Jobsteuerung entscheiden.
@@ -163,4 +166,4 @@ Der Nutzer prüft den PR. Kein Merge und kein Auto-Merge ohne seine ausdrücklic
 
 ## Startprompt für eine Folgesession
 
-> Lies docs/MASTER_PLAN.md, docs/LOCAL_MODELS.md und docs/LOCAL_MODEL_BENCHMARKS.md vollständig, danach SECURITY.md, DECISIONS.md, TASKS.md und HANDOFF.md. Prüfe zuerst den Benchmark-Grundstein. Führe einen echten Lauf nur nach ausdrücklicher Nutzerbestätigung mit einem bewusst gestarteten lokalen LM-Studio- oder Ollama-Server und bereits vorhandenem Modell aus. Installiere oder lade nichts. Keine Remote-Endpunkte, Zugangsdaten, Tool-Autorität oder freie Shell.
+> Lies docs/MASTER_PLAN.md, docs/LOCAL_MODELS.md, docs/LOCAL_MODEL_BENCHMARKS.md und docs/OLLAMA_LIVE_BENCHMARK_RUNBOOK.md vollständig, danach SECURITY.md, DECISIONS.md, TASKS.md und HANDOFF.md. Prüfe zuerst den Benchmark-Grundstein. Für den ersten Live-Lauf gilt Ollama auf `127.0.0.1:11434`; der Nutzer muss zuerst separat eine bereits lokal vorhandene Modell-ID ohne `:cloud` bestätigen und danach den einzelnen Lauf ausdrücklich freigeben. Installiere oder lade nichts. Keine Remote-Endpunkte, Zugangsdaten, Tool-Autorität oder freie Shell.

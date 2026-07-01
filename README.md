@@ -107,6 +107,8 @@ PYTHONPATH=apps/agent-api/src:packages/agent-core/src:packages/tools/src \
 
 Ein echter lokaler Lauf benötigt zusätzlich `--confirmed` und die vollständige bestehende LM-Studio-/Ollama-Loopback-Konfiguration. Die Harness verwendet nur feste synthetische Aufgaben und gibt weder Prompts noch Modelltext aus. Anleitung: [Lokale Modell-Benchmarks](docs/LOCAL_MODEL_BENCHMARKS.md).
 
+Für den ersten späteren Live-Lauf ist Ollama vorgesehen. Das [Ollama-Live-Benchmark-Runbook](docs/OLLAMA_LIVE_BENCHMARK_RUNBOOK.md) beschreibt die getrennte manuelle Modellwahl und Laufbestätigung; es startet keinen Provider, prüft keine Erreichbarkeit und lädt nichts herunter.
+
 ## Dokumentation
 
 - [Masterplan](docs/MASTER_PLAN.md)
@@ -119,6 +121,7 @@ Ein echter lokaler Lauf benötigt zusätzlich `--confirmed` und die vollständig
 - [Memory-Konzept](docs/MEMORY.md)
 - [Lokale Modelle](docs/LOCAL_MODELS.md)
 - [Lokale Modell-Benchmarks](docs/LOCAL_MODEL_BENCHMARKS.md)
+- [Ollama-Live-Benchmark-Runbook](docs/OLLAMA_LIVE_BENCHMARK_RUNBOOK.md)
 - [Agent-Workflow](docs/AGENT_WORKFLOW.md)
 - [Session-Handoff](docs/HANDOFF.md)
 
