@@ -39,6 +39,7 @@ from sagent_agent_core.model_jobs import (
     ModelJobState,
 )
 from sagent_agent_core.model_runtime import (
+    CloudProviderDisabledError,
     FakeModelAdapter,
     ModelAdapter,
     ModelAdapterBlockedError,
@@ -74,6 +75,7 @@ __all__ = [
     "ApprovalError",
     "BenchmarkConfigurationError",
     "BenchmarkConfirmationRequiredError",
+    "CloudProviderDisabledError",
     "BenchmarkError",
     "BenchmarkObservation",
     "BenchmarkReport",
