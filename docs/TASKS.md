@@ -78,7 +78,9 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Prompt-freie Status-, Result- und Cancel-Endpunkte implementieren
 - [x] Echten lokalen Modellaufruf ausschließlich als expliziten, bestätigten API-Opt-in aktivierbar machen
 - [ ] Live-Aufruf mit LM Studio und Ollama auf dem Ziel-Mac prüfen
-- [ ] Ersten echten Benchmark erst nach bewusster Provider-/Modellvorbereitung und ausdrücklicher Nutzerbestätigung ausführen
+- [x] Ersten echten Benchmark nach bewusster Provider-/Modellvorbereitung und ausdrücklicher Nutzerbestätigung ausführen; Ergebnis war ein sicherer Negativtest ohne Modelloutput
+- [ ] Außerhalb von Sagent manuell prüfen, ob Ollama läuft und `gemma4:latest` direkt erreichbar ist; bei negativem Befund keinen Sagent-Benchmark wiederholen
+- [ ] Nur bei positivem manuellem Erreichbarkeitsbefund später genau einen weiteren Benchmark erneut ausdrücklich bestätigen
 - [ ] Modellwahl, Jobstatus und Abbruch nach Live-Evaluation in die UI integrieren
 
 ## Noch blockiert bis zu den Sicherheitsinkrementen

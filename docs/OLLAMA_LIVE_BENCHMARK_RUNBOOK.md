@@ -171,8 +171,17 @@ oder Qualitätsranking benötigt eine neue bewusste Entscheidung.
 
 ## Aktueller Abschlusszustand
 
-Mit diesem Runbook ist nur die Vorbereitung abgeschlossen. Es wurde kein Ollama-Befehl,
-Providercheck, Benchmark, Modellaufruf, Providerstart, Download oder Installationsschritt
-ausgeführt. Der erste zulässige nächste Schritt ist ausschließlich die spätere manuelle
-Ausführung von `ollama list` durch den Nutzer und die separate Mitteilung einer bereits
-lokal vorhandenen, nicht cloudbasierten Modell-ID.
+Der erste ausdrücklich bestätigte Lauf wurde mit dem bereits lokal vorhandenen Modell
+`gemma4:latest` über Ollama auf `127.0.0.1:11434` ausgeführt. Die beiden regulären
+Aufgaben endeten ohne erfolgreichen Modelloutput mit `reachable=false` und dem
+generischen Fehlercode `local_model_job_failed`. Die `cancellation-probe` wurde nach
+etwa 120 Sekunden wirksam abgebrochen. Das ist ein sicherer Negativtest, kein
+erfolgreicher Modellvergleich.
+
+Es wurden weder Prompts noch Modellantworttexte gespeichert oder ausgegeben;
+`prompt_stored` blieb `false`. Es gab keine Tool-Autorität, Downloads, Cloud- oder
+Remote-HTTP-Nutzung. Der Worktree war nach dem Lauf sauber. Vor einem weiteren
+Sagent-Benchmark muss der Nutzer außerhalb von Sagent manuell prüfen, ob Ollama läuft
+und `gemma4:latest` direkt erreichbar ist. Ohne positiven manuellen Befund wird der
+Benchmark nicht wiederholt; ein weiterer Lauf benötigt erneut eine ausdrückliche
+Bestätigung.
