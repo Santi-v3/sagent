@@ -5,7 +5,7 @@
 - **Phase:** MVP 1, MVP 2.A und MVP 2.B abgeschlossen; MVP 2.C Benchmark-Grundstein implementiert
 - **Stand:** 2026-07-01
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Optionalen Cloud-Provider-Scope sicher abgrenzen; local-first und blockiertes `remote_http` bleiben unverändert
+- **Aktueller Fokus:** Cloud-Approval-Contract als offline Datenstruktur abgeschlossen; als Nächstes Integration in den Router und separate Sicherheits-Provider-Prüfung
 
 ## Fertiggestellt
 
@@ -136,15 +136,18 @@
 - Die Cloud-Provider-Policy ist ausschließlich ein Zielvertrag. `remote_http` bleibt technisch blockiert; DeepSeek ist nicht registriert und besitzt weder Endpoint noch API-Key-Konfiguration
 - `CloudProviderDisabledError` als unabhängiger Guard jenseits der Transport-Allowlist implementiert; `ModelRouter` blockiert `remote_http` zusätzlich über `cloud_providers_enabled=False`
 - 14 Cloud-Guard-Tests decken sechs Sicherheitsdimensionen ab: remote_http-Blockade, Provider-Allowlist, Impersonationsschutz, Fallback-Verbot, Tool-Autoritätsausschluss und Secret-Scan
+- Offline-Cloud-Approval-Contract als reine Dataclass-Struktur in `cloud_approval.py` implementiert: `CloudApprovalRequest`, `CloudDataDisclosure`, `CloudApprovalDecision`, `is_cloud_approval_valid()`
+- Validierungsregeln im Dataclass-`__post_init__` verankert: `secrets_excluded` darf nie False sein, `full_repo_dump` ist immer verboten, `explicit_confirmed=True` zwingend für approved, `scope` muss `one_run_only` sein, Provider-ID muss in `CLOUD_PROVIDER_IDS` enthalten sein
+- 18 fokussierte Tests in `test_cloud_approval.py`: Default-Denial, Secrets-Verbot, Repo-Dump-Verbot, unbekannte/lokale Provider blockiert, gültige Freigabe erkannt, Approval erzeugt keinen Transport/Endpoint/API-Key
 
 ## Nächster sinnvoller Schritt
 
-Das Cloud-Konzept vor jeder Implementierung separat reviewen und den lokalen Negativtest unabhängig davon manuell eingrenzen:
+Der Approval-Contract liegt als offline Datenstruktur vor. Nächste Schritte vor jeder Cloud-Implementierung:
 
-1. Für Cloud zunächst DeepSeek-Vertrag, Datenschutz, Aufbewahrung, Kosten und einen festen Remote-HTTP-Threat-Model-Entwurf prüfen; noch nichts implementieren oder verbinden.
-2. Provider-/Modell-Allowlist, Datenmanifest, Redaction, Secretbezug und doppelte Freigabebindung als getrennte negative Testverträge spezifizieren.
-3. Unabhängig davon prüft der Nutzer lokal außerhalb von Sagent, ob Ollama läuft und `gemma4:latest` direkt erreichbar ist; Sagent führt diesen Providercheck nicht aus.
-4. Ohne positiven lokalen Befund wird kein Sagent-Benchmark wiederholt. Ein späterer Cloud-Lauf benötigt ein eigenes Implementierungs- und Freigabeinkrement.
+1. DeepSeek-Vertrag, Datenschutz, Aufbewahrung und Kosten separat prüfen; noch nichts implementieren oder verbinden.
+2. Provider-/Modell-Allowlist, Datenmanifest, Redaction, Secretbezug und doppelte Freigabebindung als getrennte negative Testverträge abschließen.
+3. Approval-Contract in den Router integrieren: `is_cloud_approval_valid()` als zusätzliches Gate vor `remote_http` prüfen.
+4. Erst nach Security-Review und Approval-Flow einen standardmäßig deaktivierten Cloud-Adapter erwägen.
 
 Kostenpflichtige APIs, externe Modellendpunkte, freie Shell und Modell-gesteuerte Policy-Entscheidungen bleiben ausdrücklich ausgeschlossen.
 

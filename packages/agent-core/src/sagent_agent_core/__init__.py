@@ -1,5 +1,15 @@
 """Public building blocks for Sagent's deterministic agent core."""
 
+from sagent_agent_core.cloud_approval import (
+    CLOUD_PROVIDER_IDS,
+    CloudApprovalDecision,
+    CloudApprovalError,
+    CloudApprovalRequest,
+    CloudApprovalScope,
+    CloudDataDisclosure,
+    CloudPurpose,
+    is_cloud_approval_valid,
+)
 from sagent_agent_core.benchmarks import (
     SYNTHETIC_BENCHMARK_TASKS,
     BenchmarkConfigurationError,
@@ -75,7 +85,14 @@ __all__ = [
     "ApprovalError",
     "BenchmarkConfigurationError",
     "BenchmarkConfirmationRequiredError",
+    "CloudApprovalDecision",
+    "CloudApprovalError",
+    "CloudApprovalRequest",
+    "CloudApprovalScope",
+    "CloudDataDisclosure",
     "CloudProviderDisabledError",
+    "CloudPurpose",
+    "CLOUD_PROVIDER_IDS",
     "BenchmarkError",
     "BenchmarkObservation",
     "BenchmarkReport",

@@ -90,6 +90,9 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Laufgebundenes Datenmanifest, explizite Nutzerfreigabe und fehlende Tool-Autorität als Mindestvertrag festlegen
 - [x] Offline-Cloud-Provider-Guard als unabhängigen Testvertrag implementiert (`CloudProviderDisabledError`, `cloud_providers_enabled`-Flag)
 - [x] 14 Cloud-Guard-Tests decken remote_http-Blockade, lokale Provider-Allowlist, Fallback-Verbot, Tool-Autoritätsausschluss und Secret-Scan ab
+- [x] Offline-Cloud-Approval-Contract als reine Datenstruktur implementiert (`CloudApprovalRequest`, `CloudDataDisclosure`, `CloudApprovalDecision`)
+- [x] Validierungsregeln: default denied, explicit_confirmed required, one_run_only scope, Secrets/Repo-Dumps verboten, kein remote_http-Zugriff durch Approval
+- [x] 18 fokussierte Approval-Tests decken Disclosure-Regeln, Request-Vertrag, Decision-Gates, Gültigkeitsprüfung und Provider-Identity ab
 - [ ] Vor jeder Implementierung DeepSeek-Vertrag, Datenschutz, Kosten, Aufbewahrung und feste Provider-/Modell-Allowlist separat prüfen
 - [ ] Provider-spezifisches Remote-HTTP-Threat-Model und negative Offline-Tests entwerfen
 - [ ] Lokale Secret-Verwaltung, Redaction und Freigabebindung separat implementieren und reviewen
