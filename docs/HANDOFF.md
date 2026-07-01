@@ -146,15 +146,18 @@
 - UI über die bestehende lokale API-Basis an die Preview-Route angebunden; Request bleibt denied und enthält nur Provider-ID, Zweck, Bestätigungsflags und leere Disclosure-Metadaten
 - API-Responses werden vor Anzeige erneut gegen den denied Vertrag geprüft; bei Fehler oder unerwarteter Response bleibt die versionierte JSON-Vorschau als sicherer Offline-Fallback sichtbar
 - Das UI-Wiring führt keinen Cloud-Aufruf aus, aktiviert keinen Transport und akzeptiert weder Prompt-/Datei-/Diff-Inhalte noch Secrets oder Modellantworten
+- `docs/CLOUD_APPROVAL_UX_RUNBOOK.md` dokumentiert den späteren `one_run_only`-UX-Flow, Pflichtanzeigen, harte Blocker, Ablauf der Freigabe, sichere Fehlerfälle und vollständig offline testbare Anforderungen
+- Das Runbook ist reine Spezifikation: Es ergänzt weder Runtime- noch UI-Code und erteilt keine Cloud-, Provider-, Transport- oder Datenfreigabe
 
 ## Nächster sinnvoller Schritt
 
 Approval-Contract, lokale Preview-Route und read-only UI-Wiring liegen vor. Nächste Schritte vor jeder Cloud-Implementierung:
 
-1. DeepSeek-Vertrag, Datenschutz, Aufbewahrung und Kosten separat prüfen; noch nichts implementieren oder verbinden.
-2. Provider-/Modell-Allowlist, Datenmanifest, Redaction, Secretbezug und doppelte Freigabebindung als getrennte negative Testverträge abschließen.
-3. Approval-Contract in den Router integrieren: `is_cloud_approval_valid()` als zusätzliches Gate vor `remote_http` prüfen.
-4. Erst nach Security-Review und Approval-Flow einen standardmäßig deaktivierten Cloud-Adapter erwägen.
+1. Den im Cloud-Approval-UX-Runbook beschriebenen Ablauf zunächst als rein lokalen negativen Testvertrag konkretisieren; noch keinen Transport freigeben.
+2. DeepSeek-Vertrag, Datenschutz, Aufbewahrung und Kosten separat prüfen; noch nichts implementieren oder verbinden.
+3. Provider-/Modell-Allowlist, Datenmanifest, Redaction, Secretbezug und doppelte Freigabebindung als getrennte negative Testverträge abschließen.
+4. Approval-Contract erst nach eigenem Security-Review als zusätzliches Gate vor `remote_http` in den Router integrieren.
+5. Erst danach einen standardmäßig deaktivierten Cloud-Adapter erwägen.
 
 Kostenpflichtige APIs, externe Modellendpunkte, freie Shell und Modell-gesteuerte Policy-Entscheidungen bleiben ausdrücklich ausgeschlossen.
 
@@ -166,6 +169,7 @@ Kostenpflichtige APIs, externe Modellendpunkte, freie Shell und Modell-gesteuert
 - Datei-Schreibzugriffe ausschließlich über den getesteten ChangeSet-/Approval-Vertrag führen.
 - Keine freie Shell, kein aktiviertes Remote-Modell und keine automatische Installation oder Modell-Downloads.
 - `docs/CLOUD_PROVIDER_POLICY.md` ist für jede spätere Cloud-Arbeit verbindlich; Konzeptfreigabe ist keine Runtime- oder Datenfreigabe.
+- `docs/CLOUD_APPROVAL_UX_RUNBOOK.md` spezifiziert nur den späteren Nutzerablauf; es aktiviert weder Approval noch Cloud-Ausführung.
 - Neue Architekturentscheidungen im Decision Log ergänzen.
 - Tests für negative Sicherheitsfälle vor Happy-Path-Komfort priorisieren.
 - Modellantworten in MVP 2 immer als untrusted input behandeln; nur deterministischer Core und Tool-Policies dürfen Aktionen autorisieren.

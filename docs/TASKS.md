@@ -99,9 +99,11 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Statische read-only Cloud-Approval-Preview-UI mit versioniertem JSON-Fallback ergänzt
 - [x] Preview-UI an die lokale Route angebunden: nur denied Metadaten, strikt validierte Response und sicherer Offline-Fallback
 - [x] UI-Sicherheitschecks für lokalen Routenpfad, verbotene Prompt-/Datei-/Diff-/Secret-Daten und fehlende Cloud-Aktionen ergänzt
+- [x] Späteren `one_run_only` Cloud-Approval-UX-Flow, Pflichtanzeigen, Blocker, Fehlerfälle und Offline-Testanforderungen im Runbook dokumentiert
 - [ ] Vor jeder Implementierung DeepSeek-Vertrag, Datenschutz, Kosten, Aufbewahrung und feste Provider-/Modell-Allowlist separat prüfen
 - [ ] Provider-spezifisches Remote-HTTP-Threat-Model und negative Offline-Tests entwerfen
 - [ ] Lokale Secret-Verwaltung, Redaction und Freigabebindung separat implementieren und reviewen
+- [ ] Ablaufende, manifestgebundene `one_run_only`-Freigabe zunächst als rein lokalen negativen Testvertrag spezifizieren; noch keinen Transport freigeben
 - [ ] Erst nach eigenem Security-Review einen minimalen, standardmäßig deaktivierten Cloud-Adapter erwägen
 
 ## Noch blockiert bis zu den Sicherheitsinkrementen
