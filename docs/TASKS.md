@@ -83,12 +83,23 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [ ] Nur bei positivem manuellem Erreichbarkeitsbefund später genau einen weiteren Benchmark erneut ausdrücklich bestätigen
 - [ ] Modellwahl, Jobstatus und Abbruch nach Live-Evaluation in die UI integrieren
 
+## Cloud-Provider – Policy vor Implementierung
+
+- [x] Local-first Cloud-Provider-Policy mit Datenklassifikation und fehlendem automatischem Fallback dokumentieren
+- [x] DeepSeek Cloud als späteren optionalen `remote_http`-Provider für große Coding-/Reasoning-Aufgaben architektonisch von Ollama und LM Studio trennen
+- [x] Laufgebundenes Datenmanifest, explizite Nutzerfreigabe und fehlende Tool-Autorität als Mindestvertrag festlegen
+- [ ] Vor jeder Implementierung DeepSeek-Vertrag, Datenschutz, Kosten, Aufbewahrung und feste Provider-/Modell-Allowlist separat prüfen
+- [ ] Provider-spezifisches Remote-HTTP-Threat-Model und negative Offline-Tests entwerfen
+- [ ] Lokale Secret-Verwaltung, Redaction und Freigabebindung separat implementieren und reviewen
+- [ ] Erst nach eigenem Security-Review einen minimalen, standardmäßig deaktivierten Cloud-Adapter erwägen
+
 ## Noch blockiert bis zu den Sicherheitsinkrementen
 
 - Dateiänderungen bleiben außerhalb des internen Core-Services blockiert, bis API- und UI-Anbindung einen eigenen Sicherheitsreview erhalten
 - Testbefehle ausschließlich über die implementierte Allowlist und nach menschlicher Freigabe
 - Git-Commit, Push und Merge bleiben ohne eigenen Approval-Flow blockiert
 - Remote-LLMs und allgemeiner Netzwerkzugriff bleiben blockiert; lokale Aufrufe nur über den geprüften Loopback-Vertrag
+- Die Cloud-Policy ist nur Architektur: `remote_http`, DeepSeek, Endpoints, Secrets und Cloud-Routen bleiben bis zu separaten Sicherheitsinkrementen blockiert
 
 ## Definition of Done
 
