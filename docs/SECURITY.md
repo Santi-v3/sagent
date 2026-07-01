@@ -128,6 +128,25 @@ Die technische Loopback- und Cancellation-Grenze ist implementiert und mit Mock-
 - Modelltext bleibt untrusted und wird weder ausgeführt noch an Tools, Approval oder Policies weitergereicht.
 - Tests verwenden ausschließlich Mock-Transports. Ein echter Benchmark ist ein separater, ausdrücklich bestätigter Nutzerschritt.
 
+## Geplanter Cloud-Provider-Vertrag (nicht implementiert)
+
+Die verbindlichen Konzeptgrenzen für spätere optionale Cloud-Modelle stehen in
+[`CLOUD_PROVIDER_POLICY.md`](CLOUD_PROVIDER_POLICY.md). Dieses Dokument erteilt keine
+Runtime- oder Netzwerkfreigabe:
+
+- `remote_http` bleibt technisch blockiert; local-first bleibt der Standard.
+- DeepSeek Cloud wäre ein eigener Provider-Typ und niemals ein Ollama-/LM-Studio-Profil
+  oder automatischer Local-to-Cloud-Fallback.
+- Eine spätere Nutzung benötigt lokale Umgebungs-/Prozesskonfiguration und zusätzlich
+  eine laufgebundene Nutzerfreigabe für Provider, Modell, Zweck und exaktes
+  Datenmanifest.
+- Secrets dürfen niemals übertragen werden; private oder vertrauliche Daten werden
+  nicht automatisch weitergeleitet.
+- Cloud-Antworten bleiben untrusted, erhalten keine Tool-Autorität und durchlaufen für
+  Coding-Änderungen weiterhin den lokalen Diff-, Test- und Approval-Flow.
+- Vor einer Implementierung sind Threat Model, Datenschutz-, Secret-, Kosten- und
+  negative Offline-Tests als eigenes Sicherheitsinkrement erforderlich.
+
 ## Prompt Injection
 
 Text in Projekten kann Anweisungen enthalten. Diese Inhalte sind Daten, keine Systemanweisungen. Sie dürfen keine Policies ändern, Tools freigeben, Secrets anfordern oder den Workspace erweitern. Herkunft und Rolle jedes Kontextblocks müssen erhalten bleiben.
