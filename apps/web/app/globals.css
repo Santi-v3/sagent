@@ -1595,6 +1595,245 @@ textarea:focus-visible {
   }
 }
 
+/* ── Cloud Approval Preview ── */
+
+.cloud-preview-panel {
+  margin-top: 42px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.cloud-preview-heading-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cloud-preview-heading-row h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.cloud-preview-readonly-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--bg2);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cloud-preview-readonly-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.cloud-preview-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 14px;
+  padding: 10px 14px;
+  background: var(--bg2);
+  border-radius: 8px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.cloud-preview-state strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cloud-preview-state span {
+  color: var(--muted);
+}
+
+.cloud-preview-state code {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--warning-bg);
+  color: var(--warning);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.cloud-preview-intro {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.cloud-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.cloud-preview-grid > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border-radius: 8px;
+}
+
+.cloud-preview-grid svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+}
+
+.cloud-preview-grid span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cloud-preview-grid small {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cloud-preview-grid code {
+  font-size: 12px;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.cloud-preview-subheading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cloud-preview-subheading h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.cloud-preview-subheading svg {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+}
+
+.cloud-preview-disclosure {
+  margin-bottom: 20px;
+}
+
+.cloud-preview-disclosure-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cloud-preview-disclosure-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--bg2);
+  font-size: 12px;
+}
+
+.cloud-preview-disclosure-list li span {
+  color: var(--muted);
+}
+
+.cloud-preview-disclosure-list li code {
+  font-weight: 500;
+}
+
+.cloud-preview-risk {
+  margin-bottom: 20px;
+}
+
+.cloud-preview-risk-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cloud-preview-risk-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--warning-bg);
+  font-size: 12px;
+}
+
+.cloud-preview-risk-list svg {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--warning);
+}
+
+.cloud-preview-privacy {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.cloud-preview-privacy svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+.cloud-preview-privacy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.cloud-preview-privacy p + p {
+  margin-top: 3px;
+}
+
+.cloud-preview-action-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--bg2);
+}
+
+.cloud-preview-action-row > span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

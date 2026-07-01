@@ -1,0 +1,21 @@
+{
+  "providerId": "deepseek-cloud",
+  "purpose": "coding",
+  "scope": "one_run_only",
+  "explicitConfirmed": false,
+  "isApproved": false,
+  "repoContextIncluded": false,
+  "diffsIncluded": false,
+  "filesIncluded": false,
+  "dataWasRedacted": false,
+  "secretsExcluded": true,
+  "fullRepoDumpBlocked": true,
+  "bytesEstimate": 0,
+  "approvalStatus": "no_decision",
+  "isValid": false,
+  "cloudExecution": "No",
+  "previewType": "Local metadata only",
+  "riskHints": [
+    "cloud processing means external data transfer"
+  ]
+}

@@ -21,6 +21,7 @@ import {
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { BenchmarkStatus } from "@/components/benchmark-status";
+import { CloudApprovalPreview } from "@/components/cloud-approval-preview";
 
 type ApprovalState = "pending" | "approved" | "rejected" | "needs_changes";
 type ApprovalDecision = Exclude<ApprovalState, "pending">;
@@ -918,6 +919,7 @@ export function SagentShell() {
             ) : null}
 
             <BenchmarkStatus />
+            <CloudApprovalPreview />
           </div>
 
           <div className="composer-wrap">
