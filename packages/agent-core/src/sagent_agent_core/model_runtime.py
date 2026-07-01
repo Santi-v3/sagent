@@ -34,6 +34,14 @@ class ModelAdapterBlockedError(ModelRuntimeError):
     """Raised when a non-simulated adapter has not been explicitly enabled."""
 
 
+class CloudProviderDisabledError(ModelRuntimeError):
+    """Raised when remote_http / cloud model usage is attempted without a cloud approval flow.
+
+    This is an independent guard beyond the transport allowlist. It remains
+    raised until a separate cloud-approval mechanism is explicitly implemented.
+    """
+
+
 class ModelAdapterExecutionError(ModelRuntimeError):
     """Raised when an adapter fails without exposing provider internals."""
 
@@ -325,6 +333,7 @@ class ModelRouter:
         *,
         allowed_transports: frozenset[ModelTransport] | None = None,
         allow_non_simulated: bool = False,
+        cloud_providers_enabled: bool = False,
         max_parts: int = 32,
         max_input_characters: int = 64_000,
         max_output_characters: int = 32_000,
@@ -359,6 +368,7 @@ class ModelRouter:
             else allowed_transports
         )
         self.allow_non_simulated = allow_non_simulated
+        self.cloud_providers_enabled = cloud_providers_enabled
         self.max_parts = max_parts
         self.max_input_characters = max_input_characters
         self.max_output_characters = max_output_characters
@@ -398,6 +408,11 @@ class ModelRouter:
         if descriptor.transport not in self.allowed_transports:
             raise ModelTransportBlockedError(
                 f"Model transport {descriptor.transport.value} is not allowed."
+            )
+        if descriptor.transport is ModelTransport.REMOTE_HTTP and not self.cloud_providers_enabled:
+            raise CloudProviderDisabledError(
+                "Cloud provider access is disabled. Enable it only after implementing "
+                "a cloud-approval flow with per-run user confirmation."
             )
         if not descriptor.simulated and not self.allow_non_simulated:
             raise ModelAdapterBlockedError(
