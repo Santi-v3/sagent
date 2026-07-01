@@ -93,6 +93,8 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Offline-Cloud-Approval-Contract als reine Datenstruktur implementiert (`CloudApprovalRequest`, `CloudDataDisclosure`, `CloudApprovalDecision`)
 - [x] Validierungsregeln: default denied, explicit_confirmed required, one_run_only scope, Secrets/Repo-Dumps verboten, kein remote_http-Zugriff durch Approval
 - [x] 18 fokussierte Approval-Tests decken Disclosure-Regeln, Request-Vertrag, Decision-Gates, Gültigkeitsprüfung und Provider-Identity ab
+- [x] CloudApprovalPreview als frozen Dataclass und build_cloud_approval_preview() als reine Offline-Transformationsfunktion ergänzt
+- [x] 11 Preview-Tests: denied by default, gültige Freigabe, Disclosure-Felder, Risiken, keine Endpoints/API-Keys/Provider/Dateileserechte
 - [ ] Vor jeder Implementierung DeepSeek-Vertrag, Datenschutz, Kosten, Aufbewahrung und feste Provider-/Modell-Allowlist separat prüfen
 - [ ] Provider-spezifisches Remote-HTTP-Threat-Model und negative Offline-Tests entwerfen
 - [ ] Lokale Secret-Verwaltung, Redaction und Freigabebindung separat implementieren und reviewen
