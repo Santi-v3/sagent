@@ -5,7 +5,7 @@
 - **Phase:** MVP 1, MVP 2.A und MVP 2.B abgeschlossen; MVP 2.C Benchmark-Grundstein implementiert
 - **Stand:** 2026-07-01
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Cloud-Approval-Contract als offline Datenstruktur abgeschlossen; als Nächstes Integration in den Router und separate Sicherheits-Provider-Prüfung
+- **Aktueller Fokus:** Cloud-Approval-Preview als offline Preview-Funktion abgeschlossen; als Nächstes Integration in den Router und separate Sicherheits-Provider-Prüfung
 
 ## Fertiggestellt
 
@@ -139,6 +139,8 @@
 - Offline-Cloud-Approval-Contract als reine Dataclass-Struktur in `cloud_approval.py` implementiert: `CloudApprovalRequest`, `CloudDataDisclosure`, `CloudApprovalDecision`, `is_cloud_approval_valid()`
 - Validierungsregeln im Dataclass-`__post_init__` verankert: `secrets_excluded` darf nie False sein, `full_repo_dump` ist immer verboten, `explicit_confirmed=True` zwingend für approved, `scope` muss `one_run_only` sein, Provider-ID muss in `CLOUD_PROVIDER_IDS` enthalten sein
 - 18 fokussierte Tests in `test_cloud_approval.py`: Default-Denial, Secrets-Verbot, Repo-Dump-Verbot, unbekannte/lokale Provider blockiert, gültige Freigabe erkannt, Approval erzeugt keinen Transport/Endpoint/API-Key
+- `CloudApprovalPreview` als frozen Dataclass und `build_cloud_approval_preview()` als reine Offline-Transformationsfunktion ergänzt
+- 11 Preview-Tests: denied by default, gültige Freigabe angezeigt, Disclosure-Felder, Risiko-Hinweise, keine Endpoints/API-Keys, kein Providerbau, keine Dateileserechte, frozen
 
 ## Nächster sinnvoller Schritt
 
