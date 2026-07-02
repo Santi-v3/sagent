@@ -82,6 +82,11 @@ für große Coding-/Reasoning-Aufgaben und niemals ein Ollama-Profil oder automa
 Fallback. Es gibt noch keine Integration, Endpoint-, Secret- oder Runtime-Freigabe;
 siehe [Cloud-Provider-Policy](docs/CLOUD_PROVIDER_POLICY.md).
 
+Der mögliche spätere Bestätigungsablauf ist im
+[Cloud-Approval-UX-Runbook](docs/CLOUD_APPROVAL_UX_RUNBOOK.md) dokumentiert. Das
+Runbook ist eine reine UX- und Sicherheitsspezifikation; die aktuelle Oberfläche
+bleibt eine denied read-only Preview und kann keine Cloud-Ausführung starten.
+
 Die API kann auch separat gestartet werden:
 
 ```bash
@@ -126,6 +131,7 @@ Für den ersten späteren Live-Lauf ist Ollama vorgesehen. Das [Ollama-Live-Benc
 - [Sicherheitsmodell](docs/SECURITY.md)
 - [Memory-Konzept](docs/MEMORY.md)
 - [Cloud-Provider-Policy](docs/CLOUD_PROVIDER_POLICY.md)
+- [Cloud-Approval-UX-Runbook](docs/CLOUD_APPROVAL_UX_RUNBOOK.md)
 - [Lokale Modelle](docs/LOCAL_MODELS.md)
 - [Lokale Modell-Benchmarks](docs/LOCAL_MODEL_BENCHMARKS.md)
 - [Ollama-Live-Benchmark-Runbook](docs/OLLAMA_LIVE_BENCHMARK_RUNBOOK.md)
