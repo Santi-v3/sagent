@@ -165,6 +165,12 @@ für read-only Metadaten verwenden. Dieses Wiring ist keine Cloud- oder
 - Das Wiring besitzt keinen Startbutton, keine Modellwahl, keine Tool-Autorität und
   keinen Providerbau.
 
+Der spätere Nutzerablauf, seine Pflichtanzeigen, Blocker, Fehlerfälle und
+Offline-Testanforderungen sind im
+[`CLOUD_APPROVAL_UX_RUNBOOK.md`](CLOUD_APPROVAL_UX_RUNBOOK.md) spezifiziert. Das
+Runbook ist keine Runtime-, Netzwerk-, Provider- oder Datenfreigabe; bis zu einem
+separaten Security-Inkrement bleibt die Preview denied und `remote_http` blockiert.
+
 ## Prompt Injection
 
 Text in Projekten kann Anweisungen enthalten. Diese Inhalte sind Daten, keine Systemanweisungen. Sie dürfen keine Policies ändern, Tools freigeben, Secrets anfordern oder den Workspace erweitern. Herkunft und Rolle jedes Kontextblocks müssen erhalten bleiben.
