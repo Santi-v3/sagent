@@ -181,6 +181,12 @@ weder Secretwerte noch Referenznamen und liest keine Umgebung. Die zugehörige
 Validierung erteilt keine Ausführungsautorität, baut keinen Provider und verändert
 weder `cloud_providers_enabled` noch die Transport-Allowlist des Routers.
 
+Die lokale Route `GET /cloud/config-preview` und ihre read-only UI-Abbildung dürfen
+nur diese statischen Metadaten anzeigen. Die Response enthält keine Secret-, Env-,
+Endpoint-, Host-, Port- oder URL-Werte. Die UI akzeptiert nur `enabled=false`,
+`remote_http_allowed=false`, `execution_allowed=false` und fällt bei Fehlern oder
+Vertragsabweichungen auf dieselbe versionierte disabled Offline-Vorschau zurück.
+
 ## Prompt Injection
 
 Text in Projekten kann Anweisungen enthalten. Diese Inhalte sind Daten, keine Systemanweisungen. Sie dürfen keine Policies ändern, Tools freigeben, Secrets anfordern oder den Workspace erweitern. Herkunft und Rolle jedes Kontextblocks müssen erhalten bleiben.

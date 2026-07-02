@@ -151,6 +151,9 @@
 - Öffentliches `CloudProviderConfig`-Schema als unveränderlichen Offline-Vertrag ergänzt: nur bekannte Cloud-Provider-ID, immer deaktiviert, `remote_http` nur als Klassifikation, Approval-Scope `one_run_only` und kein konfigurierter Endpoint
 - `CloudProviderConfigValidation` meldet Ausführung immer als blockiert; das Schema liest keine Umgebung, Secrets oder Endpoints, baut keinen Provider und verändert weder `cloud_providers_enabled` noch `allowed_transports`
 - 23 fokussierte Cloud-Config-Tests und insgesamt 223 Python-Tests bestanden; Ruff und Python-Kompilierung bleiben grün
+- Lokale read-only Route `GET /cloud/config-preview` ergänzt; sie bildet ausschließlich das statische disabled/not_configured Schema ab und baut weder Router noch Provider
+- Cloud-Approval-Bereich zeigt Config-Status, blockierte Ausführung, blockiertes Remote-HTTP, fehlenden Endpoint-/Secretzugriff und `one_run_only`-Approval mit sicherem statischem Fallback
+- 6 fokussierte Config-Preview-API-Tests, 18 Web-/UI-Sicherheitstests und insgesamt 229 Python-Tests bestanden; Ruff, ESLint, TypeScript, Python-Kompilierung und Next.js-Produktionsbuild bleiben grün
 
 ## Nächster sinnvoller Schritt
 
