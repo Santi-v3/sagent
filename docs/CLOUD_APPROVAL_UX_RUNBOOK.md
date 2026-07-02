@@ -34,6 +34,10 @@ laufgebundene Nutzerfreigabe bleiben voneinander unabhängige Gates. Bis diese G
 in einem separaten Security-Inkrement implementiert und geprüft sind, bleibt jede
 Cloud-Ausführung blockiert.
 
+Das deaktivierte `CloudProviderConfig`-Schema kann dafür ausschließlich read-only
+Statusmetadaten liefern. Es liest keine Secrets oder Umgebungswerte und darf weder
+einen Provider erzeugen noch Router-Gates oder Transport-Policies verändern.
+
 ## Pflichtanzeigen vor jedem späteren Lauf
 
 Vor einer Bestätigung muss die UI mindestens folgende Informationen vollständig und

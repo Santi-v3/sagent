@@ -171,6 +171,16 @@ Offline-Testanforderungen sind im
 Runbook ist keine Runtime-, Netzwerk-, Provider- oder Datenfreigabe; bis zu einem
 separaten Security-Inkrement bleibt die Preview denied und `remote_http` blockiert.
 
+### Deaktiviertes Cloud-Config-Schema
+
+`CloudProviderConfig` ist ausschließlich unveränderliche Core-Metadaten. Das Schema
+akzeptiert nur bekannte Cloud-Provider-IDs, erzwingt `enabled=false`, klassifiziert
+den Transport als weiterhin blockiertes `remote_http`, verlangt explizites
+`one_run_only`-Approval und unterstützt keine Endpoint-Konfiguration. Es speichert
+weder Secretwerte noch Referenznamen und liest keine Umgebung. Die zugehörige
+Validierung erteilt keine Ausführungsautorität, baut keinen Provider und verändert
+weder `cloud_providers_enabled` noch die Transport-Allowlist des Routers.
+
 ## Prompt Injection
 
 Text in Projekten kann Anweisungen enthalten. Diese Inhalte sind Daten, keine Systemanweisungen. Sie dürfen keine Policies ändern, Tools freigeben, Secrets anfordern oder den Workspace erweitern. Herkunft und Rolle jedes Kontextblocks müssen erhalten bleiben.

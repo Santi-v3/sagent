@@ -29,6 +29,14 @@ from sagent_agent_core.cloud_approval import (
     build_cloud_approval_preview,
     is_cloud_approval_valid,
 )
+from sagent_agent_core.cloud_config import (
+    CloudProviderConfig,
+    CloudProviderConfigError,
+    CloudProviderConfigStatus,
+    CloudProviderConfigValidation,
+    CloudSecretsSource,
+    validate_cloud_provider_config,
+)
 from sagent_agent_core.local_provider_metadata import (
     LOCAL_PROVIDER_PROFILES,
     LocalProviderProfile,
@@ -96,6 +104,11 @@ __all__ = [
     "build_cloud_approval_preview",
     "is_cloud_approval_valid",
     "CloudProviderDisabledError",
+    "CloudProviderConfig",
+    "CloudProviderConfigError",
+    "CloudProviderConfigStatus",
+    "CloudProviderConfigValidation",
+    "CloudSecretsSource",
     "CloudPurpose",
     "CLOUD_PROVIDER_IDS",
     "BenchmarkError",
@@ -153,4 +166,5 @@ __all__ = [
     "WorkspaceGuard",
     "WorkspaceSecurityError",
     "get_local_provider_profile",
+    "validate_cloud_provider_config",
 ]
