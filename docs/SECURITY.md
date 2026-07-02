@@ -242,6 +242,18 @@ Die Capability Policy ist ein reiner Offline-Vertrag, der Sagent-Subprozessen sp
 - **Unbekannte Capabilities:** Standardmäßig `disabled`/`DENIED`.
 - **41 Tests** decken Default-Policy-Inhalt, Entscheidungslogik, Approval-Gating, Preview-Flag, Frozen-Validierung, Fehleingaben, Seiteneffektfreiheit und Secret-/Env-/Endpoint-Freiheit ab.
 
+### Read-only Preview API und UI (PR #25)
+
+`GET /capabilities/preview` gibt die Policy als sichere, niemals aktivierte Metadaten-Response zurück:
+- Enthält alle 12 Capabilities mit Mode- und Entscheidungs-Metadaten (requires_approval, preview_only, disabled).
+- Safety-Flags sind immer `false`: `shell_executed`, `git_executed`, `network_used`, `cloud_used`, `model_called`, `runtime_activated`.
+- `policy_version` ist ein statischer Literal-String.
+- **Keine Runtime-Aktivierung:** Die Route führt keine Shell, kein Git, kein Netzwerk, keine Cloud, keine Modellaufrufe und keine Runtime aus.
+- **Keine Secrets/Endpoints/Env-Werte:** Die Response enthält keine API-Keys, URLs, Hosts, Ports, Endpoints oder Umgebungsvariablen.
+- **Keine Settings-Persistenz:** Die Route speichert nichts, schreibt keine Dateien und liest keine Konfiguration außerhalb des Code-Moduls.
+- Die React-Komponente `CapabilityPolicyPreview` zeigt die Daten read-only an, ohne Toggle-, Enable- oder Run-Buttons, ohne API-Key/Eingabefelder und mit statischem JSON-Fallback bei API-Fehlern.
+- 11 API-Tests und 18 UI-Sicherheitstests bestätigen die Safety-Grenzen.
+
 ## Prompt Injection
 
 Text in Projekten kann Anweisungen enthalten. Diese Inhalte sind Daten, keine Systemanweisungen. Sie dürfen keine Policies ändern, Tools freigeben, Secrets anfordern oder den Workspace erweitern. Herkunft und Rolle jedes Kontextblocks müssen erhalten bleiben.
