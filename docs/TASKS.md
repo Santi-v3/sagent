@@ -110,6 +110,20 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [ ] Ablaufende, manifestgebundene `one_run_only`-Freigabe zunächst als rein lokalen negativen Testvertrag spezifizieren; noch keinen Transport freigeben
 - [ ] Erst nach eigenem Security-Review einen minimalen, standardmäßig deaktivierten Cloud-Adapter erwägen
 
+## Abgeschlossen – Code Edit Preview Panel (MVP 2.D)
+
+- [x] CodeEdit-Backend-Service mit deterministischer Preview, Hash-gebundener Approval und sicherer Apply-Simulation implementiert
+- [x] Drei API-Endpunkte ergänzt: `POST /agent/code-edits/preview`, `POST /agent/code-edits/approve`, `POST /agent/code-edits/apply`
+- [x] API-Antworten melden stets `shell_executed=false`, `git_executed=false`, `network_used=false`, `model_authority=false`
+- [x] Proposal-Hash-Bindung: Approval/Apply erfordert exakten Hash aus der Preview
+- [x] 16 API-Sicherheitstests für Preview-Validierung, Approve/Apply-Flows, Hash-Schutz, Statuskonflikte und Required-Flags
+- [x] CodeEditPreviewPanel-Webkomponente mit Formular, Diff-Preview, Approval- und Apply-Button (read-only-first)
+- [x] Stale-Detection: Pfad-/Inhaltsänderung nach Preview invalidiert die Freigabe
+- [x] Read-Only-Badge und Sicherheitsinvarianten (Keine Shell · Kein Git · Kein Netzwerk · Kein Modell)
+- [x] 11 Web-Sicherheitstests: keine Cloud-/Shell-/Git-/Commit-/Push-/Merge-Schaltflächen, keine `model_response`- oder Secret-Felder
+- [x] Komponente in sagent-shell.tsx integriert, CSS in globals.css
+- [x] Linting, TypeScript, Build, 55 Python-Tests und 11 Web-Tests erfolgreich
+
 ## Noch blockiert bis zu den Sicherheitsinkrementen
 
 - Dateiänderungen bleiben außerhalb des internen Core-Services blockiert, bis API- und UI-Anbindung einen eigenen Sicherheitsreview erhalten
