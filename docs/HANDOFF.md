@@ -2,10 +2,10 @@
 
 ## Projektstatus
 
-- **Phase:** MVP 1, MVP 2.A, MVP 2.B und MVP 2.C abgeschlossen; MVP 2.D (Code Edit Preview) implementiert
+- **Phase:** MVP 1, MVP 2.A, MVP 2.B, MVP 2.C und MVP 2.D (Code Edit Preview) abgeschlossen; Code-Edit UI Hardening + History abgeschlossen
 - **Stand:** 2026-07-02
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Cloud-Approval-Preview und Code Edit Preview Panel lokal in der Web-UI sichtbar; `remote_http` und Cloud-Ausführung bleiben blockiert
+- **Aktueller Fokus:** Code-Edit-UI-Hardening mit klarem Status, Reset-Button und lokaler History; Cloud-Approval-Preview bleibt sichtbar; `remote_http` und Cloud-Ausführung bleiben blockiert
 
 ## Fertiggestellt
 
@@ -168,6 +168,18 @@
 - 11 Web-Sicherheitstests: Komponentenname, erlaubte Endpoints, keine Cloud-/Shell-/Git-/Commit-/Push-/Merge-Schaltflächen, keine `model_response`- oder Secret-Felder, Stale-Detection-Prüfung
 - Komponente in `sagent-shell.tsx` integriert, CSS in `globals.css`
 - Linting, TypeScript, 55 Python-Tests, 11 Web-Tests und Next.js-Produktionsbuild erfolgreich
+
+## Abgeschlossen – Code-Edit UI Hardening + History (PR #23)
+
+- Panel-Statusanzeige mit sechs Zuständen: idle, preview_ready, previewing, approved, applied, stale, error
+- Reset-Button in der Statusleiste (immer sichtbar, wenn nicht idle): löscht lokalen UI-State, Diff-Anzeige und proposal_hash; führt keine API-Apply-Aktion aus
+- Lokale UI-History (Browser-State, keine Persistenz): zeigt die letzten 20 Aktionen als sichere Metadaten (action, timestamp, path, status, gekürzter proposal_hash)
+- History speichert keine Datei-Inhalte, keine Secrets; kein localStorage/sessionStorage/IndexedDB
+- Sichere Fehleranzeige: generische Meldungen, keine Stacktraces, keine sensiblen Inhalte
+- Stale-Detection: Änderung an Pfad oder Inhalt invalidiert Approval, disabled Apply, zeigt stale-Status
+- 8 neue Web-Sicherheitstests: Reset, History-Aktionen, History-Inhaltsfreiheit, proposal_hash-Kürzung, Stacktrace-Verbot, Stale-Detection, Storage-Freiheit
+- Insgesamt 32 Web-Tests, 73 Python-Tests, ESLint, TypeScript, Ruff, Next.js-Build: alle grün
+- Keine neuen Backend-Fähigkeiten, keine Cloud/DeepSeek/remote_http, keine Shell/Git/Network, keine Persistenz
 
 ## Nächster sinnvoller Schritt
 
