@@ -11,6 +11,15 @@ from sagent_agent_core.benchmarks import (
     LocalModelBenchmarkHarness,
     SyntheticBenchmarkTask,
 )
+from sagent_agent_core.capability_policy import (
+    DEFAULT_CAPABILITY_POLICY,
+    CapabilityDecision,
+    CapabilityMode,
+    CapabilityName,
+    CapabilityPolicy,
+    CapabilityPolicyError,
+    evaluate_capability,
+)
 from sagent_agent_core.changes import (
     ApprovalError,
     ChangeConflictError,
@@ -92,6 +101,13 @@ from sagent_agent_core.models import (
 from sagent_tools import FileAccessError, FileTool, WorkspaceGuard, WorkspaceSecurityError
 
 __all__ = [
+    "CapabilityDecision",
+    "CapabilityMode",
+    "CapabilityName",
+    "CapabilityPolicy",
+    "CapabilityPolicyError",
+    "DEFAULT_CAPABILITY_POLICY",
+    "evaluate_capability",
     "ApprovalError",
     "BenchmarkConfigurationError",
     "BenchmarkConfirmationRequiredError",
