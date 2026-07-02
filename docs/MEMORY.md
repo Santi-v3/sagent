@@ -44,3 +44,19 @@ Inhalt mit klarer Herkunft und Gültigkeit.
 - Cloud-Synchronisierung
 - Implizites Lernen aus jeder Aktion
 - Unbegrenzte Aufbewahrung
+
+## Offline-Grundlage für Memory V2
+
+Der Python-Core enthält eine kleine, weiterhin deaktivierte Grundlage für spätere
+strukturierte Suche:
+
+- Standardmäßig bleiben Einträge ausschließlich im Prozessspeicher.
+- Speicherung und Löschung verlangen `confirmed=true` auf Service-Ebene.
+- SQLite-Persistenz entsteht nur bei explizit injiziertem lokalem Datenbankpfad.
+- Embeddings entstehen nur über eine injizierte Funktion; das Memory-Paket enthält
+  keinen HTTP-Client, liest keine Umgebungsvariablen und kontaktiert kein Modell.
+- Ohne Embedder steht eine deterministische lokale Token-Überschneidungssuche bereit.
+- Einträge und Metadaten sind begrenzt; zurückgegebene Einträge sind unveränderlich.
+
+Es existiert noch keine Memory-API, keine Web-UI, keine automatische
+Prompt-Anreicherung und kein implizites Speichern aus Chats oder Modellantworten.

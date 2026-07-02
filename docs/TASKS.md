@@ -191,6 +191,17 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 
 ## Noch blockiert bis zu den Sicherheitsinkrementen
 
+### Offline-Grundlagen aus dem unterbrochenen Agent-/Memory-Entwurf
+
+- [x] DeepSeek/OpenCode-Arbeitsstand vollständig und reversibel lokal sichern
+- [x] Memory-Service ohne impliziten Ollama-, Netzwerk- oder Env-Zugriff implementieren
+- [x] Memory-Mutationen bestätigungspflichtig, begrenzt und optional lokal persistent machen
+- [x] Tool-Registry auf reine Metadaten und untrusted Proposal-Parsing ohne Handler begrenzen
+- [x] Proposal-Hash, Unknown-Tool-Blockade und fehlende Ausführungsautorität testen
+- [ ] Memory-API erst mit separatem Preview-/Approval-Vertrag ergänzen
+- [ ] Agent-Loop erst nach getrenntem Policy-/Approval-Sicherheitsreview anbinden
+- [ ] Web-UI erst nach API-Vertrag und eigenen UI-Sicherheitschecks anbinden
+
 - Dateiänderungen bleiben außerhalb des internen Core-Services blockiert, bis API- und UI-Anbindung einen eigenen Sicherheitsreview erhalten
 - Testbefehle ausschließlich über die implementierte Allowlist und nach menschlicher Freigabe
 - Git-Commit, Push und Merge bleiben ohne eigenen Approval-Flow blockiert

@@ -98,9 +98,19 @@ from sagent_agent_core.models import (
     ChangeSetStatus,
     FileChange,
 )
+from sagent_agent_core.tool_registry import (
+    ToolCallProposal,
+    ToolDefinition,
+    ToolProposalError,
+    ToolRegistry,
+)
 from sagent_tools import FileAccessError, FileTool, WorkspaceGuard, WorkspaceSecurityError
 
 __all__ = [
+    "ToolCallProposal",
+    "ToolDefinition",
+    "ToolProposalError",
+    "ToolRegistry",
     "CapabilityDecision",
     "CapabilityMode",
     "CapabilityName",

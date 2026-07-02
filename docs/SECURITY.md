@@ -269,6 +269,22 @@ Die Capability Policy ist ein reiner Offline-Vertrag, der Sagent-Subprozessen sp
 - **Keine Secrets/Endpoints/Env** in Responses.
 - 39 Tests decken Allowlist-Validierung, Preview, Approve, Execute, Safety, Capability Gate und Secret-Freiheit ab.
 
+### Offline Memory- und Tool-Proposal-Grundlage
+
+- Memory ist standardmäßig prozesslokal und benötigt für jede Mutation eine
+  explizite Bestätigung. Persistenz und Embeddings sind nur injizierbare lokale
+  Abhängigkeiten; das Paket liest keine Umgebung und besitzt keinen Netzwerkclient.
+- Memory wird nicht automatisch in Modellprompts übernommen. Es gibt noch keine
+  API-Route oder Web-UI für diesen Vertrag.
+- `ToolRegistry` enthält ausschließlich unveränderliche Metadaten. Es besitzt keine
+  Handler- oder Dispatch-Schnittstelle und kann deshalb kein Tool ausführen.
+- Streng formatierter Modelltext kann höchstens einen unveränderlichen,
+  SHA-256-gebundenen `ToolCallProposal` erzeugen. Dieser bleibt `untrusted=true`,
+  `requires_approval=true` und `execution_allowed=false`.
+- Unbekannte Tools, freie Modelltexte, ungültiges JSON und mehrere oder eingebettete
+  Aufrufe werden verworfen. Eine spätere Ausführung benötigt einen getrennten
+  deterministischen Policy-, Preview- und Approval-Vertrag.
+
 ## Prompt Injection
 
 Text in Projekten kann Anweisungen enthalten. Diese Inhalte sind Daten, keine Systemanweisungen. Sie dürfen keine Policies ändern, Tools freigeben, Secrets anfordern oder den Workspace erweitern. Herkunft und Rolle jedes Kontextblocks müssen erhalten bleiben.

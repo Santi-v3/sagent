@@ -232,6 +232,24 @@
 - **Keine Runtime-Aktivierung** außerhalb der Approval-Kette
 - **Keine Modell-Autorität** für Test-Kommandos
 
+## Offline Memory- und Tool-Proposal-Grundlage
+
+- Der unterbrochene DeepSeek/OpenCode-Arbeitsstand wurde vollständig als lokaler
+  Stash gesichert und nicht ungeprüft übernommen.
+- `packages/memory` stellt jetzt bestätigungspflichtige, begrenzte lokale Einträge,
+  optionale explizite SQLite-Persistenz und injizierbare Embeddings bereit.
+- Das Memory-Paket liest keine Umgebung, besitzt keinen HTTP-Client und kontaktiert
+  weder Ollama noch andere Provider. Standardmäßig bleibt es rein prozesslokal.
+- `ToolRegistry` kann nur untrusted Modelltext in einen SHA-256-gebundenen
+  `ToolCallProposal` umwandeln. Es gibt keine Handler, kein Dispatch und keine
+  Ausführungsautorität.
+- Keine API-Route, keine Web-UI, keine automatische Prompt-Anreicherung und kein
+  Agent-Loop wurden aktiviert.
+- 14 neue fokussierte Tests und insgesamt 352 Python-Tests bestanden; Ruff ist grün.
+
+Nächster Schritt für diese Grundlage ist ein eigener read-only Memory-Preview- und
+Approval-Vertrag. Erst danach darf eine API- oder UI-Anbindung erwogen werden.
+
 ## Nächster sinnvoller Schritt
 
 Approval-Contract, lokale Preview-Route und read-only UI-Wiring liegen vor. Nächste Schritte vor jeder Cloud-Implementierung:
