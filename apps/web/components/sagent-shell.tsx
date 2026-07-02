@@ -22,6 +22,7 @@ import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } fr
 
 import { BenchmarkStatus } from "@/components/benchmark-status";
 import { CloudApprovalPreview } from "@/components/cloud-approval-preview";
+import { CodeEditPreviewPanel } from "@/components/code-edit-preview-panel";
 
 type ApprovalState = "pending" | "approved" | "rejected" | "needs_changes";
 type ApprovalDecision = Exclude<ApprovalState, "pending">;
@@ -920,6 +921,7 @@ export function SagentShell() {
 
             <BenchmarkStatus />
             <CloudApprovalPreview apiUrl={API_URL} />
+            <CodeEditPreviewPanel apiUrl={API_URL} />
           </div>
 
           <div className="composer-wrap">
