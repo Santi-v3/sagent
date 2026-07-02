@@ -1,0 +1,15 @@
+{
+  "providerId": "deepseek-cloud",
+  "enabled": false,
+  "status": "not_configured",
+  "transportKind": "remote_http",
+  "remoteHttpAllowed": false,
+  "requiresExplicitApproval": true,
+  "approvalScope": "one_run_only",
+  "secretsSource": "not_configured",
+  "secretsLoaded": false,
+  "endpointConfigured": false,
+  "executionAllowed": false,
+  "configSource": "static/offline/default",
+  "cloudExecution": "No"
+}

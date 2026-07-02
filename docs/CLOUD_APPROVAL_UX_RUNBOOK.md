@@ -37,6 +37,9 @@ Cloud-Ausführung blockiert.
 Das deaktivierte `CloudProviderConfig`-Schema kann dafür ausschließlich read-only
 Statusmetadaten liefern. Es liest keine Secrets oder Umgebungswerte und darf weder
 einen Provider erzeugen noch Router-Gates oder Transport-Policies verändern.
+Die lokale UI darf diese disabled/not_configured Metadaten read-only anzeigen; eine
+API-Abweichung muss zur statischen disabled Vorschau führen und darf keine Aktion
+freischalten.
 
 ## Pflichtanzeigen vor jedem späteren Lauf
 
