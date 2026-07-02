@@ -1,0 +1,23 @@
+{
+  "policyVersion": "1.0.0",
+  "capabilities": [
+    {"name": "read_workspace", "mode": "preview_only", "decisionForExecution": "preview_only", "requiresApproval": false, "previewOnly": true, "disabled": false},
+    {"name": "preview_file_edits", "mode": "allowed", "decisionForExecution": "allowed", "requiresApproval": false, "previewOnly": false, "disabled": false},
+    {"name": "apply_single_file_edit", "mode": "approval_required", "decisionForExecution": "denied", "requiresApproval": true, "previewOnly": false, "disabled": false},
+    {"name": "apply_multi_file_edit", "mode": "approval_required", "decisionForExecution": "denied", "requiresApproval": true, "previewOnly": false, "disabled": false},
+    {"name": "run_tests", "mode": "approval_required", "decisionForExecution": "denied", "requiresApproval": true, "previewOnly": false, "disabled": false},
+    {"name": "run_shell_command", "mode": "approval_required", "decisionForExecution": "denied", "requiresApproval": true, "previewOnly": false, "disabled": false},
+    {"name": "git_status", "mode": "allowed", "decisionForExecution": "allowed", "requiresApproval": false, "previewOnly": false, "disabled": false},
+    {"name": "git_commit", "mode": "approval_required", "decisionForExecution": "denied", "requiresApproval": true, "previewOnly": false, "disabled": false},
+    {"name": "git_push", "mode": "approval_required", "decisionForExecution": "denied", "requiresApproval": true, "previewOnly": false, "disabled": false},
+    {"name": "change_dependencies", "mode": "approval_required", "decisionForExecution": "denied", "requiresApproval": true, "previewOnly": false, "disabled": false},
+    {"name": "use_local_model", "mode": "approval_required", "decisionForExecution": "denied", "requiresApproval": true, "previewOnly": false, "disabled": false},
+    {"name": "use_cloud_model", "mode": "disabled", "decisionForExecution": "denied", "requiresApproval": false, "previewOnly": false, "disabled": true}
+  ],
+  "shellExecuted": false,
+  "gitExecuted": false,
+  "networkUsed": false,
+  "cloudUsed": false,
+  "modelCalled": false,
+  "runtimeActivated": false
+}

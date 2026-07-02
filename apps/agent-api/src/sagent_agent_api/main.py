@@ -16,6 +16,8 @@ from sagent_agent_api.models import (
     ApprovalRequest,
     ApprovalResponse,
     ApprovalState,
+    CapabilityEntryResponse,
+    CapabilityPreviewResponse,
     CloudApprovalPreviewRequest,
     CloudApprovalPreviewResponse,
     CloudConfigPreviewResponse,
@@ -50,7 +52,10 @@ from sagent_agent_api.workflow import (
     workflow_store,
 )
 from sagent_agent_core import (
+    DEFAULT_CAPABILITY_POLICY,
     ApprovalError,
+    CapabilityMode,
+    CapabilityName,
     ChangeConflictError,
     ChangeSetNotFoundError,
     CloudApprovalDecision,
@@ -78,6 +83,7 @@ from sagent_agent_core import (
     ModelTransport,
     ModelTransportBlockedError,
     build_cloud_approval_preview,
+    evaluate_capability,
     validate_cloud_provider_config,
 )
 from sagent_tools import (
@@ -131,6 +137,41 @@ def get_health() -> HealthResponse:
     """Return a small, deterministic service health response."""
 
     return HealthResponse(status="ok", service="sagent-agent-api")
+
+
+@app.get("/capabilities/preview", response_model=CapabilityPreviewResponse)
+def get_capability_policy_preview() -> CapabilityPreviewResponse:
+    """Return read-only capability policy metadata — never activates anything.
+
+    This route has no side effects: no shell, no git, no network, no cloud,
+    no model calls, and no runtime activation. The response contains only
+    safe mode/decision metadata from the offline DEFAULT_CAPABILITY_POLICY.
+    """
+    entries: list[CapabilityEntryResponse] = []
+    for cap in CapabilityName:
+        mode = DEFAULT_CAPABILITY_POLICY.get_mode(cap)
+        decision = evaluate_capability(DEFAULT_CAPABILITY_POLICY, cap)
+        entries.append(
+            CapabilityEntryResponse(
+                name=cap.value,
+                mode=mode.value,
+                decision_for_execution=decision.value,
+                requires_approval=mode is CapabilityMode.APPROVAL_REQUIRED,
+                preview_only=mode is CapabilityMode.PREVIEW_ONLY,
+                disabled=mode is CapabilityMode.DISABLED,
+            )
+        )
+
+    return CapabilityPreviewResponse(
+        policy_version="1.0.0",
+        capabilities=entries,
+        shell_executed=False,
+        git_executed=False,
+        network_used=False,
+        cloud_used=False,
+        model_called=False,
+        runtime_activated=False,
+    )
 
 
 @app.post("/agent/task", response_model=TaskResponse)

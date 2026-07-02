@@ -151,6 +151,25 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] 41 Tests (Default-Policy, Mode-Defaults, Evaluate, Seiteneffektfreiheit, Secret/Env-Freiheit, Custom-Policy)
 - [x] Ruff, 255 Python-Tests, 32 Web-Tests: alle grün
 
+## Abgeschlossen – Capability Policy Preview API + UI (PR #25)
+
+- [x] `GET /capabilities/preview` read-only Route in main.py
+- [x] `CapabilityPreviewResponse` und `CapabilityEntryResponse` Pydantic-Modelle
+- [x] Route gibt alle 12 Capabilities mit Mode, Entscheidung, requires_approval, preview_only, disabled zurück
+- [x] Safety-Flags in der Response: shell_executed=false, git_executed=false, network_used=false, cloud_used=false, model_called=false, runtime_activated=false
+- [x] `policy_version: "1.0.0"` als statischer String
+- [x] 11 API-Tests: 200, 12 Capabilities, Safety-Flags, Mode-Prüfungen, keine Secrets/Endpoints/Env
+- [x] `CapabilityPolicyPreview` React-Komponente (read-only)
+- [x] Zeigt Capability-Name, Mode, Entscheidung mit Icons, Safety-Flags
+- [x] CSS in globals.css (Tabellen-Layout, Badge, Safety-Banner)
+- [x] Integration in sagent-shell.tsx (unter BenchmarkStatus)
+- [x] Statischer JSON-Fallback in data/capability-policy-preview.json
+- [x] API-Fehler → Fallback; AbortController für unmounted Components
+- [x] 18 UI-Sicherheitstests: 12 Capabilities, readonly badge, Fallback, keine Toggle/Enable/Run/Shell/Git/Cloud/DeepSeek/API-Key/Endpoint/Secret/model_response/Storage
+- [x] Bestehende Cloud-, CodeEdit-, Benchmark-Tests bleiben grün
+- [x] 266 Python-Tests, 47 Web-Tests, ESLint, TypeScript, Next.js Build: alle grün
+- [x] Keine Runtime-Aktivierung, keine Shell/Git/Network/Cloud, keine Settings-Persistenz
+
 ## Noch blockiert bis zu den Sicherheitsinkrementen
 
 - Dateiänderungen bleiben außerhalb des internen Core-Services blockiert, bis API- und UI-Anbindung einen eigenen Sicherheitsreview erhalten

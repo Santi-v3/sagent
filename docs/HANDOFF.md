@@ -2,10 +2,10 @@
 
 ## Projektstatus
 
-- **Phase:** MVP 1, MVP 2.A, MVP 2.B, MVP 2.C und MVP 2.D (Code Edit Preview) abgeschlossen; Code-Edit UI Hardening + History abgeschlossen; Capability Policy Offline-Vertrag abgeschlossen
+- **Phase:** MVP 1, MVP 2.A, MVP 2.B, MVP 2.C und MVP 2.D (Code Edit Preview) abgeschlossen; Code-Edit UI Hardening + History abgeschlossen; Capability Policy Offline-Vertrag abgeschlossen; Capability Policy Preview API + UI abgeschlossen
 - **Stand:** 2026-07-02
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Capability Policy als Offline-Vertrag für granulare Berechtigungssteuerung; Cloud-Approval-Preview bleibt sichtbar; `remote_http` und Cloud-Ausführung bleiben blockiert
+- **Aktueller Fokus:** Capability Policy Preview API und UI als read-only Anzeige; Cloud-Approval-Preview bleibt sichtbar; `remote_http` und Cloud-Ausführung bleiben blockiert
 
 ## Fertiggestellt
 
@@ -194,6 +194,24 @@
 - 41 Tests in `test_capability_policy.py`: Default-Policy, Mode-Defaults, Evaluate-Logik, Seiteneffektfreiheit, Secret-/Env-Freiheit, Custom-Policy
 - Insgesamt 255 Python-Tests, 32 Web-Tests, Ruff, ESLint, TypeScript, Next.js-Build: alle grün
 - Keine Runtime-Aktivierung, keine API-Routen, keine Web-UI-Änderungen, keine Shell/Git/Network/Cloud/DeepSeek
+
+## Abgeschlossen – Capability Policy Preview API + UI (PR #25)
+
+- `GET /capabilities/preview` read-only Route in `main.py`: gibt alle 12 Capabilities mit Mode, Entscheidung, requires_approval/preview_only/disabled Booleans und Safety-Flags zurück
+- `CapabilityPreviewResponse` und `CapabilityEntryResponse` Pydantic-Modelle in `models.py`
+- Safety-Flags: `shell_executed=false`, `git_executed=false`, `network_used=false`, `cloud_used=false`, `model_called=false`, `runtime_activated=false`
+- `policy_version: "1.0.0"` als statischer Literal-String
+- 11 API-Tests: Status 200, 12 Capabilities, Safety-Flags, Mode-Prüfungen, keine Secrets/Endpoints/Env
+- `CapabilityPolicyPreview` React-Komponente in `capability-policy-preview.tsx`
+- Tabellarische Anzeige mit Capability-Name, Mode-Badge, Entscheidungs-Icons (Allowed/Needs Approval/Preview Only/Denied)
+- Read-Only-Badge, Sicherheitshinweis (keine Runtime-Aktionen), Safety-Flags-Banner
+- Statischer JSON-Fallback in `data/capability-policy-preview.json`
+- API-Fehler → Fallback; AbortController für Race-Condition-Schutz
+- 18 UI-Sicherheitstests: 12 Capabilities, Read-Only-Badge, Fallback, keine Toggle/Enable/Run/Shell/Git/Cloud/DeepSeek/API-Key/Endpoint/Secret/model_response/Storage
+- CSS in `globals.css`: Tabellen-Layout, Badge, Safety-Banner, responsive
+- Integration in `sagent-shell.tsx` unter BenchmarkStatus
+- Insgesamt 266 Python-Tests, 47 Web-Tests, Ruff, ESLint, TypeScript, Next.js-Build: alle grün
+- Keine Runtime-Aktivierung, keine Shell/Git/Network/Cloud, keine Settings-Persistenz, keine Toggles/Enable-Buttons
 
 ## Nächster sinnvoller Schritt
 

@@ -379,6 +379,30 @@ class CodeEditPreviewResponse(BaseModel):
     model_authority: Literal[False]
 
 
+class CapabilityEntryResponse(BaseModel):
+    """One capability's policy mode and execution decision."""
+
+    name: str
+    mode: str
+    decision_for_execution: str
+    requires_approval: bool
+    preview_only: bool
+    disabled: bool
+
+
+class CapabilityPreviewResponse(BaseModel):
+    """Read-only capability policy metadata — never activates anything."""
+
+    policy_version: Literal["1.0.0"]
+    capabilities: list[CapabilityEntryResponse]
+    shell_executed: Literal[False]
+    git_executed: Literal[False]
+    network_used: Literal[False]
+    cloud_used: Literal[False]
+    model_called: Literal[False]
+    runtime_activated: Literal[False]
+
+
 class CodeEditApplyResponse(BaseModel):
     """Applied change-set confirmation without tool authority."""
 

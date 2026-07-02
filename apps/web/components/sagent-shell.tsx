@@ -21,6 +21,7 @@ import {
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { BenchmarkStatus } from "@/components/benchmark-status";
+import { CapabilityPolicyPreview } from "@/components/capability-policy-preview";
 import { CloudApprovalPreview } from "@/components/cloud-approval-preview";
 import { CodeEditPreviewPanel } from "@/components/code-edit-preview-panel";
 
@@ -920,6 +921,7 @@ export function SagentShell() {
             ) : null}
 
             <BenchmarkStatus />
+            <CapabilityPolicyPreview apiUrl={API_URL} />
             <CloudApprovalPreview apiUrl={API_URL} />
             <CodeEditPreviewPanel apiUrl={API_URL} />
           </div>
