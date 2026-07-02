@@ -300,6 +300,24 @@ class CloudApprovalPreviewResponse(BaseModel):
     risk_hints: list[str]
 
 
+class CloudConfigPreviewResponse(BaseModel):
+    """Disabled offline cloud configuration metadata without runtime authority."""
+
+    provider_id: str
+    enabled: Literal[False]
+    status: Literal["disabled", "not_configured"]
+    transport_kind: Literal["remote_http"]
+    remote_http_allowed: Literal[False]
+    requires_explicit_approval: Literal[True]
+    approval_scope: Literal["one_run_only"]
+    secrets_source: Literal["not_configured", "env_reference_only"]
+    secrets_loaded: Literal[False]
+    endpoint_configured: Literal[False]
+    execution_allowed: Literal[False]
+    config_source: Literal["static/offline/default"]
+    cloud_execution: Literal["No"]
+
+
 class ModelJobResponse(BaseModel):
     """Prompt-free lifecycle snapshot for one bounded model job."""
 

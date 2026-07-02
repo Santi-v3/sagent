@@ -192,6 +192,11 @@ oder Runtime-Freigabe. Eine solche Konfiguration darf keinen Provider bauen,
 `cloud_providers_enabled` nicht setzen und die erlaubten Router-Transporte nicht
 erweitern.
 
+Eine lokale read-only API-/UI-Preview darf diesen deaktivierten Vertrag anzeigen,
+solange sie ausschließlich statische Metadaten liefert, keine Konfiguration annimmt
+und bei jeder Abweichung auf einen disabled Offline-Fallback zurückfällt. Diese
+Anzeige ist keine Providerregistrierung, Transportfreigabe oder Cloud-Ausführung.
+
 ## Anforderungen an einen späteren Remote-HTTP-Transport
 
 `remote_http` darf erst freigegeben werden, wenn mindestens folgende Grenzen technisch
