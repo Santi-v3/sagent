@@ -220,7 +220,7 @@
 - `POST /agent/test-runs/approve` (200) — Hash-gebundene Freigabe
 - `POST /agent/test-runs/run` (200) — Ausführung nur nach Approval + Hash-Match
 - Capability-Policy-Gate: `evaluate_capability(RUN_TESTS)` ergibt `decision` in Preview
-- Feste Allowlist in `test_runner_contract.py`: `python-pytest-all`, `python-pytest-capability`, `python-pytest-preview`, `python-lint`
+- Feste Allowlist in `test_runner.py`: `python-pytest-all`, `python-pytest-capability`, `python-pytest-preview`, `python-lint`
 - argv aus Allowlist-Tupeln, `shell=False`, `subprocess.Popen` mit Timeout (60–120s) und Output-Begrenzung (20 KB)
 - Environment-Sanitisierung: Proxy-Block, keine Netzwerk-Variablen, Temp-Home
 - SHA-256-Hash-Bindung: `test_run_id:command_id:approval_token`
