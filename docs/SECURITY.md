@@ -274,8 +274,13 @@ Die Capability Policy ist ein reiner Offline-Vertrag, der Sagent-Subprozessen sp
 - Memory ist standardmäßig prozesslokal und benötigt für jede Mutation eine
   explizite Bestätigung. Persistenz und Embeddings sind nur injizierbare lokale
   Abhängigkeiten; das Paket liest keine Umgebung und besitzt keinen Netzwerkclient.
-- Memory wird nicht automatisch in Modellprompts übernommen. Es gibt noch keine
-  API-Route oder Web-UI für diesen Vertrag.
+- Memory wird nicht automatisch in Modellprompts übernommen. Die lokale Store-API
+  folgt strikt Preview → hashgebundenes Approval → bestätigtes einmaliges Apply.
+  Preview und Approval mutieren Memory nicht; der Default-Service persistiert nicht.
+- Secrets in Text oder Metadaten, unbekannte Requestfelder, falsche Hashes,
+  fehlende Bestätigung und Replays werden blockiert. Responses weisen
+  `network_used=false`, `model_called=false` und `persisted=false` aus.
+- Es gibt noch keine Web-UI, Search-/Delete-Route oder automatische Kontextanreicherung.
 - `ToolRegistry` enthält ausschließlich unveränderliche Metadaten. Es besitzt keine
   Handler- oder Dispatch-Schnittstelle und kann deshalb kein Tool ausführen.
 - Streng formatierter Modelltext kann höchstens einen unveränderlichen,

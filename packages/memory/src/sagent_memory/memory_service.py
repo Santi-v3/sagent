@@ -98,7 +98,7 @@ class MemoryService:
             self._entries[entry_id] = self._entry(entry_id, text, metadata, embedding)
 
     @staticmethod
-    def _validated_metadata(
+    def validate_metadata(
         metadata: Mapping[str, MetadataValue] | None,
     ) -> dict[str, MetadataValue]:
         values = dict(metadata or {})
@@ -139,7 +139,7 @@ class MemoryService:
             raise MemoryContractError("Memory text must contain 1 to 10000 visible characters.")
         if len(self._entries) >= self._max_entries:
             raise MemoryContractError("Memory entry limit reached.")
-        values = self._validated_metadata(metadata)
+        values = self.validate_metadata(metadata)
         embedding = self._embedding_function(normalized) if self._embedding_function else None
         entry = self._entry(uuid4().hex, normalized, values, embedding)
         self._entries[entry.entry_id] = entry

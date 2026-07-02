@@ -243,12 +243,18 @@
 - `ToolRegistry` kann nur untrusted Modelltext in einen SHA-256-gebundenen
   `ToolCallProposal` umwandeln. Es gibt keine Handler, kein Dispatch und keine
   Ausführungsautorität.
-- Keine API-Route, keine Web-UI, keine automatische Prompt-Anreicherung und kein
-  Agent-Loop wurden aktiviert.
-- 14 neue fokussierte Tests und insgesamt 352 Python-Tests bestanden; Ruff ist grün.
+- Lokale Store-Routen für Preview, hashgebundenes Approval und bestätigtes Apply
+  sind angebunden. Preview/Approval schreiben nichts; Apply ist einmalig und nutzt
+  ausschließlich den prozesslokalen Default-Service.
+- Secrets in Text/Metadaten, unbekannte Felder, falsche Hashes, fehlendes Approval
+  und Replays werden blockiert. Responses bestätigen fehlenden Netzwerk-, Modell-
+  und Persistenzzugriff.
+- Keine Web-UI, Search-/Delete-Route, automatische Prompt-Anreicherung oder
+  Agent-Loop-Ausführung wurden aktiviert.
+- 17 neue fokussierte Tests und insgesamt 355 Python-Tests bestanden; Ruff ist grün.
 
-Nächster Schritt für diese Grundlage ist ein eigener read-only Memory-Preview- und
-Approval-Vertrag. Erst danach darf eine API- oder UI-Anbindung erwogen werden.
+Nächster Schritt ist ein eigener read-only Search/List-Vertrag. Eine UI-Anbindung
+darf erst danach mit separaten Sicherheitschecks erwogen werden.
 
 ## Nächster sinnvoller Schritt
 

@@ -415,6 +415,41 @@ class CodeEditApplyResponse(BaseModel):
     model_authority: Literal[False]
 
 
+class MemoryPreviewRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(min_length=1, max_length=10_000)
+    metadata: dict[str, str | int | float | bool] = Field(default_factory=dict)
+
+
+class MemoryDecisionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    proposal_id: UUID
+    proposal_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    approved: Literal[True]
+
+
+class MemoryApplyRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    proposal_id: UUID
+    proposal_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    confirmed: Literal[True]
+
+
+class MemoryProposalResponse(BaseModel):
+    proposal_id: UUID
+    proposal_hash: str
+    status: Literal["prepared", "approved", "applied"]
+    text: str
+    metadata: dict[str, str | int | float | bool]
+    approval_required: Literal[True]
+    network_used: Literal[False]
+    model_called: Literal[False]
+    persisted: Literal[False]
+
+
 class TestRunPreviewRequest(BaseModel):
     """Request to preview an allowlisted test command."""
 

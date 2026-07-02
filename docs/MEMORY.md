@@ -58,5 +58,9 @@ strukturierte Suche:
 - Ohne Embedder steht eine deterministische lokale Token-Überschneidungssuche bereit.
 - Einträge und Metadaten sind begrenzt; zurückgegebene Einträge sind unveränderlich.
 
-Es existiert noch keine Memory-API, keine Web-UI, keine automatische
-Prompt-Anreicherung und kein implizites Speichern aus Chats oder Modellantworten.
+Die lokale API bietet ausschließlich einen prozesslokalen Store-Flow über
+`POST /memory/entries/preview`, `/approve` und `/apply`. Approval und Apply sind an
+Proposal-ID und exakten SHA-256-Hash gebunden; Apply verlangt zusätzlich
+`confirmed=true` und ist nicht wiederholbar. Es existiert noch keine Web-UI, keine
+Search-/Delete-Route, keine automatische Prompt-Anreicherung und kein implizites
+Speichern aus Chats oder Modellantworten.

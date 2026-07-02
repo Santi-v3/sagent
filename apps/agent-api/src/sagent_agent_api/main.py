@@ -10,6 +10,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from sagent_agent_api.code_edits import CodeEditPolicyError, CodeEditService, get_code_edit_service
 from sagent_agent_api.git_integration import get_git_tool
+from sagent_agent_api.memory_approval import (
+    MemoryApprovalService,
+    MemoryProposalConflictError,
+    MemoryProposalError,
+    MemoryProposalNotFoundError,
+    get_memory_approval_service,
+)
 from sagent_agent_api.model_integration import get_model_router
 from sagent_agent_api.model_jobs import close_model_job_service, get_model_job_service
 from sagent_agent_api.models import (
@@ -33,6 +40,10 @@ from sagent_agent_api.models import (
     HealthResponse,
     LocalModelCompletionRequest,
     LocalModelCompletionResponse,
+    MemoryApplyRequest,
+    MemoryDecisionRequest,
+    MemoryPreviewRequest,
+    MemoryProposalResponse,
     ModelAdapterResponse,
     ModelJobCreateRequest,
     ModelJobResponse,
@@ -127,6 +138,7 @@ GitToolDependency = Annotated[GitTool, Depends(get_git_tool)]
 ModelRouterDependency = Annotated[ModelRouter, Depends(get_model_router)]
 ModelJobServiceDependency = Annotated[ModelJobService, Depends(get_model_job_service)]
 CodeEditDependency = Annotated[CodeEditService, Depends(get_code_edit_service)]
+MemoryApprovalDependency = Annotated[MemoryApprovalService, Depends(get_memory_approval_service)]
 
 
 @asynccontextmanager
@@ -135,6 +147,7 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
 
     yield
     close_model_job_service()
+
 
 app = FastAPI(
     title="Sagent Agent API",
@@ -799,6 +812,55 @@ def apply_code_edit(
         network_used=False,
         model_authority=False,
     )
+
+
+def _memory_response(proposal) -> MemoryProposalResponse:
+    return MemoryProposalResponse(
+        proposal_id=proposal.proposal_id,
+        proposal_hash=proposal.proposal_hash,
+        status=proposal.status,
+        text=proposal.text,
+        metadata=dict(proposal.metadata),
+        approval_required=True,
+        network_used=False,
+        model_called=False,
+        persisted=False,
+    )
+
+
+@app.post("/memory/entries/preview", response_model=MemoryProposalResponse, status_code=201)
+def preview_memory_entry(
+    request: MemoryPreviewRequest, service: MemoryApprovalDependency
+) -> MemoryProposalResponse:
+    try:
+        return _memory_response(service.preview(request.text, request.metadata))
+    except MemoryProposalError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@app.post("/memory/entries/approve", response_model=MemoryProposalResponse)
+def approve_memory_entry(
+    request: MemoryDecisionRequest, service: MemoryApprovalDependency
+) -> MemoryProposalResponse:
+    try:
+        return _memory_response(service.approve(request.proposal_id, request.proposal_hash))
+    except MemoryProposalNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Memory proposal not found.") from error
+    except MemoryProposalConflictError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@app.post("/memory/entries/apply", response_model=MemoryProposalResponse)
+def apply_memory_entry(
+    request: MemoryApplyRequest, service: MemoryApprovalDependency
+) -> MemoryProposalResponse:
+    try:
+        proposal, _entry = service.apply(request.proposal_id, request.proposal_hash)
+        return _memory_response(proposal)
+    except MemoryProposalNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Memory proposal not found.") from error
+    except MemoryProposalConflictError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
 
 
 @app.post(
