@@ -254,6 +254,21 @@ Die Capability Policy ist ein reiner Offline-Vertrag, der Sagent-Subprozessen sp
 - Die React-Komponente `CapabilityPolicyPreview` zeigt die Daten read-only an, ohne Toggle-, Enable- oder Run-Buttons, ohne API-Key/Eingabefelder und mit statischem JSON-Fallback bei API-Fehlern.
 - 11 API-Tests und 18 UI-Sicherheitstests bestätigen die Safety-Grenzen.
 
+### Approval-Gated Test Runner (PR #26)
+
+`POST /agent/test-runs/preview` → `approve` → `run` implementiert die erste echte Power-User-Fähigkeit mit mehrstufiger Sicherheit:
+- **Capability-Policy-Gate:** `evaluate_capability(RUN_TESTS)` in der Preview.
+- **Feste Allowlist:** Nur 4 vordefinierte Kommandos (python-pytest-all, python-pytest-capability, python-pytest-preview, python-lint). Kein freier command string.
+- **Keine Shell:** argv aus festen Tupeln; `subprocess.Popen(…, shell=False)`.
+- **Hash-gebundene Freigabe:** Preview liefert SHA-256-Hash über `test_run_id:command_id:approval_token`. Approve und Run prüfen den Hash.
+- **Kein Re-Run:** Completed-Runs sind nicht wiederholbar.
+- **Kein gleichzeitiger Lauf:** `_RUN_EXECUTION_LOCK` blockiert parallele Ausführung.
+- **Environment-Sanitisierung:** Proxy auf 127.0.0.1:9, Temp-Home, keine Netzwerk-Env-Variablen.
+- **Output-Begrenzung:** max 20 KB stdout/stderr; Timeout 60–120s.
+- **Keine Git/Network/Install-Kommandos** in der Allowlist.
+- **Keine Secrets/Endpoints/Env** in Responses.
+- 39 Tests decken Allowlist-Validierung, Preview, Approve, Execute, Safety, Capability Gate und Secret-Freiheit ab.
+
 ## Prompt Injection
 
 Text in Projekten kann Anweisungen enthalten. Diese Inhalte sind Daten, keine Systemanweisungen. Sie dürfen keine Policies ändern, Tools freigeben, Secrets anfordern oder den Workspace erweitern. Herkunft und Rolle jedes Kontextblocks müssen erhalten bleiben.
