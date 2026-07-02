@@ -100,6 +100,8 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Preview-UI an die lokale Route angebunden: nur denied Metadaten, strikt validierte Response und sicherer Offline-Fallback
 - [x] UI-Sicherheitschecks für lokalen Routenpfad, verbotene Prompt-/Datei-/Diff-/Secret-Daten und fehlende Cloud-Aktionen ergänzt
 - [x] Späteren `one_run_only` Cloud-Approval-UX-Flow, Pflichtanzeigen, Blocker, Fehlerfälle und Offline-Testanforderungen im Runbook dokumentiert
+- [x] Deaktiviertes Cloud-Config-Schema als unveränderlichen Offline-Vertrag ergänzt; keine Env-Werte, Secrets, Endpoints, Provider oder Router-Freigaben
+- [x] 23 Cloud-Config-Tests decken Default-Denial, Providertrennung, fehlende Netzwerk-/Secretfelder und unveränderte Router-Gates ab
 - [ ] Vor jeder Implementierung DeepSeek-Vertrag, Datenschutz, Kosten, Aufbewahrung und feste Provider-/Modell-Allowlist separat prüfen
 - [ ] Provider-spezifisches Remote-HTTP-Threat-Model und negative Offline-Tests entwerfen
 - [ ] Lokale Secret-Verwaltung, Redaction und Freigabebindung separat implementieren und reviewen

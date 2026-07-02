@@ -148,12 +148,15 @@
 - Das UI-Wiring führt keinen Cloud-Aufruf aus, aktiviert keinen Transport und akzeptiert weder Prompt-/Datei-/Diff-Inhalte noch Secrets oder Modellantworten
 - `docs/CLOUD_APPROVAL_UX_RUNBOOK.md` dokumentiert den späteren `one_run_only`-UX-Flow, Pflichtanzeigen, harte Blocker, Ablauf der Freigabe, sichere Fehlerfälle und vollständig offline testbare Anforderungen
 - Das Runbook ist reine Spezifikation: Es ergänzt weder Runtime- noch UI-Code und erteilt keine Cloud-, Provider-, Transport- oder Datenfreigabe
+- Öffentliches `CloudProviderConfig`-Schema als unveränderlichen Offline-Vertrag ergänzt: nur bekannte Cloud-Provider-ID, immer deaktiviert, `remote_http` nur als Klassifikation, Approval-Scope `one_run_only` und kein konfigurierter Endpoint
+- `CloudProviderConfigValidation` meldet Ausführung immer als blockiert; das Schema liest keine Umgebung, Secrets oder Endpoints, baut keinen Provider und verändert weder `cloud_providers_enabled` noch `allowed_transports`
+- 23 fokussierte Cloud-Config-Tests und insgesamt 223 Python-Tests bestanden; Ruff und Python-Kompilierung bleiben grün
 
 ## Nächster sinnvoller Schritt
 
 Approval-Contract, lokale Preview-Route und read-only UI-Wiring liegen vor. Nächste Schritte vor jeder Cloud-Implementierung:
 
-1. Den im Cloud-Approval-UX-Runbook beschriebenen Ablauf zunächst als rein lokalen negativen Testvertrag konkretisieren; noch keinen Transport freigeben.
+1. Den im Cloud-Approval-UX-Runbook beschriebenen Ablauf auf Basis des deaktivierten Config-Schemas als rein lokalen negativen Testvertrag konkretisieren; noch keinen Transport freigeben.
 2. DeepSeek-Vertrag, Datenschutz, Aufbewahrung und Kosten separat prüfen; noch nichts implementieren oder verbinden.
 3. Provider-/Modell-Allowlist, Datenmanifest, Redaction, Secretbezug und doppelte Freigabebindung als getrennte negative Testverträge abschließen.
 4. Approval-Contract erst nach eigenem Security-Review als zusätzliches Gate vor `remote_http` in den Router integrieren.
