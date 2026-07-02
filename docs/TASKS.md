@@ -102,6 +102,8 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Späteren `one_run_only` Cloud-Approval-UX-Flow, Pflichtanzeigen, Blocker, Fehlerfälle und Offline-Testanforderungen im Runbook dokumentiert
 - [x] Deaktiviertes Cloud-Config-Schema als unveränderlichen Offline-Vertrag ergänzt; keine Env-Werte, Secrets, Endpoints, Provider oder Router-Freigaben
 - [x] 23 Cloud-Config-Tests decken Default-Denial, Providertrennung, fehlende Netzwerk-/Secretfelder und unveränderte Router-Gates ab
+- [x] Disabled Cloud-Config als lokale read-only API-/UI-Preview mit strikt validierter Response und statischem Offline-Fallback sichtbar gemacht
+- [x] Config-Preview-Sicherheitschecks decken fehlende Env-/Secret-/Endpointfelder, blockiertes `remote_http` und fehlende Startaktionen ab
 - [ ] Vor jeder Implementierung DeepSeek-Vertrag, Datenschutz, Kosten, Aufbewahrung und feste Provider-/Modell-Allowlist separat prüfen
 - [ ] Provider-spezifisches Remote-HTTP-Threat-Model und negative Offline-Tests entwerfen
 - [ ] Lokale Secret-Verwaltung, Redaction und Freigabebindung separat implementieren und reviewen

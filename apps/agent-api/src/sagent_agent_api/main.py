@@ -17,6 +17,7 @@ from sagent_agent_api.models import (
     ApprovalState,
     CloudApprovalPreviewRequest,
     CloudApprovalPreviewResponse,
+    CloudConfigPreviewResponse,
     GitBranchRequest,
     GitBranchResponse,
     GitDiffResponse,
@@ -47,6 +48,7 @@ from sagent_agent_core import (
     CloudApprovalError,
     CloudApprovalRequest,
     CloudDataDisclosure,
+    CloudProviderConfig,
     CloudPurpose,
     LoopbackModelError,
     ModelAdapterBlockedError,
@@ -67,6 +69,7 @@ from sagent_agent_core import (
     ModelTransport,
     ModelTransportBlockedError,
     build_cloud_approval_preview,
+    validate_cloud_provider_config,
 )
 from sagent_tools import (
     GitBranchPolicyError,
@@ -461,6 +464,32 @@ def get_cloud_approval_preview(
         approval_status=preview.approval_status,
         is_valid=preview.is_valid,
         risk_hints=list(preview.risk_hints),
+    )
+
+
+@app.get(
+    "/cloud/config-preview",
+    response_model=CloudConfigPreviewResponse,
+)
+def get_cloud_config_preview() -> CloudConfigPreviewResponse:
+    """Return static disabled cloud configuration metadata without side effects."""
+
+    config = CloudProviderConfig()
+    validation = validate_cloud_provider_config(config)
+    return CloudConfigPreviewResponse(
+        provider_id=config.provider_id,
+        enabled=config.enabled,
+        status=config.status.value,
+        transport_kind=config.transport_kind.value,
+        remote_http_allowed=False,
+        requires_explicit_approval=config.requires_explicit_approval,
+        approval_scope=config.approval_scope.value,
+        secrets_source=config.secrets_source.value,
+        secrets_loaded=False,
+        endpoint_configured=config.endpoint_configured,
+        execution_allowed=validation.execution_allowed,
+        config_source="static/offline/default",
+        cloud_execution="No",
     )
 
 
