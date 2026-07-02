@@ -39,6 +39,14 @@ type ApplyData = {
 
 type PanelStep = "idle" | "previewing" | "previewed" | "approving" | "approved" | "applying" | "applied" | "error";
 
+type HistoryEntry = {
+  action: "preview" | "approve" | "apply" | "reset" | "error";
+  timestamp: number;
+  path: string;
+  status: string;
+  hashPreview: string;
+};
+
 type Props = {
   apiUrl: string;
 };
@@ -54,8 +62,33 @@ export function CodeEditPreviewPanel({ apiUrl }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [previewedPath, setPreviewedPath] = useState("");
   const [previewedContent, setPreviewedContent] = useState("");
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  const addHistory = useCallback((action: HistoryEntry["action"], path: string, status: string, hash: string) => {
+    setHistory((prev) => [{ action, timestamp: Date.now(), path, status, hashPreview: hash }, ...prev].slice(0, 20));
+  }, []);
+
+  const isStale = preview != null && (
+    path.trim() !== previewedPath || content !== previewedContent
+  );
+
+  const panelStatus = (() => {
+    if (isStale) return { key: "stale" as const, label: "Veraltet" };
+    switch (step) {
+      case "idle": return { key: "idle" as const, label: "Bereit" };
+      case "previewing": return { key: "previewing" as const, label: "Vorschau wird erstellt" };
+      case "previewed": return { key: "preview_ready" as const, label: "Vorschau bereit" };
+      case "approving": return { key: "approving" as const, label: "Freigabe läuft" };
+      case "approved": return { key: "approved" as const, label: "Freigegeben" };
+      case "applying": return { key: "applying" as const, label: "Wird angewendet" };
+      case "applied": return { key: "applied" as const, label: "Angewendet" };
+      case "error": return { key: "error" as const, label: "Fehler" };
+      default: return { key: "idle" as const, label: "Bereit" };
+    }
+  })();
 
   const reset = useCallback(() => {
+    addHistory("reset", previewedPath || path.trim() || "", "idle", "");
     setStep("idle");
     setPreview(null);
     setApplyResult(null);
@@ -63,11 +96,7 @@ export function CodeEditPreviewPanel({ apiUrl }: Props) {
     setIsLoading(false);
     setPreviewedPath("");
     setPreviewedContent("");
-  }, []);
-
-  const isStale = preview != null && (
-    path.trim() !== previewedPath || content !== previewedContent
-  );
+  }, [addHistory, previewedPath, path]);
 
   const canPreview = path.trim().length > 0 && description.trim().length > 0 && step === "idle";
 
@@ -101,9 +130,11 @@ export function CodeEditPreviewPanel({ apiUrl }: Props) {
       const data = (await response.json()) as PreviewData;
       setPreview(data);
       setStep("previewed");
+      addHistory("preview", path.trim(), data.status, data.proposal_hash.slice(0, 12));
     } catch {
       setError("Code-Edit-Vorschau konnte nicht geladen werden.");
       setStep("error");
+      addHistory("error", path.trim(), "error", "");
     } finally {
       setIsLoading(false);
     }
@@ -132,9 +163,11 @@ export function CodeEditPreviewPanel({ apiUrl }: Props) {
       const data = (await response.json()) as PreviewData;
       setPreview(data);
       setStep("approved");
+      addHistory("approve", previewedPath, data.status, data.proposal_hash.slice(0, 12));
     } catch {
       setError("Die Freigabe konnte nicht gespeichert werden.");
       setStep("error");
+      addHistory("error", previewedPath, "error", "");
     } finally {
       setIsLoading(false);
     }
@@ -163,9 +196,11 @@ export function CodeEditPreviewPanel({ apiUrl }: Props) {
       const data = (await response.json()) as ApplyData;
       setApplyResult(data);
       setStep("applied");
+      addHistory("apply", previewedPath, data.status, data.proposal_hash.slice(0, 12));
     } catch {
       setError("Die Änderung konnte nicht angewendet werden.");
       setStep("error");
+      addHistory("error", previewedPath, "error", "");
     } finally {
       setIsLoading(false);
     }
@@ -188,6 +223,16 @@ export function CodeEditPreviewPanel({ apiUrl }: Props) {
         Datei-Pfad und Inhalt angeben, um einen sicheren, nicht-ausführenden
         Vorschlag zu erstellen.
       </p>
+
+      <div className="code-edit-status-bar" data-status={panelStatus.key}>
+        <span className="code-edit-status-label">{panelStatus.label}</span>
+        {step !== "idle" && step !== "error" ? (
+          <button type="button" className="code-edit-reset-btn" onClick={reset} disabled={isLoading}>
+            <XCircle weight="regular" aria-hidden="true" />
+            Zurücksetzen
+          </button>
+        ) : null}
+      </div>
 
       <div className="code-edit-form">
         <label htmlFor="code-edit-path">Dateipfad</label>
@@ -257,15 +302,6 @@ export function CodeEditPreviewPanel({ apiUrl }: Props) {
               )}
               {isLoading ? "Freigabe läuft" : "Freigeben"}
             </button>
-            <button
-              type="button"
-              className="code-edit-button cancel"
-              disabled={isLoading}
-              onClick={reset}
-            >
-              <XCircle weight="regular" aria-hidden="true" />
-              Verwerfen
-            </button>
           </div>
         ) : null}
 
@@ -283,15 +319,6 @@ export function CodeEditPreviewPanel({ apiUrl }: Props) {
                 <ArrowsClockwise weight="regular" aria-hidden="true" />
               )}
               {isLoading ? "Wird angewendet" : "Änderung anwenden"}
-            </button>
-            <button
-              type="button"
-              className="code-edit-button cancel"
-              disabled={isLoading}
-              onClick={reset}
-            >
-              <XCircle weight="regular" aria-hidden="true" />
-              Zurücksetzen
             </button>
           </div>
         ) : null}
@@ -353,6 +380,23 @@ export function CodeEditPreviewPanel({ apiUrl }: Props) {
               Status: {applyResult.status} · Keine Shell · Kein Git · Kein Netzwerk
             </span>
           </div>
+        </div>
+      ) : null}
+
+      {history.length > 0 ? (
+        <div className="code-edit-history">
+          <div className="code-edit-history-heading">Verlauf</div>
+          <ol className="code-edit-history-list">
+            {history.map((entry, i) => (
+              <li key={`${entry.timestamp}-${i}`} className="code-edit-history-entry" data-action={entry.action}>
+                <code className="code-edit-history-action">{entry.action}</code>
+                <span className="code-edit-history-path">{entry.path || "–"}</span>
+                {entry.hashPreview ? (
+                  <code className="code-edit-hash">{entry.hashPreview}</code>
+                ) : null}
+              </li>
+            ))}
+          </ol>
         </div>
       ) : null}
     </section>
