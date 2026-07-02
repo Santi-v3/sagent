@@ -413,3 +413,68 @@ class CodeEditApplyResponse(BaseModel):
     git_executed: Literal[False]
     network_used: Literal[False]
     model_authority: Literal[False]
+
+
+class TestRunPreviewRequest(BaseModel):
+    """Request to preview an allowlisted test command."""
+
+    command_id: str = Field(min_length=1, max_length=64)
+
+
+class TestRunPreviewResponse(BaseModel):
+    """Read-only preview of an allowlisted test run."""
+
+    test_run_id: UUID
+    command_id: str
+    display_name: str
+    command_args: list[str]
+    capability: Literal["run_tests"]
+    decision: str
+    requires_approval: Literal[True]
+    approval_hash: str
+    shell_used: Literal[False]
+    git_used: Literal[False]
+    network_used: Literal[False]
+    cloud_used: Literal[False]
+    model_called: Literal[False]
+
+
+class TestRunApproveRequest(BaseModel):
+    """Explicit human approval for one test run."""
+
+    test_run_id: UUID
+    approval_hash: str = Field(min_length=1, max_length=128)
+    approved: Literal[True]
+
+
+class TestRunApproveResponse(BaseModel):
+    """Confirmation that the test run was approved."""
+
+    status: Literal["approved"]
+    test_run_id: UUID
+
+
+class TestRunExecuteRequest(BaseModel):
+    """Explicit confirmed request to execute one approved test run."""
+
+    test_run_id: UUID
+    approval_hash: str = Field(min_length=1, max_length=128)
+    confirmed: Literal[True]
+
+
+class TestRunExecuteResponse(BaseModel):
+    """Bounded result from one executed test run."""
+
+    test_run_id: UUID
+    command_id: str
+    exit_code: int | None
+    stdout: str
+    stderr: str
+    timed_out: bool
+    output_truncated: bool
+    error: str | None
+    shell_used: Literal[False]
+    git_used: Literal[False]
+    network_used: Literal[False]
+    cloud_used: Literal[False]
+    model_called: Literal[False]

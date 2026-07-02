@@ -43,9 +43,28 @@ from sagent_agent_api.models import (
     TaskResponse,
     TestProfileResponse,
     TestResultResponse,
+    TestRunApproveRequest,
+    TestRunApproveResponse,
+    TestRunExecuteRequest,
+    TestRunExecuteResponse,
+    TestRunPreviewRequest,
+    TestRunPreviewResponse,
     TestRunRequest,
 )
 from sagent_agent_api.test_execution import get_test_runner
+from sagent_agent_api.test_runner import (
+    RunnerExecutionError,
+    TestCommandNotAllowedError,
+    TestRunConflictError,
+    TestRunHashMismatchError,
+    TestRunNotApprovedError,
+    TestRunNotFoundError,
+    approve_test_run,
+    execute_test_run,
+    get_test_command,
+    list_test_commands,
+    preview_test_run,
+)
 from sagent_agent_api.workflow import (
     InvalidTransitionError,
     TaskNotFoundError,
@@ -54,6 +73,7 @@ from sagent_agent_api.workflow import (
 from sagent_agent_core import (
     DEFAULT_CAPABILITY_POLICY,
     ApprovalError,
+    CapabilityDecision,
     CapabilityMode,
     CapabilityName,
     ChangeConflictError,
@@ -288,6 +308,129 @@ def get_test_result(
     except TestResultNotFoundError as error:
         raise HTTPException(status_code=404, detail="Test result not found.") from error
     return TestResultResponse.model_validate(result)
+
+
+@app.get("/agent/test-runs/commands")
+def list_test_runner_commands() -> list[dict[str, str | float]]:
+    """List available allowlisted test commands — no execution, no side effects."""
+
+    return [
+        {
+            "command_id": cmd.command_id,
+            "display_name": cmd.display_name,
+            "timeout_seconds": cmd.timeout_seconds,
+        }
+        for cmd in list_test_commands()
+    ]
+
+
+@app.post(
+    "/agent/test-runs/preview",
+    response_model=TestRunPreviewResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def preview_test_runner_run(
+    request: TestRunPreviewRequest,
+) -> TestRunPreviewResponse:
+    """Preview an allowlisted test command with capability-policy decision.
+
+    No execution occurs at this stage. The response includes an approval_hash
+    that must be presented to approve and later run this test.
+    """
+    try:
+        state, decision = preview_test_run(request.command_id)
+    except TestCommandNotAllowedError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+    cmd = get_test_command(request.command_id)
+    requires_approval = decision is not CapabilityDecision.ALLOWED
+
+    return TestRunPreviewResponse(
+        test_run_id=state.test_run_id,
+        command_id=cmd.command_id,
+        display_name=cmd.display_name,
+        command_args=list(cmd.argv),
+        capability="run_tests",
+        decision=decision.value,
+        requires_approval=requires_approval,
+        approval_hash=state.approval_hash,
+        shell_used=False,
+        git_used=False,
+        network_used=False,
+        cloud_used=False,
+        model_called=False,
+    )
+
+
+@app.post(
+    "/agent/test-runs/approve",
+    response_model=TestRunApproveResponse,
+)
+def approve_test_runner_run(
+    request: TestRunApproveRequest,
+) -> TestRunApproveResponse:
+    """Approve a previously previewed test run by matching its hash.
+
+    No execution occurs at this stage.
+    """
+    try:
+        approve_test_run(request.test_run_id, request.approval_hash)
+    except TestRunNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except TestRunHashMismatchError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except TestRunConflictError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+    return TestRunApproveResponse(status="approved", test_run_id=request.test_run_id)
+
+
+@app.post(
+    "/agent/test-runs/run",
+    response_model=TestRunExecuteResponse,
+)
+def execute_test_runner_run(
+    request: TestRunExecuteRequest,
+) -> TestRunExecuteResponse:
+    """Execute an approved, hash-verified test run against the fixed allowlist.
+
+    Only allowlisted commands are executed — no free-form strings, no shell=True,
+    no git, no network, no cloud, no model calls.
+    """
+    try:
+        state = execute_test_run(
+            request.test_run_id,
+            request.approval_hash,
+            request.confirmed,
+        )
+    except TestRunNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except TestRunHashMismatchError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except TestRunNotApprovedError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except TestRunConflictError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except TestCommandNotAllowedError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except RunnerExecutionError as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+    return TestRunExecuteResponse(
+        test_run_id=state.test_run_id,
+        command_id=state.command_id,
+        exit_code=state.exit_code,
+        stdout=state.stdout,
+        stderr=state.stderr,
+        timed_out=state.timed_out,
+        output_truncated=state.output_truncated,
+        error=state.error,
+        shell_used=False,
+        git_used=False,
+        network_used=False,
+        cloud_used=False,
+        model_called=False,
+    )
 
 
 @app.get("/git/status", response_model=GitStatusResponse)
