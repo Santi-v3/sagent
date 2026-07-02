@@ -77,6 +77,8 @@ Die vollständige strategische Roadmap steht in [`MASTER_PLAN.md`](MASTER_PLAN.m
 
 ## MVP 3 – Memory V2
 
+- **Offline-Grundlage abgeschlossen:** begrenzter lokaler Memory-Service, bestätigte
+  Store-/Delete-Flows und read-only List/Search-API ohne Modell- oder Netzwerkzugriff
 - Lokale Embeddings und semantische Suche evaluieren
 - Qdrant oder Chroma anhand klarer Kriterien auswählen
 - Projektwissen, Entscheidungen und Task-Historie auffindbar machen

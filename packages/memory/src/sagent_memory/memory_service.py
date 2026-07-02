@@ -160,6 +160,9 @@ class MemoryService:
     def list_entries(self) -> tuple[MemoryEntry, ...]:
         return tuple(self._entries.values())
 
+    def get(self, entry_id: str) -> MemoryEntry | None:
+        return self._entries.get(entry_id)
+
     def search(self, query: str, *, limit: int = 5) -> tuple[tuple[MemoryEntry, float], ...]:
         normalized = query.strip()
         if not normalized or len(normalized) > 5_000 or not 1 <= limit <= 50:

@@ -7,6 +7,7 @@ from uuid import UUID
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from sagent_memory import MemoryContractError
 
 from sagent_agent_api.code_edits import CodeEditPolicyError, CodeEditService, get_code_edit_service
 from sagent_agent_api.git_integration import get_git_tool
@@ -42,8 +43,12 @@ from sagent_agent_api.models import (
     LocalModelCompletionResponse,
     MemoryApplyRequest,
     MemoryDecisionRequest,
+    MemoryDeletePreviewRequest,
+    MemoryDeleteResponse,
+    MemoryEntryResponse,
     MemoryPreviewRequest,
     MemoryProposalResponse,
+    MemorySearchRequest,
     ModelAdapterResponse,
     ModelJobCreateRequest,
     ModelJobResponse,
@@ -859,6 +864,87 @@ def apply_memory_entry(
         return _memory_response(proposal)
     except MemoryProposalNotFoundError as error:
         raise HTTPException(status_code=404, detail="Memory proposal not found.") from error
+    except MemoryProposalConflictError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+def _memory_entry_response(entry, score=None) -> MemoryEntryResponse:
+    return MemoryEntryResponse(
+        entry_id=entry.entry_id,
+        text=entry.text,
+        metadata=dict(entry.metadata),
+        score=score,
+        untrusted=True,
+        network_used=False,
+        model_called=False,
+    )
+
+
+@app.get("/memory/entries", response_model=list[MemoryEntryResponse])
+def list_memory_entries(service: MemoryApprovalDependency) -> list[MemoryEntryResponse]:
+    return [_memory_entry_response(entry) for entry in service.memory.list_entries()]
+
+
+@app.post("/memory/search", response_model=list[MemoryEntryResponse])
+def search_memory_entries(
+    request: MemorySearchRequest, service: MemoryApprovalDependency
+) -> list[MemoryEntryResponse]:
+    try:
+        return [
+            _memory_entry_response(entry, score)
+            for entry, score in service.memory.search(request.query, limit=request.limit)
+        ]
+    except MemoryContractError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+def _memory_delete_response(proposal) -> MemoryDeleteResponse:
+    return MemoryDeleteResponse(
+        proposal_id=proposal.proposal_id,
+        entry_id=proposal.entry_id,
+        proposal_hash=proposal.proposal_hash,
+        status=proposal.status,
+        approval_required=True,
+        network_used=False,
+        model_called=False,
+        persisted=False,
+    )
+
+
+@app.post("/memory/deletions/preview", response_model=MemoryDeleteResponse, status_code=201)
+def preview_memory_delete(
+    request: MemoryDeletePreviewRequest, service: MemoryApprovalDependency
+) -> MemoryDeleteResponse:
+    try:
+        return _memory_delete_response(service.preview_delete(request.entry_id))
+    except MemoryProposalNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Memory entry not found.") from error
+
+
+@app.post("/memory/deletions/approve", response_model=MemoryDeleteResponse)
+def approve_memory_delete(
+    request: MemoryDecisionRequest, service: MemoryApprovalDependency
+) -> MemoryDeleteResponse:
+    try:
+        return _memory_delete_response(
+            service.approve_delete(request.proposal_id, request.proposal_hash)
+        )
+    except MemoryProposalNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Memory deletion not found.") from error
+    except MemoryProposalConflictError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@app.post("/memory/deletions/apply", response_model=MemoryDeleteResponse)
+def apply_memory_delete(
+    request: MemoryApplyRequest, service: MemoryApprovalDependency
+) -> MemoryDeleteResponse:
+    try:
+        return _memory_delete_response(
+            service.apply_delete(request.proposal_id, request.proposal_hash)
+        )
+    except MemoryProposalNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Memory deletion not found.") from error
     except MemoryProposalConflictError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
 

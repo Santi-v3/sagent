@@ -450,6 +450,40 @@ class MemoryProposalResponse(BaseModel):
     persisted: Literal[False]
 
 
+class MemorySearchRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    query: str = Field(min_length=1, max_length=5_000)
+    limit: int = Field(default=5, ge=1, le=50)
+
+
+class MemoryEntryResponse(BaseModel):
+    entry_id: str
+    text: str
+    metadata: dict[str, str | int | float | bool]
+    score: float | None = None
+    untrusted: Literal[True]
+    network_used: Literal[False]
+    model_called: Literal[False]
+
+
+class MemoryDeletePreviewRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    entry_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+
+
+class MemoryDeleteResponse(BaseModel):
+    proposal_id: UUID
+    entry_id: str
+    proposal_hash: str
+    status: Literal["prepared", "approved", "applied"]
+    approval_required: Literal[True]
+    network_used: Literal[False]
+    model_called: Literal[False]
+    persisted: Literal[False]
+
+
 class TestRunPreviewRequest(BaseModel):
     """Request to preview an allowlisted test command."""
 

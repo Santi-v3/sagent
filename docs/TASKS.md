@@ -200,7 +200,9 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Proposal-Hash, Unknown-Tool-Blockade und fehlende Ausführungsautorität testen
 - [x] Prozesslokale Memory-Store-API mit Preview, hashgebundenem Approval und einmaligem Apply ergänzen
 - [x] Secret-/Metadata-, Unknown-Field-, Wrong-Hash-, No-Approval- und Replay-Tests ergänzen
-- [ ] Read-only Search/List und bestätigte Delete-Verträge separat ergänzen
+- [x] Read-only Search/List und bestätigte hashgebundene Delete-Verträge ergänzen
+- [ ] Lokale Embedding-Optionen offline evaluieren; noch kein Modell automatisch laden oder kontaktieren
+- [ ] Projektwissen, Entscheidungen und Task-Historie als explizite Metadatenklassen spezifizieren
 - [ ] Agent-Loop erst nach getrenntem Policy-/Approval-Sicherheitsreview anbinden
 - [ ] Web-UI erst nach API-Vertrag und eigenen UI-Sicherheitschecks anbinden
 

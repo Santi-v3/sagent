@@ -249,12 +249,15 @@
 - Secrets in Text/Metadaten, unbekannte Felder, falsche Hashes, fehlendes Approval
   und Replays werden blockiert. Responses bestätigen fehlenden Netzwerk-, Modell-
   und Persistenzzugriff.
-- Keine Web-UI, Search-/Delete-Route, automatische Prompt-Anreicherung oder
-  Agent-Loop-Ausführung wurden aktiviert.
-- 17 neue fokussierte Tests und insgesamt 355 Python-Tests bestanden; Ruff ist grün.
+- Read-only List/Search-Routen liefern begrenzte, untrusted Einträge ohne Mutation,
+  Netzwerk oder Modellzugriff. Delete nutzt einen getrennten hashgebundenen,
+  bestätigten und einmaligen Preview-/Approve-/Apply-Flow.
+- Keine Web-UI, automatische Prompt-Anreicherung oder Agent-Loop-Ausführung wurde aktiviert.
+- 21 neue fokussierte Tests und insgesamt 359 Python-Tests bestanden; Ruff ist grün.
 
-Nächster Schritt ist ein eigener read-only Search/List-Vertrag. Eine UI-Anbindung
-darf erst danach mit separaten Sicherheitschecks erwogen werden.
+Nächster Masterplan-Schritt ist die rein offline durchgeführte Evaluation lokaler
+Embedding-Optionen und eine explizite Metadatenklassifikation für Projektwissen,
+Entscheidungen und Task-Historie. Eine UI-Anbindung benötigt eigene Sicherheitschecks.
 
 ## Nächster sinnvoller Schritt
 

@@ -280,7 +280,11 @@ Die Capability Policy ist ein reiner Offline-Vertrag, der Sagent-Subprozessen sp
 - Secrets in Text oder Metadaten, unbekannte Requestfelder, falsche Hashes,
   fehlende Bestätigung und Replays werden blockiert. Responses weisen
   `network_used=false`, `model_called=false` und `persisted=false` aus.
-- Es gibt noch keine Web-UI, Search-/Delete-Route oder automatische Kontextanreicherung.
+- List und Search sind begrenzte read-only Routen; Ergebnisse bleiben
+  `untrusted=true` und melden keinen Netzwerk- oder Modellzugriff.
+- Delete besitzt einen separaten Preview-/Approve-/Apply-Vertrag, ist an Entry-ID
+  und exakten Hash gebunden und kann nicht wiederholt werden.
+- Es gibt noch keine Web-UI oder automatische Kontextanreicherung.
 - `ToolRegistry` enthält ausschließlich unveränderliche Metadaten. Es besitzt keine
   Handler- oder Dispatch-Schnittstelle und kann deshalb kein Tool ausführen.
 - Streng formatierter Modelltext kann höchstens einen unveränderlichen,

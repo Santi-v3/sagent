@@ -58,9 +58,12 @@ strukturierte Suche:
 - Ohne Embedder steht eine deterministische lokale Token-Überschneidungssuche bereit.
 - Einträge und Metadaten sind begrenzt; zurückgegebene Einträge sind unveränderlich.
 
-Die lokale API bietet ausschließlich einen prozesslokalen Store-Flow über
+Die lokale API bietet einen prozesslokalen Store-Flow über
 `POST /memory/entries/preview`, `/approve` und `/apply`. Approval und Apply sind an
 Proposal-ID und exakten SHA-256-Hash gebunden; Apply verlangt zusätzlich
-`confirmed=true` und ist nicht wiederholbar. Es existiert noch keine Web-UI, keine
-Search-/Delete-Route, keine automatische Prompt-Anreicherung und kein implizites
-Speichern aus Chats oder Modellantworten.
+`confirmed=true` und ist nicht wiederholbar. `GET /memory/entries` und
+`POST /memory/search` lesen begrenzte, als untrusted markierte Einträge ohne
+Seiteneffekt. Löschung folgt einem getrennten Preview-/Approve-/Apply-Vertrag und
+ist ebenfalls hashgebunden, bestätigt und nur einmal nutzbar. Es existiert noch
+keine Web-UI, keine automatische Prompt-Anreicherung und kein implizites Speichern
+aus Chats oder Modellantworten.

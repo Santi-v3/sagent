@@ -35,10 +35,19 @@ class MemoryProposal:
     status: str
 
 
+@dataclass(frozen=True, slots=True)
+class MemoryDeleteProposal:
+    proposal_id: UUID
+    entry_id: str
+    proposal_hash: str
+    status: str
+
+
 class MemoryApprovalService:
     def __init__(self, memory: MemoryService | None = None) -> None:
         self.memory = memory or MemoryService()
         self._proposals: dict[UUID, MemoryProposal] = {}
+        self._delete_proposals: dict[UUID, MemoryDeleteProposal] = {}
         self._lock = Lock()
 
     def preview(
@@ -114,6 +123,59 @@ class MemoryApprovalService:
             )
             self._proposals[proposal_id] = applied
             return applied, entry
+
+    def preview_delete(self, entry_id: str) -> MemoryDeleteProposal:
+        if self.memory.get(entry_id) is None:
+            raise MemoryProposalNotFoundError("Memory entry not found.")
+        proposal_id = uuid4()
+        canonical = json.dumps(
+            {"operation": "delete", "proposal_id": str(proposal_id), "entry_id": entry_id},
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        proposal = MemoryDeleteProposal(
+            proposal_id,
+            entry_id,
+            hashlib.sha256(canonical.encode()).hexdigest(),
+            "prepared",
+        )
+        with self._lock:
+            self._delete_proposals[proposal_id] = proposal
+        return proposal
+
+    def _get_delete(self, proposal_id: UUID) -> MemoryDeleteProposal:
+        proposal = self._delete_proposals.get(proposal_id)
+        if proposal is None:
+            raise MemoryProposalNotFoundError("Memory deletion proposal not found.")
+        return proposal
+
+    def approve_delete(self, proposal_id: UUID, proposal_hash: str) -> MemoryDeleteProposal:
+        with self._lock:
+            proposal = self._get_delete(proposal_id)
+            if proposal.status != "prepared":
+                raise MemoryProposalConflictError("Memory deletion is not pending approval.")
+            if not hmac.compare_digest(proposal.proposal_hash, proposal_hash):
+                raise MemoryProposalConflictError("Memory deletion hash does not match.")
+            approved = MemoryDeleteProposal(
+                proposal.proposal_id, proposal.entry_id, proposal.proposal_hash, "approved"
+            )
+            self._delete_proposals[proposal_id] = approved
+            return approved
+
+    def apply_delete(self, proposal_id: UUID, proposal_hash: str) -> MemoryDeleteProposal:
+        with self._lock:
+            proposal = self._get_delete(proposal_id)
+            if proposal.status != "approved":
+                raise MemoryProposalConflictError("Memory deletion is not approved.")
+            if not hmac.compare_digest(proposal.proposal_hash, proposal_hash):
+                raise MemoryProposalConflictError("Memory deletion hash does not match.")
+            if not self.memory.delete(proposal.entry_id, confirmed=True):
+                raise MemoryProposalConflictError("Memory entry no longer exists.")
+            applied = MemoryDeleteProposal(
+                proposal.proposal_id, proposal.entry_id, proposal.proposal_hash, "applied"
+            )
+            self._delete_proposals[proposal_id] = applied
+            return applied
 
 
 @lru_cache(maxsize=1)
