@@ -2,10 +2,10 @@
 
 ## Projektstatus
 
-- **Phase:** MVP 1, MVP 2.A und MVP 2.B abgeschlossen; MVP 2.C Benchmark-Grundstein implementiert
-- **Stand:** 2026-07-01
+- **Phase:** MVP 1, MVP 2.A, MVP 2.B und MVP 2.C abgeschlossen; MVP 2.D (Code Edit Preview) implementiert
+- **Stand:** 2026-07-02
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Cloud-Approval-Preview lokal in der Web-UI sichtbar; `remote_http` und Cloud-Ausführung bleiben blockiert
+- **Aktueller Fokus:** Cloud-Approval-Preview und Code Edit Preview Panel lokal in der Web-UI sichtbar; `remote_http` und Cloud-Ausführung bleiben blockiert
 
 ## Fertiggestellt
 
@@ -154,6 +154,20 @@
 - Lokale read-only Route `GET /cloud/config-preview` ergänzt; sie bildet ausschließlich das statische disabled/not_configured Schema ab und baut weder Router noch Provider
 - Cloud-Approval-Bereich zeigt Config-Status, blockierte Ausführung, blockiertes Remote-HTTP, fehlenden Endpoint-/Secretzugriff und `one_run_only`-Approval mit sicherem statischem Fallback
 - 6 fokussierte Config-Preview-API-Tests, 18 Web-/UI-Sicherheitstests und insgesamt 229 Python-Tests bestanden; Ruff, ESLint, TypeScript, Python-Kompilierung und Next.js-Produktionsbuild bleiben grün
+
+## Abgeschlossen – MVP 2.D (Code Edit Preview Panel)
+
+- `code_edits.py`-Backend-Service mit deterministischer Preview (`sha256`-Hash aus Path/Content/Beschreibung), Hash-gebundener Approval und Apply-Simulation implementiert
+- Drei API-Endpunkte in `main.py` ergänzt: `POST /agent/code-edits/preview`, `POST /agent/code-edits/approve`, `POST /agent/code-edits/apply`
+- Jede API-Antwort deklariert `shell_executed=false`, `git_executed=false`, `network_used=false`, `model_authority=false` als Literal-Felder
+- Proposal-Hash-Bindung: Approval/Apply erfordert exakten Hash aus der Preview; abweichende Hashes und Statuskonflikte werden mit 409 abgewiesen
+- 16 API-Tests decken Preview-Validierung (leerer Pfad, leere Beschreibung), Approve/Apply-Erfolgs- und Fehlerpfade, doppelte Ausführung, Hash-Manipulation, Required-Flags und nonexistente ChangeSets ab
+- `CodeEditPreviewPanel`-Webkomponente als read-only-first UI: Formular (Pfad, Inhalt, Beschreibung), Diff-Preview, Approval-Schaltfläche, Apply-Schaltfläche (erst nach erfolgreicher Approval aktiviert)
+- Stale-Detection: Änderungen an Pfad oder Inhalt nach Preview setzen den Vorschlag als veraltet; Approve/Apply-Buttons werden deaktiviert
+- Sicherheitsinvarianten in der Komponentenausgabe: Read-Only-Badge, ShieldCheck mit "Keine Shell · Kein Git · Kein Netzwerk · Kein Modell"
+- 11 Web-Sicherheitstests: Komponentenname, erlaubte Endpoints, keine Cloud-/Shell-/Git-/Commit-/Push-/Merge-Schaltflächen, keine `model_response`- oder Secret-Felder, Stale-Detection-Prüfung
+- Komponente in `sagent-shell.tsx` integriert, CSS in `globals.css`
+- Linting, TypeScript, 55 Python-Tests, 11 Web-Tests und Next.js-Produktionsbuild erfolgreich
 
 ## Nächster sinnvoller Schritt
 
