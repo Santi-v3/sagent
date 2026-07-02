@@ -146,6 +146,17 @@ Die technische Loopback- und Cancellation-Grenze ist implementiert und mit Mock-
 - Modelltext bleibt untrusted und wird weder ausgeführt noch an Tools, Approval oder Policies weitergereicht.
 - Tests verwenden ausschließlich Mock-Transports. Ein echter Benchmark ist ein separater, ausdrücklich bestätigter Nutzerschritt.
 
+## Implementierter Code-Edit-Preview-Vertrag (MVP 2.D)
+
+- `POST /agent/code-edits/preview` erzeugt einen deterministischen SHA-256-Hash aus Pfad, Inhalt und Änderungsbeschreibung. Die Antwort enthält einen Diff (read-only, nie ausgeführt) und deklariert `shell_executed=false`, `git_executed=false`, `network_used=false`, `model_authority=false`.
+- `POST /agent/code-edits/approve` bindet die Freigabe an den exakten Proposal-Hash aus der Preview. Ein abweichender Hash oder ein bereits terminaler Status (approved/applied) wird mit 409 abgewiesen.
+- `POST /agent/code-edits/apply` simuliert eine Anwendung (liest nie von der Festplatte und schreibt nie darauf). Erfordert vorherige Approval und denselben Proposal-Hash. Doppelte Applys werden mit 409 blockiert.
+- Der Apply-Response enthält ebenfalls `shell_executed=false`, `git_executed=false`, `network_used=false`, `model_authority=false`.
+- Alle drei Endpunkte akzeptieren ausschließlich POST mit `Content-Type: application/json`; der CORS-Allowlist-Eintrag begrenzt Ursprünge auf `localhost:3000` und `127.0.0.1:3000`.
+- Die Webkomponente `CodeEditPreviewPanel` zeigt einen Read-Only-Badge und die Sicherheitsinvariante "Keine Shell · Kein Git · Kein Netzwerk · Kein Modell" an.
+- Die Apply-Schaltfläche bleibt deaktiviert, bis eine erfolgreiche Approval vorliegt. Bei Pfad-/Inhaltsänderung nach der Preview wird der Vorschlag als "veraltet" markiert und alle Aktionsschaltflächen werden deaktiviert.
+- Die UI enthält keine Commit-/Push-/Merge-/Shell-/Cloud-/DeepSeek-Schaltflächen, kein `model_response`-Eingabefeld und keine API-Key-/Secret-/Endpoint-Felder.
+
 ## Geplanter Cloud-Provider-Vertrag (nicht implementiert)
 
 Die verbindlichen Konzeptgrenzen für spätere optionale Cloud-Modelle stehen in
