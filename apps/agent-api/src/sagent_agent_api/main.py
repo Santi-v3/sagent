@@ -8,6 +8,7 @@ from uuid import UUID
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
+from sagent_agent_api.code_edits import CodeEditPolicyError, CodeEditService, get_code_edit_service
 from sagent_agent_api.git_integration import get_git_tool
 from sagent_agent_api.model_integration import get_model_router
 from sagent_agent_api.model_jobs import close_model_job_service, get_model_job_service
@@ -18,6 +19,11 @@ from sagent_agent_api.models import (
     CloudApprovalPreviewRequest,
     CloudApprovalPreviewResponse,
     CloudConfigPreviewResponse,
+    CodeEditApplyRequest,
+    CodeEditApplyResponse,
+    CodeEditApproveRequest,
+    CodeEditPreviewRequest,
+    CodeEditPreviewResponse,
     GitBranchRequest,
     GitBranchResponse,
     GitDiffResponse,
@@ -44,6 +50,9 @@ from sagent_agent_api.workflow import (
     workflow_store,
 )
 from sagent_agent_core import (
+    ApprovalError,
+    ChangeConflictError,
+    ChangeSetNotFoundError,
     CloudApprovalDecision,
     CloudApprovalError,
     CloudApprovalRequest,
@@ -72,6 +81,7 @@ from sagent_agent_core import (
     validate_cloud_provider_config,
 )
 from sagent_tools import (
+    FileAccessError,
     GitBranchPolicyError,
     GitCommandError,
     GitRepositoryError,
@@ -83,12 +93,14 @@ from sagent_tools import (
     TestResultNotFoundError,
     TestRunner,
     TestRunnerBusyError,
+    WorkspaceSecurityError,
 )
 
 TestRunnerDependency = Annotated[TestRunner, Depends(get_test_runner)]
 GitToolDependency = Annotated[GitTool, Depends(get_git_tool)]
 ModelRouterDependency = Annotated[ModelRouter, Depends(get_model_router)]
 ModelJobServiceDependency = Annotated[ModelJobService, Depends(get_model_job_service)]
+CodeEditDependency = Annotated[CodeEditService, Depends(get_code_edit_service)]
 
 
 @asynccontextmanager
@@ -490,6 +502,118 @@ def get_cloud_config_preview() -> CloudConfigPreviewResponse:
         execution_allowed=validation.execution_allowed,
         config_source="static/offline/default",
         cloud_execution="No",
+    )
+
+
+def _reject_prompt_field(request: CodeEditPreviewRequest) -> None:
+    """Reject any request that contains an untrusted prompt-originating field."""
+    if request.model_response is not None:
+        raise HTTPException(
+            status_code=422,
+            detail="Prompt fields from model responses are not allowed in code edit requests.",
+        )
+
+
+@app.post(
+    "/agent/code-edits/preview",
+    response_model=CodeEditPreviewResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def preview_code_edit(
+    request: CodeEditPreviewRequest,
+    service: CodeEditDependency,
+) -> CodeEditPreviewResponse:
+    """Read a file, diff the proposal, and return a non-executable preview.
+
+    No file write, no approval, no shell, no git, no network, and no model
+    authority is involved at this stage.
+    """
+    _reject_prompt_field(request)
+    try:
+        change_set = service.preview(request.path, request.new_content)
+    except CodeEditPolicyError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except (WorkspaceSecurityError, FileAccessError) as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+    change = change_set.changes[0]
+    return CodeEditPreviewResponse(
+        change_set_id=change_set.change_set_id,
+        proposal_hash=change_set.proposal_hash,
+        status=change_set.status.value,
+        approval_required=True,
+        diff=change.diff,
+        shell_executed=False,
+        git_executed=False,
+        network_used=False,
+        model_authority=False,
+    )
+
+
+@app.post(
+    "/agent/code-edits/approve",
+    response_model=CodeEditPreviewResponse,
+)
+def approve_code_edit(
+    request: CodeEditApproveRequest,
+    service: CodeEditDependency,
+) -> CodeEditPreviewResponse:
+    """Approve an exact previously displayed proposal by its bound hash.
+
+    This does not write files, execute shell commands, call models, or
+    use the network.
+    """
+    try:
+        change_set = service.approve(request.change_set_id, request.proposal_hash)
+    except ChangeSetNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Change set not found.") from error
+    except ApprovalError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+    change = change_set.changes[0]
+    return CodeEditPreviewResponse(
+        change_set_id=change_set.change_set_id,
+        proposal_hash=change_set.proposal_hash,
+        status=change_set.status.value,
+        approval_required=True,
+        diff=change.diff,
+        shell_executed=False,
+        git_executed=False,
+        network_used=False,
+        model_authority=False,
+    )
+
+
+@app.post(
+    "/agent/code-edits/apply",
+    response_model=CodeEditApplyResponse,
+)
+def apply_code_edit(
+    request: CodeEditApplyRequest,
+    service: CodeEditDependency,
+) -> CodeEditApplyResponse:
+    """Apply exactly one approved, hash-verified change set.
+
+    The proposal must have been approved with the exact same hash. The
+    workspace must not have changed since preparation.
+    """
+    try:
+        change_set = service.apply(request.change_set_id, request.proposal_hash)
+    except ChangeSetNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Change set not found.") from error
+    except ApprovalError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except ChangeConflictError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+    return CodeEditApplyResponse(
+        change_set_id=change_set.change_set_id,
+        proposal_hash=change_set.proposal_hash,
+        status=change_set.status.value,
+        shell_executed=False,
+        git_executed=False,
+        network_used=False,
+        model_authority=False,
     )
 
 
