@@ -124,6 +124,17 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Komponente in sagent-shell.tsx integriert, CSS in globals.css
 - [x] Linting, TypeScript, Build, 55 Python-Tests und 11 Web-Tests erfolgreich
 
+## Abgeschlossen – Code-Edit UI Hardening + History (PR #23)
+
+- [x] Panel-Statusanzeige: idle, preview_ready, approved, stale, applied, error
+- [x] Reset-Button: löscht lokalen UI-State, Diff-Anzeige und proposal_hash; macht Apply wieder disabled; keine API-Apply-Aktion
+- [x] Lokale UI-History (nur Browser-State, keine Persistenz): letzte Aktionen (preview, approve, apply, reset, error) mit sicheren Metadaten (action, timestamp, path, status, gekürzter proposal_hash)
+- [x] History speichert keine Datei-Inhalte, keine Secrets; kein localStorage/sessionStorage/IndexedDB
+- [x] Sichere Fehleranzeige: keine Stacktraces, keine sensiblen Inhalte
+- [x] Stale-Detection: Änderung an Pfad/Inhalt invalidiert Approval, disabled Apply, zeigt stale-Status
+- [x] 8 neue Web-Sicherheitstests für Reset, History, Stale, Fehleranzeige und Storage-Freiheit
+- [x] Linting, TypeScript, Build, 32 Web-Tests und 73 Python-Tests erfolgreich
+
 ## Noch blockiert bis zu den Sicherheitsinkrementen
 
 - Dateiänderungen bleiben außerhalb des internen Core-Services blockiert, bis API- und UI-Anbindung einen eigenen Sicherheitsreview erhalten

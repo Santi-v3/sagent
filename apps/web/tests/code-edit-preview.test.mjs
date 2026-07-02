@@ -61,3 +61,47 @@ test("component resets when path or content changes after preview", () => {
   assert.match(source, /previewedContent/);
   assert.match(source, /isStale/);
 });
+
+test("reset clears diff and proposal_hash from UI and disables apply", () => {
+  assert.match(source, /reset/);
+  assert.match(source, /setPreview\(null\)/);
+  assert.match(source, /setStep\("idle"\)/);
+  assert.match(source, /Zurücksetzen/);
+});
+
+test("history tracks preview, approve, apply, reset, error actions", () => {
+  assert.match(source, /addHistory\(/);
+  assert.match(source, /action:.*"preview"/);
+  assert.match(source, /action:.*"approve"/);
+  assert.match(source, /action:.*"apply"/);
+  assert.match(source, /action:.*"reset"/);
+  assert.match(source, /action:.*"error"/);
+});
+
+test("history stores only safe metadata, no file contents", () => {
+  const contentMatch = source.match(/HistoryEntry/);
+  assert.ok(contentMatch);
+  assert.doesNotMatch(source, /history.*content/i);
+});
+
+test("proposal_hash in history is truncated or redacted", () => {
+  assert.match(source, /hashPreview/);
+  assert.match(source, /proposal_hash\.slice\(0,\s*\d+\)/);
+});
+
+test("error display shows no stacktrace pattern", () => {
+  assert.doesNotMatch(source, /stacktrace/i);
+  assert.doesNotMatch(source, /error\.stack/i);
+});
+
+test("stale detection disables apply", () => {
+  assert.match(source, /isStale/);
+  assert.match(source, /Vorschlag ist veraltet/);
+});
+
+test("component uses no localStorage, sessionStorage, or IndexedDB", () => {
+  assert.doesNotMatch(source, /localStorage/);
+  assert.doesNotMatch(source, /sessionStorage/);
+  assert.doesNotMatch(source, /IndexedDB/);
+  assert.doesNotMatch(source, /indexedDB/);
+});

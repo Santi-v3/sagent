@@ -2178,6 +2178,153 @@ textarea:focus-visible {
   font-size: 11px;
 }
 
+.code-edit-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--sidebar);
+}
+
+.code-edit-status-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.code-edit-status-bar[data-status="idle"] .code-edit-status-label {
+  color: var(--muted);
+}
+
+.code-edit-status-bar[data-status="preview_ready"] .code-edit-status-label {
+  color: var(--info);
+}
+
+.code-edit-status-bar[data-status="approved"] .code-edit-status-label {
+  color: var(--success);
+}
+
+.code-edit-status-bar[data-status="applied"] .code-edit-status-label {
+  color: var(--success);
+}
+
+.code-edit-status-bar[data-status="stale"] .code-edit-status-label {
+  color: var(--warning);
+}
+
+.code-edit-status-bar[data-status="error"] .code-edit-status-label {
+  color: var(--danger);
+}
+
+.code-edit-status-bar[data-status^="previewing"],
+.code-edit-status-bar[data-status^="approving"],
+.code-edit-status-bar[data-status^="applying"] {
+  opacity: 0.7;
+}
+
+.code-edit-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.code-edit-reset-btn:hover:not(:disabled) {
+  border-color: #9f9a92;
+  color: var(--text);
+}
+
+.code-edit-reset-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.code-edit-history {
+  margin-top: 20px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.code-edit-history-heading {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.code-edit-history-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.code-edit-history-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 7px 14px;
+  font-size: 11px;
+}
+
+.code-edit-history-entry + .code-edit-history-entry {
+  border-top: 1px solid var(--line);
+}
+
+.code-edit-history-entry[data-action="preview"] {
+  color: var(--info);
+}
+
+.code-edit-history-entry[data-action="approve"] {
+  color: var(--success);
+}
+
+.code-edit-history-entry[data-action="apply"] {
+  color: var(--success);
+}
+
+.code-edit-history-entry[data-action="reset"] {
+  color: var(--muted);
+}
+
+.code-edit-history-entry[data-action="error"] {
+  color: var(--danger);
+}
+
+.code-edit-history-action {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.code-edit-history-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-weight: 500;
+}
+
 @media (max-width: 800px) {
   .code-edit-heading-row {
     align-items: flex-start;
@@ -2199,6 +2346,15 @@ textarea:focus-visible {
 
   .code-edit-stale-banner .code-edit-button.cancel {
     margin-left: 0;
+  }
+
+  .code-edit-status-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .code-edit-history-entry {
+    flex-wrap: wrap;
   }
 }
 
