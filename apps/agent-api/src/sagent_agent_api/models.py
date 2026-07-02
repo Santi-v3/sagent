@@ -330,3 +330,62 @@ class ModelJobResponse(BaseModel):
     completed_at: datetime | None
     result: LocalModelCompletionResponse | None
     error: str | None
+
+
+class CodeEditPreviewRequest(BaseModel):
+    """Read-only file content proposal for approval-bound local code edits."""
+
+    path: str = Field(min_length=1, max_length=500)
+    new_content: str = Field(min_length=1, max_length=100_000)
+    operation: Literal["update"] = "update"
+    model_response: str | None = Field(default=None, max_length=0)
+
+
+class CodeEditApproveRequest(BaseModel):
+    """Exact proposal-hash-bound human approval for one change set."""
+
+    change_set_id: UUID
+    proposal_hash: str = Field(min_length=1, max_length=128)
+    approved: Literal[True]
+
+
+class CodeEditApplyRequest(BaseModel):
+    """Exact proposal-hash-bound confirmation for one approved change set."""
+
+    change_set_id: UUID
+    proposal_hash: str = Field(min_length=1, max_length=128)
+    confirmed: Literal[True]
+
+
+class FileChangeResponse(BaseModel):
+    """One safe, reviewable file change without before/after content."""
+
+    path: str
+    operation: str
+    diff: str
+
+
+class CodeEditPreviewResponse(BaseModel):
+    """Non-executable change-set preview with approval requirement."""
+
+    change_set_id: UUID
+    proposal_hash: str
+    status: str
+    approval_required: Literal[True]
+    diff: str
+    shell_executed: Literal[False]
+    git_executed: Literal[False]
+    network_used: Literal[False]
+    model_authority: Literal[False]
+
+
+class CodeEditApplyResponse(BaseModel):
+    """Applied change-set confirmation without tool authority."""
+
+    change_set_id: UUID
+    proposal_hash: str
+    status: str
+    shell_executed: Literal[False]
+    git_executed: Literal[False]
+    network_used: Literal[False]
+    model_authority: Literal[False]

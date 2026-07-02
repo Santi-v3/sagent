@@ -13,6 +13,7 @@ from sagent_tools.git_tool import (
     GitStatus,
     GitTool,
 )
+from sagent_tools.redaction import redact_secrets
 from sagent_tools.runner import (
     TestCommandMismatchError,
     TestExecutionError,
@@ -50,4 +51,5 @@ __all__ = [
     "TestRunnerBusyError",
     "WorkspaceGuard",
     "WorkspaceSecurityError",
+    "redact_secrets",
 ]

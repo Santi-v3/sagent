@@ -58,6 +58,24 @@ Sagent behandelt Sicherheit als Kernfunktion. Modellantworten, Repository-Inhalt
 
 Die ChangeSet-Zustände sind noch nicht persistent, und mehrere Dateien bilden noch keine globale Dateisystemtransaktion. Deshalb bleibt die API-/UI-Anbindung bis zu einem eigenen Review deaktiviert.
 
+### Implementierter Safe Local Code Edit Loop (PR #21)
+
+Der Safe Local Code Edit Loop erlaubt das Vorschlagen, Freigeben und Anwenden einer einzelnen Dateiänderung über einen strengen Proposal → Preview-Diff → Approval-Fingerprint → Apply-Vertrag:
+
+- **Proposal (Preview):** `POST /agent/code-edits/preview` akzeptiert relativen Pfad und neuen Textinhalt. Die Route validiert den Pfad (keine Traversal, keine absoluten Pfade, keine Symlink-Flucht, keine Hidden-/Sensitiv-Dateien), liest den aktuellen Inhalt über `FileTool`, erstellt einen `ChangeSet` mit SHA-256-Hashes und Unified Diff, und gibt `proposal_hash`, `change_set_id` und `diff` zurück. **Es wird nichts geschrieben.**
+- **Approval (Fingerprint):** `POST /agent/code-edits/approve` akzeptiert `change_set_id` und `proposal_hash`. Der Hash muss exakt mit dem gespeicherten Proposal übereinstimmen (`hmac.compare_digest`). Ein Mismatch wird mit HTTP 409 blockiert. **Der einmal verwendete Approval kann nicht für andere Änderungen wiederverwendet werden.**
+- **Apply (Geprüfte Ausführung):** `POST /agent/code-edits/apply` akzeptiert `change_set_id`, `proposal_hash` und `confirmed=true`. Vor dem Schreiben wird der Workspace erneut gegen den `old_sha256` geprüft (Stale-Workspace-Erkennung). Bei Abweichung wird HTTP 409 gemeldet. Der ChangeSet wird **genau einmal** angewendet; ein zweiter Apply-Versuch schlägt fehl.
+- **Keine Tool-Autorität:** Keine der drei Routen führt Shell-Kommandos, Git-Aktionen, Netzwerkaufrufe, Cloud-Provider-Calls oder Modellanfragen aus. Die Responses enthalten `shell_executed=false`, `git_executed=false`, `network_used=false` und `model_authority=false`.
+- **`model_response` wird abgewiesen:** Wenn ein Request ein `model_response`-Feld enthält, wird er mit HTTP 422 abgelehnt. Modellantworten dürfen keine Tool-Autorität erhalten.
+- **Sicherheitsgrenzen:**
+  - Nur erlaubte Textdateien im Workspace (keine NUL-Bytes, nur UTF-8, ≤1 MiB)
+  - Pfad-Traversal (`..`) und absolute Pfade werden blockiert
+  - Symlink-Ziele außerhalb des Workspace werden blockiert (auch indirekt über Alias)
+  - `.env`-Dateien, versteckte Dateien (`.*`), Dependency-Manifeste und Lockfiles sind blockiert
+  - Secrets in altem oder neuem Content werden vor Verarbeitung erkannt und blockiert
+  - Binärdateien werden ohne Content-Leakage blockiert
+  - Fehlerantworten enthalten keine sensiblen Dateiinhalte
+
 ## Implementierter Test-Sicherheitsvertrag (MVP 1.D)
 
 - Requests wählen nur eine registrierte Profil-ID; ausführbare Datei, Argumente und Arbeitsverzeichnis stammen vollständig aus der serverseitigen Allowlist.
