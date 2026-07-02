@@ -201,8 +201,9 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Prozesslokale Memory-Store-API mit Preview, hashgebundenem Approval und einmaligem Apply ergänzen
 - [x] Secret-/Metadata-, Unknown-Field-, Wrong-Hash-, No-Approval- und Replay-Tests ergänzen
 - [x] Read-only Search/List und bestätigte hashgebundene Delete-Verträge ergänzen
-- [ ] Lokale Embedding-Optionen offline evaluieren; noch kein Modell automatisch laden oder kontaktieren
-- [ ] Projektwissen, Entscheidungen und Task-Historie als explizite Metadatenklassen spezifizieren
+- [x] Lokale Vector-Store-Optionen dokumentarisch evaluieren; Qdrant Local Mode als ersten Spike wählen
+- [x] Projektwissen, Entscheidungen, Task-Historie und Zusammenfassungen als explizite Metadatenklassen spezifizieren
+- [ ] Qdrant/Chroma mit injizierten synthetischen Vektoren auf separatem Branch vergleichen; Installation vorher freigeben
 - [ ] Agent-Loop erst nach getrenntem Policy-/Approval-Sicherheitsreview anbinden
 - [ ] Web-UI erst nach API-Vertrag und eigenen UI-Sicherheitschecks anbinden
 

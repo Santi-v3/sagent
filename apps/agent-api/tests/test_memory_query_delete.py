@@ -46,6 +46,33 @@ def test_search_rejects_unknown_fields_and_blank_query() -> None:
         app.dependency_overrides.clear()
 
 
+def test_list_and_search_support_fixed_masterplan_metadata_filters() -> None:
+    client, service, _entry_id = setup_client()
+    try:
+        service.memory.store(
+            "Sagent task history",
+            {"kind": "task_history", "source": "task", "status": "active"},
+            confirmed=True,
+        )
+
+        decisions = client.get("/memory/entries", params={"kind": "decision", "status": "active"})
+        tasks = client.post(
+            "/memory/search",
+            json={"query": "Sagent", "kind": "task_history", "source": "task"},
+        )
+        invalid = client.get("/memory/entries", params={"kind": "private_profile"})
+        invalid_status = client.get("/memory/entries", params={"status": "unknown"})
+
+        assert decisions.status_code == 200
+        assert all(item["metadata"]["kind"] == "decision" for item in decisions.json())
+        assert tasks.status_code == 200
+        assert [item["metadata"]["kind"] for item in tasks.json()] == ["task_history"]
+        assert invalid.status_code == 422
+        assert invalid_status.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+
+
 def test_delete_requires_exact_approval_and_is_single_use() -> None:
     client, service, entry_id = setup_client()
     try:

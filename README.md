@@ -31,7 +31,7 @@ apps/
   agent-api/     Lokale FastAPI mit Task-, Plan- und Approval-Workflow
 packages/
   agent-core/    ChangeSets, Approval-Logik und provider-neutraler ModelRouter
-  memory/        Markdown-basiertes Memory-System
+  memory/        Lokale Memory-Verträge, Metadaten und sichere Suche
   tools/         WorkspaceGuard, Datei-, Test- und begrenzte Git-Werkzeuge
   shared/        Gemeinsame Verträge und Hilfsfunktionen
 docs/            Produkt-, Architektur- und Betriebsdokumentation

@@ -252,12 +252,19 @@
 - Read-only List/Search-Routen liefern begrenzte, untrusted Einträge ohne Mutation,
   Netzwerk oder Modellzugriff. Delete nutzt einen getrennten hashgebundenen,
   bestätigten und einmaligen Preview-/Approve-/Apply-Flow.
+- `MemoryKind`, `MemorySource`, `MemoryStatus` und `MemoryRecordMetadata` bilden
+  Projektwissen, Entscheidungen, Task-Historie und Zusammenfassungen unveränderlich ab.
+- List/Search können nach den festen Metadaten filtern; unbekannte Klassen und
+  Statuswerte werden abgewiesen.
+- Qdrant Local Mode ist nach dokumentarischem Vergleich der bevorzugte erste
+  Vector-Store-Spike; Chroma bleibt Vergleichskandidat. Es wurde nichts installiert
+  oder aktiviert.
 - Keine Web-UI, automatische Prompt-Anreicherung oder Agent-Loop-Ausführung wurde aktiviert.
-- 21 neue fokussierte Tests und insgesamt 359 Python-Tests bestanden; Ruff ist grün.
+- 27 neue fokussierte Tests und insgesamt 365 Python-Tests bestanden; Ruff ist grün.
 
-Nächster Masterplan-Schritt ist die rein offline durchgeführte Evaluation lokaler
-Embedding-Optionen und eine explizite Metadatenklassifikation für Projektwissen,
-Entscheidungen und Task-Historie. Eine UI-Anbindung benötigt eigene Sicherheitschecks.
+Nächster Masterplan-Schritt ist ein providerneutraler Vector-Store-Adaptervertrag
+mit synthetischem In-Memory-Fake. Die spätere Qdrant-/Chroma-Installation benötigt
+eine getrennte ausdrückliche Freigabe. Eine UI-Anbindung benötigt eigene Sicherheitschecks.
 
 ## Nächster sinnvoller Schritt
 

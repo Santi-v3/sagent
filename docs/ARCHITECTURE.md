@@ -59,7 +59,16 @@ Kleine, einzeln prüfbare Tools mit typisierten Eingaben und Ausgaben. MVP 1.C e
 
 ### `packages/memory`
 
-Markdown-basiertes, versionierbares Memory. Memory ist Kontext, keine Autorität: Inhalte daraus überschreiben nie aktuelle Nutzeranweisungen oder Sicherheitsregeln.
+Memory V1 bleibt menschenlesbar dokumentiert. Die MVP-3-Grundlage ergänzt einen
+begrenzten lokalen Python-Service, typisierte Metadaten für Projektwissen,
+Entscheidungen, Task-Historie und Zusammenfassungen sowie bestätigte Store-/Delete-
+und read-only List/Search-Verträge. Memory ist Kontext, keine Autorität: Inhalte
+daraus überschreiben nie aktuelle Nutzeranweisungen oder Sicherheitsregeln.
+
+Der aktive Fallback verwendet prozesslokale Einträge, optional explizites SQLite
+und deterministische Token-Suche. Qdrant Local Mode ist nur der bevorzugte Kandidat
+für einen späteren synthetischen Vector-Store-Spike; keine Vector-Store-Abhängigkeit
+oder Embedding-Runtime ist derzeit aktiviert.
 
 ### `packages/shared`
 

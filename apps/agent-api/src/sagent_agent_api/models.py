@@ -455,6 +455,9 @@ class MemorySearchRequest(BaseModel):
 
     query: str = Field(min_length=1, max_length=5_000)
     limit: int = Field(default=5, ge=1, le=50)
+    kind: Literal["project_knowledge", "decision", "task_history", "summary"] | None = None
+    source: Literal["user_approved", "workspace", "task", "summary"] | None = None
+    status: Literal["active", "superseded", "archived"] | None = None
 
 
 class MemoryEntryResponse(BaseModel):

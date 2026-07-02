@@ -79,8 +79,8 @@ Die vollständige strategische Roadmap steht in [`MASTER_PLAN.md`](MASTER_PLAN.m
 
 - **Offline-Grundlage abgeschlossen:** begrenzter lokaler Memory-Service, bestätigte
   Store-/Delete-Flows und read-only List/Search-API ohne Modell- oder Netzwerkzugriff
-- Lokale Embeddings und semantische Suche evaluieren
-- Qdrant oder Chroma anhand klarer Kriterien auswählen
+- [Evaluationsvertrag](MEMORY_V2_VECTOR_STORE_EVALUATION.md) für lokale Embeddings und semantische Suche festgelegt
+- Qdrant Local Mode als bevorzugten ersten Spike gewählt; Chroma bleibt Vergleichskandidat
 - Projektwissen, Entscheidungen und Task-Historie auffindbar machen
 
 ## MVP 4 – Datei- und Recherche-Agent

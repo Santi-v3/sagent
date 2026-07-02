@@ -57,6 +57,8 @@ strukturierte Suche:
   keinen HTTP-Client, liest keine Umgebungsvariablen und kontaktiert kein Modell.
 - Ohne Embedder steht eine deterministische lokale Token-Überschneidungssuche bereit.
 - Einträge und Metadaten sind begrenzt; zurückgegebene Einträge sind unveränderlich.
+- Die festen Klassen `project_knowledge`, `decision`, `task_history` und `summary`
+  können nach `kind`, `source` und `status` gefiltert werden.
 
 Die lokale API bietet einen prozesslokalen Store-Flow über
 `POST /memory/entries/preview`, `/approve` und `/apply`. Approval und Apply sind an
@@ -67,3 +69,7 @@ Seiteneffekt. Löschung folgt einem getrennten Preview-/Approve-/Apply-Vertrag u
 ist ebenfalls hashgebunden, bestätigt und nur einmal nutzbar. Es existiert noch
 keine Web-UI, keine automatische Prompt-Anreicherung und kein implizites Speichern
 aus Chats oder Modellantworten.
+
+Die Auswahlkriterien und die vorläufige Wahl von Qdrant Local Mode für einen
+separaten synthetischen Spike stehen in
+[`MEMORY_V2_VECTOR_STORE_EVALUATION.md`](MEMORY_V2_VECTOR_STORE_EVALUATION.md).

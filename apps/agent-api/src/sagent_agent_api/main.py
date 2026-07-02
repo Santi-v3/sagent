@@ -5,9 +5,9 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
-from sagent_memory import MemoryContractError
+from sagent_memory import MemoryContractError, MemoryKind, MemorySource, MemoryStatus
 
 from sagent_agent_api.code_edits import CodeEditPolicyError, CodeEditService, get_code_edit_service
 from sagent_agent_api.git_integration import get_git_tool
@@ -881,8 +881,14 @@ def _memory_entry_response(entry, score=None) -> MemoryEntryResponse:
 
 
 @app.get("/memory/entries", response_model=list[MemoryEntryResponse])
-def list_memory_entries(service: MemoryApprovalDependency) -> list[MemoryEntryResponse]:
-    return [_memory_entry_response(entry) for entry in service.memory.list_entries()]
+def list_memory_entries(
+    service: MemoryApprovalDependency,
+    kind: MemoryKind | None = None,
+    source: MemorySource | None = None,
+    memory_status: Annotated[MemoryStatus | None, Query(alias="status")] = None,
+) -> list[MemoryEntryResponse]:
+    entries = service.memory.list_entries(kind=kind, source=source, status=memory_status)
+    return [_memory_entry_response(entry) for entry in entries]
 
 
 @app.post("/memory/search", response_model=list[MemoryEntryResponse])
@@ -892,7 +898,13 @@ def search_memory_entries(
     try:
         return [
             _memory_entry_response(entry, score)
-            for entry, score in service.memory.search(request.query, limit=request.limit)
+            for entry, score in service.memory.search(
+                request.query,
+                limit=request.limit,
+                kind=MemoryKind(request.kind) if request.kind else None,
+                source=MemorySource(request.source) if request.source else None,
+                status=MemoryStatus(request.status) if request.status else None,
+            )
         ]
     except MemoryContractError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error

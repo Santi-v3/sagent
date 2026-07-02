@@ -12,6 +12,8 @@ from pathlib import Path
 from types import MappingProxyType
 from uuid import uuid4
 
+from sagent_memory.metadata import MemoryKind, MemorySource, MemoryStatus
+
 
 class MemoryContractError(ValueError):
     """Raised when a memory operation violates the local contract."""
@@ -109,6 +111,20 @@ class MemoryService:
                 raise MemoryContractError("Memory metadata keys must be bounded identifiers.")
             if isinstance(value, str) and len(value) > 500:
                 raise MemoryContractError("Memory metadata strings are limited to 500 characters.")
+        enum_fields = {
+            "kind": MemoryKind,
+            "source": MemorySource,
+            "status": MemoryStatus,
+        }
+        for field_name, enum_type in enum_fields.items():
+            value = values.get(field_name)
+            if value is not None:
+                try:
+                    enum_type(value)
+                except (TypeError, ValueError) as error:
+                    raise MemoryContractError(
+                        f"Memory metadata field {field_name} has an unknown value."
+                    ) from error
         return values
 
     @staticmethod
@@ -157,13 +173,45 @@ class MemoryService:
                 )
         return entry
 
-    def list_entries(self) -> tuple[MemoryEntry, ...]:
-        return tuple(self._entries.values())
+    @staticmethod
+    def _matches(
+        entry: MemoryEntry,
+        *,
+        kind: MemoryKind | None = None,
+        source: MemorySource | None = None,
+        status: MemoryStatus | None = None,
+    ) -> bool:
+        filters = {"kind": kind, "source": source, "status": status}
+        return all(
+            expected is None or entry.metadata.get(name) == expected.value
+            for name, expected in filters.items()
+        )
+
+    def list_entries(
+        self,
+        *,
+        kind: MemoryKind | None = None,
+        source: MemorySource | None = None,
+        status: MemoryStatus | None = None,
+    ) -> tuple[MemoryEntry, ...]:
+        return tuple(
+            entry
+            for entry in self._entries.values()
+            if self._matches(entry, kind=kind, source=source, status=status)
+        )
 
     def get(self, entry_id: str) -> MemoryEntry | None:
         return self._entries.get(entry_id)
 
-    def search(self, query: str, *, limit: int = 5) -> tuple[tuple[MemoryEntry, float], ...]:
+    def search(
+        self,
+        query: str,
+        *,
+        limit: int = 5,
+        kind: MemoryKind | None = None,
+        source: MemorySource | None = None,
+        status: MemoryStatus | None = None,
+    ) -> tuple[tuple[MemoryEntry, float], ...]:
         normalized = query.strip()
         if not normalized or len(normalized) > 5_000 or not 1 <= limit <= 50:
             raise MemoryContractError("Memory search request is outside bounded limits.")
@@ -171,6 +219,8 @@ class MemoryService:
         query_tokens = _tokens(normalized)
         scored: list[tuple[MemoryEntry, float]] = []
         for entry in self._entries.values():
+            if not self._matches(entry, kind=kind, source=source, status=status):
+                continue
             if query_embedding is not None and entry.embedding is not None:
                 score = _cosine(query_embedding, entry.embedding)
             else:
