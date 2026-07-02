@@ -284,6 +284,11 @@ Die Capability Policy ist ein reiner Offline-Vertrag, der Sagent-Subprozessen sp
   `untrusted=true` und melden keinen Netzwerk- oder Modellzugriff.
 - Delete besitzt einen separaten Preview-/Approve-/Apply-Vertrag, ist an Entry-ID
   und exakten Hash gebunden und kann nicht wiederholt werden.
+- Der providerneutrale Vector-Store-Vertrag enthält keine URL-, Endpoint-, Secret-
+  oder Netzwerkfelder. Der In-Memory-Adapter begrenzt Punkte, Dimension und Treffer,
+  validiert endliche Zahlen und unterstützt ausschließlich lokale Metadatenfilter.
+- Ein Vector Store wird nur injiziert; ohne explizite Einbindung bleibt die bisherige
+  Token-Suche aktiv. Qdrant und Chroma sind nicht installiert oder gestartet.
 - Es gibt noch keine Web-UI oder automatische Kontextanreicherung.
 - `ToolRegistry` enthält ausschließlich unveränderliche Metadaten. Es besitzt keine
   Handler- oder Dispatch-Schnittstelle und kann deshalb kein Tool ausführen.

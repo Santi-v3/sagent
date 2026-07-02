@@ -66,9 +66,10 @@ und read-only List/Search-Verträge. Memory ist Kontext, keine Autorität: Inhal
 daraus überschreiben nie aktuelle Nutzeranweisungen oder Sicherheitsregeln.
 
 Der aktive Fallback verwendet prozesslokale Einträge, optional explizites SQLite
-und deterministische Token-Suche. Qdrant Local Mode ist nur der bevorzugte Kandidat
-für einen späteren synthetischen Vector-Store-Spike; keine Vector-Store-Abhängigkeit
-oder Embedding-Runtime ist derzeit aktiviert.
+und deterministische Token-Suche. Ein providerneutraler `VectorStore`-Protocol und
+ein begrenzter In-Memory-Fake erlauben synthetische Adaptertests. Qdrant Local Mode
+ist nur der bevorzugte Kandidat für einen späteren Integrations-Spike; keine externe
+Vector-Store-Abhängigkeit oder Embedding-Runtime ist derzeit aktiviert.
 
 ### `packages/shared`
 

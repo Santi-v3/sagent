@@ -55,6 +55,9 @@ strukturierte Suche:
 - SQLite-Persistenz entsteht nur bei explizit injiziertem lokalem Datenbankpfad.
 - Embeddings entstehen nur über eine injizierte Funktion; das Memory-Paket enthält
   keinen HTTP-Client, liest keine Umgebungsvariablen und kontaktiert kein Modell.
+- Ein providerneutraler `VectorStore`-Vertrag kapselt Upsert, Query und Delete. Der
+  aktive `InMemoryVectorStore` ist ein begrenzter synthetischer Offline-Fake ohne
+  Endpoint- oder Credential-Konfiguration.
 - Ohne Embedder steht eine deterministische lokale Token-Überschneidungssuche bereit.
 - Einträge und Metadaten sind begrenzt; zurückgegebene Einträge sind unveränderlich.
 - Die festen Klassen `project_knowledge`, `decision`, `task_history` und `summary`

@@ -49,6 +49,11 @@ eigener Branch beide Adapter gegen denselben vollständig synthetischen Katalog
 prüft. Bis dahin bleibt der aktuelle SQLite-/Token-Suchvertrag der aktive,
 abhängigkeitsfreie Fallback.
 
+Der dafür notwendige providerneutrale `VectorStore`-Vertrag und ein begrenzter
+synthetischer In-Memory-Adapter sind bereits implementiert. Damit kann der spätere
+Vergleich denselben Upsert-/Query-/Filter-/Delete-Vertrag verwenden, ohne API oder
+Memory-Domänenmodell erneut zu ändern.
+
 ## Pflichtprüfungen vor einer Abhängigkeit
 
 - Lockfile-gebundene Installation separat freigeben.

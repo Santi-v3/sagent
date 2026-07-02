@@ -203,6 +203,8 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Read-only Search/List und bestätigte hashgebundene Delete-Verträge ergänzen
 - [x] Lokale Vector-Store-Optionen dokumentarisch evaluieren; Qdrant Local Mode als ersten Spike wählen
 - [x] Projektwissen, Entscheidungen, Task-Historie und Zusammenfassungen als explizite Metadatenklassen spezifizieren
+- [x] Providerneutralen Vector-Store-Vertrag und begrenzten synthetischen In-Memory-Adapter implementieren
+- [x] MemoryService per Dependency Injection an Vector-Upsert, Filter-Query und Delete anbinden
 - [ ] Qdrant/Chroma mit injizierten synthetischen Vektoren auf separatem Branch vergleichen; Installation vorher freigeben
 - [ ] Agent-Loop erst nach getrenntem Policy-/Approval-Sicherheitsreview anbinden
 - [ ] Web-UI erst nach API-Vertrag und eigenen UI-Sicherheitschecks anbinden

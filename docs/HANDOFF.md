@@ -259,12 +259,17 @@
 - Qdrant Local Mode ist nach dokumentarischem Vergleich der bevorzugte erste
   Vector-Store-Spike; Chroma bleibt Vergleichskandidat. Es wurde nichts installiert
   oder aktiviert.
+- Providerneutraler `VectorStore`-Vertrag und begrenzter `InMemoryVectorStore`
+  implementiert. Der MemoryService kann injizierte Vektoren upserten, nach festen
+  Metadaten filtern und bei bestätigter Löschung entfernen.
+- Der synthetische Adapter hat keine URL-, Endpoint-, API-Key-, Provider- oder
+  Netzwerkoberfläche; Qdrant/Chroma bleiben nicht installiert.
 - Keine Web-UI, automatische Prompt-Anreicherung oder Agent-Loop-Ausführung wurde aktiviert.
-- 27 neue fokussierte Tests und insgesamt 365 Python-Tests bestanden; Ruff ist grün.
+- 32 neue fokussierte Tests und insgesamt 370 Python-Tests bestanden; Ruff ist grün.
 
-Nächster Masterplan-Schritt ist ein providerneutraler Vector-Store-Adaptervertrag
-mit synthetischem In-Memory-Fake. Die spätere Qdrant-/Chroma-Installation benötigt
-eine getrennte ausdrückliche Freigabe. Eine UI-Anbindung benötigt eigene Sicherheitschecks.
+Nächster Masterplan-Schritt ist der lockfile-gebundene synthetische Vergleich von
+Qdrant Local Mode und Chroma. Die dafür nötige Installation benötigt eine getrennte
+ausdrückliche Freigabe. Eine UI-Anbindung benötigt eigene Sicherheitschecks.
 
 ## Nächster sinnvoller Schritt
 

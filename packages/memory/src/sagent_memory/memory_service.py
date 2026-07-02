@@ -13,6 +13,7 @@ from types import MappingProxyType
 from uuid import uuid4
 
 from sagent_memory.metadata import MemoryKind, MemorySource, MemoryStatus
+from sagent_memory.vector_store import VectorPoint, VectorStore
 
 
 class MemoryContractError(ValueError):
@@ -61,17 +62,29 @@ class MemoryService:
         *,
         database_path: str | Path | None = None,
         embedding_function: EmbeddingFunction | None = None,
+        vector_store: VectorStore | None = None,
         max_entries: int = 1_000,
     ) -> None:
         if max_entries < 1:
             raise MemoryContractError("max_entries must be positive.")
         self._database_path = Path(database_path).resolve() if database_path else None
         self._embedding_function = embedding_function
+        self._vector_store = vector_store
         self._max_entries = max_entries
         self._entries: dict[str, MemoryEntry] = {}
         if self._database_path is not None:
             self._initialize_database()
             self._load_entries()
+        if self._vector_store is not None:
+            for entry in self._entries.values():
+                if entry.embedding is not None:
+                    self._vector_store.upsert(
+                        VectorPoint(
+                            entry.entry_id,
+                            entry.embedding,
+                            {key: str(value) for key, value in entry.metadata.items()},
+                        )
+                    )
 
     def _connect(self) -> sqlite3.Connection:
         if self._database_path is None:
@@ -158,6 +171,14 @@ class MemoryService:
         values = self.validate_metadata(metadata)
         embedding = self._embedding_function(normalized) if self._embedding_function else None
         entry = self._entry(uuid4().hex, normalized, values, embedding)
+        if embedding is not None and self._vector_store is not None:
+            self._vector_store.upsert(
+                VectorPoint(
+                    entry.entry_id,
+                    entry.embedding or (),
+                    {key: str(value) for key, value in entry.metadata.items()},
+                )
+            )
         self._entries[entry.entry_id] = entry
         if self._database_path is not None:
             with self._connect() as connection:
@@ -216,6 +237,18 @@ class MemoryService:
         if not normalized or len(normalized) > 5_000 or not 1 <= limit <= 50:
             raise MemoryContractError("Memory search request is outside bounded limits.")
         query_embedding = self._embedding_function(normalized) if self._embedding_function else None
+        if query_embedding is not None and self._vector_store is not None:
+            filters = {
+                name: value.value
+                for name, value in {"kind": kind, "source": source, "status": status}.items()
+                if value is not None
+            }
+            results = self._vector_store.query(query_embedding, limit=limit, filters=filters)
+            return tuple(
+                (self._entries[result.point_id], result.score)
+                for result in results
+                if result.point_id in self._entries
+            )
         query_tokens = _tokens(normalized)
         scored: list[tuple[MemoryEntry, float]] = []
         for entry in self._entries.values():
@@ -242,6 +275,8 @@ class MemoryService:
         removed = self._entries.pop(entry_id, None)
         if removed is None:
             return False
+        if removed.embedding is not None and self._vector_store is not None:
+            self._vector_store.delete(entry_id)
         if self._database_path is not None:
             with self._connect() as connection:
                 connection.execute("DELETE FROM memory_entries WHERE entry_id = ?", (entry_id,))

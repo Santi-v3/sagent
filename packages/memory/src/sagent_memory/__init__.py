@@ -15,6 +15,13 @@ from sagent_memory.metadata import (
     MemorySource,
     MemoryStatus,
 )
+from sagent_memory.vector_store import (
+    InMemoryVectorStore,
+    VectorPoint,
+    VectorSearchResult,
+    VectorStore,
+    VectorStoreError,
+)
 
 __all__ = [
     "EmbeddingFunction",
@@ -28,4 +35,9 @@ __all__ = [
     "MemoryRecordMetadata",
     "MemorySource",
     "MemoryStatus",
+    "InMemoryVectorStore",
+    "VectorPoint",
+    "VectorSearchResult",
+    "VectorStore",
+    "VectorStoreError",
 ]
