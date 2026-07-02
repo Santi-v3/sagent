@@ -216,6 +216,32 @@ Endpoint-, Host-, Port- oder URL-Werte. Die UI akzeptiert nur `enabled=false`,
 `remote_http_allowed=false`, `execution_allowed=false` und fällt bei Fehlern oder
 Vertragsabweichungen auf dieselbe versionierte disabled Offline-Vorschau zurück.
 
+## Implementierter Capability-Policy-Vertrag (PR #24)
+
+Die Capability Policy ist ein reiner Offline-Vertrag, der Sagent-Subprozessen später eine granulare, konfigurierbare Berechtigungssteuerung erlaubt. Sie ersetzt keine bestehenden Sicherheitsgates, sondern ergänzt sie um einen deklarativen Policy-Layer:
+
+- **CapabilityName:** 12 benannte Fähigkeiten (`read_workspace`, `preview_file_edits`, `apply_single_file_edit`, `apply_multi_file_edit`, `run_tests`, `run_shell_command`, `git_status`, `git_commit`, `git_push`, `change_dependencies`, `use_local_model`, `use_cloud_model`).
+- **CapabilityMode:** `disabled`, `preview_only`, `approval_required`, `allowed`.
+- **CapabilityPolicy:** Frozen Dataclass mit Mode-Zuordnung und Validierung (unbekannte Capabilities/Modi werden abgewiesen).
+- **evaluate_capability():** Reine Funktion ohne Seiteneffekte. Gibt `CapabilityDecision` zurück (`allowed`, `needs_approval`, `preview_only`, `denied`).
+- **DEFAULT_CAPABILITY_POLICY:**
+  - `read_workspace`: preview_only
+  - `preview_file_edits`: allowed
+  - `apply_single_file_edit`: approval_required
+  - `apply_multi_file_edit`: approval_required
+  - `run_tests`: approval_required
+  - `run_shell_command`: approval_required
+  - `git_status`: allowed
+  - `git_commit`: approval_required
+  - `git_push`: approval_required
+  - `change_dependencies`: approval_required
+  - `use_local_model`: approval_required
+  - `use_cloud_model`: disabled
+- **Keine Runtime-Aktivierung:** Der Vertrag baut keine Router, führt keine Provider aus, startet keine Shell, führt keine Git-Operationen durch und liest weder Secrets, Env-Variablen noch Endpoints.
+- **Modellantworten erhalten keine Tool-Autorität:** `evaluate_capability` akzeptiert keine `model_response`-Eingabe und gibt keine ausführbaren Referenzen zurück.
+- **Unbekannte Capabilities:** Standardmäßig `disabled`/`DENIED`.
+- **41 Tests** decken Default-Policy-Inhalt, Entscheidungslogik, Approval-Gating, Preview-Flag, Frozen-Validierung, Fehleingaben, Seiteneffektfreiheit und Secret-/Env-/Endpoint-Freiheit ab.
+
 ## Prompt Injection
 
 Text in Projekten kann Anweisungen enthalten. Diese Inhalte sind Daten, keine Systemanweisungen. Sie dürfen keine Policies ändern, Tools freigeben, Secrets anfordern oder den Workspace erweitern. Herkunft und Rolle jedes Kontextblocks müssen erhalten bleiben.
