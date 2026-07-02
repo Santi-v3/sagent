@@ -264,8 +264,11 @@
   Metadaten filtern und bei bestätigter Löschung entfernen.
 - Der synthetische Adapter hat keine URL-, Endpoint-, API-Key-, Provider- oder
   Netzwerkoberfläche; Qdrant/Chroma bleiben nicht installiert.
+- Providerneutraler Evaluations-Harness mit drei festen synthetischen Vektoren
+  ergänzt. Er prüft Ranking, Metadatenfilter, Ergebnislimit und Delete-Verhalten und
+  erzeugt ausschließlich unveränderliche Offline-Checkberichte.
 - Keine Web-UI, automatische Prompt-Anreicherung oder Agent-Loop-Ausführung wurde aktiviert.
-- 32 neue fokussierte Tests und insgesamt 370 Python-Tests bestanden; Ruff ist grün.
+- 36 neue fokussierte Tests und insgesamt 374 Python-Tests bestanden; Ruff ist grün.
 
 Nächster Masterplan-Schritt ist der lockfile-gebundene synthetische Vergleich von
 Qdrant Local Mode und Chroma. Die dafür nötige Installation benötigt eine getrennte

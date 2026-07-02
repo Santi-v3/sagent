@@ -54,6 +54,12 @@ synthetischer In-Memory-Adapter sind bereits implementiert. Damit kann der spät
 Vergleich denselben Upsert-/Query-/Filter-/Delete-Vertrag verwenden, ohne API oder
 Memory-Domänenmodell erneut zu ändern.
 
+Der feste Evaluations-Harness verwendet ausschließlich drei synthetische Vektoren
+und prüft deterministisch Nearest-Neighbor-Ranking, Metadatenfilter, Ergebnislimit,
+Delete-Bestätigung und das Verschwinden gelöschter Punkte. Reports enthalten nur
+Check-Booleans und die Adapter-ID; `network_used=false` und `model_called=false`
+sind unveränderliche Vertragswerte.
+
 ## Pflichtprüfungen vor einer Abhängigkeit
 
 - Lockfile-gebundene Installation separat freigeben.

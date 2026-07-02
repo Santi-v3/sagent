@@ -289,6 +289,9 @@ Die Capability Policy ist ein reiner Offline-Vertrag, der Sagent-Subprozessen sp
   validiert endliche Zahlen und unterstützt ausschließlich lokale Metadatenfilter.
 - Ein Vector Store wird nur injiziert; ohne explizite Einbindung bleibt die bisherige
   Token-Suche aktiv. Qdrant und Chroma sind nicht installiert oder gestartet.
+- Der Vector-Store-Evaluator arbeitet ausschließlich mit einem festen synthetischen
+  Vektorkatalog. Er akzeptiert keine Dokumente, Prompts, Endpoints oder Credentials
+  und berichtet nur unveränderliche Check-Booleans ohne Netzwerk-/Modellzugriff.
 - Es gibt noch keine Web-UI oder automatische Kontextanreicherung.
 - `ToolRegistry` enthält ausschließlich unveränderliche Metadaten. Es besitzt keine
   Handler- oder Dispatch-Schnittstelle und kann deshalb kein Tool ausführen.

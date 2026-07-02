@@ -15,6 +15,12 @@ from sagent_memory.metadata import (
     MemorySource,
     MemoryStatus,
 )
+from sagent_memory.vector_evaluation import (
+    SYNTHETIC_POINTS,
+    VectorEvaluationReport,
+    VectorStoreFactory,
+    evaluate_vector_store,
+)
 from sagent_memory.vector_store import (
     InMemoryVectorStore,
     VectorPoint,
@@ -40,4 +46,8 @@ __all__ = [
     "VectorSearchResult",
     "VectorStore",
     "VectorStoreError",
+    "SYNTHETIC_POINTS",
+    "VectorEvaluationReport",
+    "VectorStoreFactory",
+    "evaluate_vector_store",
 ]

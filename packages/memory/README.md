@@ -9,3 +9,7 @@ Memory-Einträge sind transparent, bearbeitbar, löschbar und niemals höher
 priorisiert als aktuelle Nutzeranweisungen oder Sicherheitsregeln. Vector Stores,
 Embedding-Modelle, automatische Prompt-Anreicherung und Cloud-Synchronisierung sind
 nicht aktiviert.
+
+Der providerneutrale Vector-Store-Vertrag kann mit einem festen synthetischen
+Katalog offline geprüft werden. Der Evaluator führt keine Modelle oder Provider aus
+und enthält keine Netzwerk- oder Endpoint-Konfiguration.
