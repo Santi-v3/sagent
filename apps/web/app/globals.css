@@ -1834,6 +1834,206 @@ textarea:focus-visible {
   line-height: 1.45;
 }
 
+/* ── Capability Policy Preview ── */
+
+.capability-policy-preview {
+  margin-top: 46px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 7px 24px rgba(32, 31, 29, 0.035);
+}
+
+.capability-policy-heading-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.capability-policy-heading-row .message-label {
+  margin-bottom: 7px;
+}
+
+.capability-policy-heading-row h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.capability-policy-readonly-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--info-bg);
+  color: var(--info);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.capability-policy-readonly-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.capability-policy-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--sidebar);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.capability-policy-intro > svg {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+  color: var(--info);
+}
+
+.capability-policy-table {
+  display: grid;
+  gap: 1px;
+  margin-top: 22px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--line);
+}
+
+.capability-policy-table-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--sidebar);
+}
+
+.capability-policy-table-head span {
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.capability-policy-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--surface);
+}
+
+.capability-policy-row.disabled {
+  opacity: 0.55;
+}
+
+.capability-policy-row span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 9px 12px;
+  font-size: 12px;
+}
+
+.capability-name code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-weight: 500;
+}
+
+.capability-mode code {
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--surface-active);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+}
+
+.capability-decision {
+  font-weight: 500;
+}
+
+.capability-decision svg {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+}
+
+.capability-policy-safety {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 12px 13px;
+  border: 1px solid #bfe2c9;
+  border-radius: 9px;
+  background: #f3faf5;
+}
+
+.capability-policy-safety > svg {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+  color: var(--success);
+}
+
+.capability-policy-safety p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.capability-policy-safety p + p {
+  margin-top: 3px;
+}
+
+.capability-policy-action-row {
+  margin-top: 18px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--sidebar);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+@media (max-width: 800px) {
+  .capability-policy-heading-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .capability-policy-table-head {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .capability-policy-row {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .capability-policy-row span {
+    font-size: 11px;
+  }
+}
+
 /* ── Code Edit Preview Panel ── */
 
 .code-edit-panel {
