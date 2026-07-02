@@ -2,10 +2,10 @@
 
 ## Projektstatus
 
-- **Phase:** MVP 1, MVP 2.A, MVP 2.B, MVP 2.C und MVP 2.D (Code Edit Preview) abgeschlossen; Code-Edit UI Hardening + History abgeschlossen
+- **Phase:** MVP 1, MVP 2.A, MVP 2.B, MVP 2.C und MVP 2.D (Code Edit Preview) abgeschlossen; Code-Edit UI Hardening + History abgeschlossen; Capability Policy Offline-Vertrag abgeschlossen
 - **Stand:** 2026-07-02
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Code-Edit-UI-Hardening mit klarem Status, Reset-Button und lokaler History; Cloud-Approval-Preview bleibt sichtbar; `remote_http` und Cloud-Ausführung bleiben blockiert
+- **Aktueller Fokus:** Capability Policy als Offline-Vertrag für granulare Berechtigungssteuerung; Cloud-Approval-Preview bleibt sichtbar; `remote_http` und Cloud-Ausführung bleiben blockiert
 
 ## Fertiggestellt
 
@@ -180,6 +180,20 @@
 - 8 neue Web-Sicherheitstests: Reset, History-Aktionen, History-Inhaltsfreiheit, proposal_hash-Kürzung, Stacktrace-Verbot, Stale-Detection, Storage-Freiheit
 - Insgesamt 32 Web-Tests, 73 Python-Tests, ESLint, TypeScript, Ruff, Next.js-Build: alle grün
 - Keine neuen Backend-Fähigkeiten, keine Cloud/DeepSeek/remote_http, keine Shell/Git/Network, keine Persistenz
+
+## Abgeschlossen – Capability Policy Offline-Vertrag (PR #24)
+
+- `CapabilityName`, `CapabilityMode`, `CapabilityDecision`, `CapabilityPolicy` als reine Offline-Dataclasses definiert
+- `evaluate_capability()` als reine Funktion ohne Seiteneffekte implementiert
+- `DEFAULT_CAPABILITY_POLICY` mit 12 Capability-Mode-Zuordnungen: `read_workspace=preview_only`, `preview_file_edits=allowed`, `apply_single_file_edit=approval_required`, `apply_multi_file_edit=approval_required`, `run_tests=approval_required`, `run_shell_command=approval_required`, `git_status=allowed`, `git_commit=approval_required`, `git_push=approval_required`, `change_dependencies=approval_required`, `use_local_model=approval_required`, `use_cloud_model=disabled`
+- Validierung: unbekannte Capability-Namen und ungültige Modi werden mit `CapabilityPolicyError` abgewiesen; Policy ist frozen
+- Approval-Gating: `approval_required` ohne Approval → DENIED, mit Approval → NEEDS_APPROVAL; `is_preview=True` → PREVIEW_ONLY
+- Unbekannte Capabilities standardmäßig disabled/denied
+- Entscheidungen enthalten keine URLs, Endpoints, Secrets, Executors, Adapter, Router, Transporte oder `model_response`-Felder
+- Policy enthält keine Secrets, Env-Variablen, Endpoints, Provider oder Modell-Laufzeit-Referenzen
+- 41 Tests in `test_capability_policy.py`: Default-Policy, Mode-Defaults, Evaluate-Logik, Seiteneffektfreiheit, Secret-/Env-Freiheit, Custom-Policy
+- Insgesamt 255 Python-Tests, 32 Web-Tests, Ruff, ESLint, TypeScript, Next.js-Build: alle grün
+- Keine Runtime-Aktivierung, keine API-Routen, keine Web-UI-Änderungen, keine Shell/Git/Network/Cloud/DeepSeek
 
 ## Nächster sinnvoller Schritt
 

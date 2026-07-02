@@ -135,6 +135,22 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] 8 neue Web-Sicherheitstests für Reset, History, Stale, Fehleranzeige und Storage-Freiheit
 - [x] Linting, TypeScript, Build, 32 Web-Tests und 73 Python-Tests erfolgreich
 
+## Abgeschlossen – Capability Policy Offline-Vertrag (PR #24)
+
+- [x] `CapabilityName`, `CapabilityMode`, `CapabilityDecision`, `CapabilityPolicy` als reine Offline-Dataclasses definiert
+- [x] `evaluate_capability()` als reine Funktion ohne Seiteneffekte implementiert
+- [x] `DEFAULT_CAPABILITY_POLICY` mit 12 Capability-Mode-Zuordnungen erstellt
+- [x] Validierung: unbekannte Capability-Namen und ungültige Modi werden abgewiesen
+- [x] Frozen Policy: Änderungen an modes werden mit AttributeError blockiert
+- [x] Alle 12 Standard-Modi in Tests verifiziert
+- [x] Approval-Gating: `approval_required` ohne Approval → denied, mit Approval → needs_approval
+- [x] Preview-Flag: `approval_required` + `is_preview=True` → preview_only
+- [x] Unbekannte Capabilities standardmäßig disabled/denied
+- [x] Entscheidungen enthalten keine URLs, Endpoints, Secrets, Executors, Adapter, Router oder Transporte
+- [x] Policy enthält keine Secrets, Env-Variablen, Endpoints, Provider oder Modell-Laufzeit-Referenzen
+- [x] 41 Tests (Default-Policy, Mode-Defaults, Evaluate, Seiteneffektfreiheit, Secret/Env-Freiheit, Custom-Policy)
+- [x] Ruff, 255 Python-Tests, 32 Web-Tests: alle grün
+
 ## Noch blockiert bis zu den Sicherheitsinkrementen
 
 - Dateiänderungen bleiben außerhalb des internen Core-Services blockiert, bis API- und UI-Anbindung einen eigenen Sicherheitsreview erhalten
