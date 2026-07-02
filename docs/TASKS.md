@@ -170,6 +170,25 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] 266 Python-Tests, 47 Web-Tests, ESLint, TypeScript, Next.js Build: alle grün
 - [x] Keine Runtime-Aktivierung, keine Shell/Git/Network/Cloud, keine Settings-Persistenz
 
+## Abgeschlossen – Approval-Gated Test Runner (PR #26)
+
+- [x] `GET /agent/test-runs/commands` — listet alle Allowlist-Kommandos
+- [x] `POST /agent/test-runs/preview` — Preview mit Capability-Policy-Entscheidung und approval_hash
+- [x] `POST /agent/test-runs/approve` — Approval-Hash-Verifikation vor Ausführung
+- [x] `POST /agent/test-runs/run` — Ausführung nur nach Approval + Hash-Prüfung
+- [x] Feste Allowlist: `python-pytest-all`, `python-pytest-capability`, `python-pytest-preview`, `python-lint`
+- [x] argv aus Allowlist, keine freien Shell-Strings, `shell=False`
+- [x] subprocess mit Timeout, Output-Begrenzung (20 KB), `sanitized_environment`
+- [x] Capability-Policy-Gate: `evaluate_capability(RUN_TESTS)`, `decision` in Preview
+- [x] Hash-Bindung: SHA-256 über `test_run_id:command_id:approval_token`
+- [x] Kein gleichzeitiger Testlauf (Lock), kein Re-Run nach Completion
+- [x] 39 Unit-Tests: Allowlist, Preview, Approve, Execute, Safety, Capability Gate, Secrets
+- [x] 305 Python-Tests, Ruff, Compile, Secret-Scan: alle grün
+- [x] Keine Git-Kommandos, keine Network/Install/Download-Kommandos in der Allowlist
+- [x] Keine Secrets/Endpoints/Env in Responses
+- [x] Keine Runtime-Aktivierung außerhalb der Approval-Kette
+- [x] Keine Modell-Autorität für Test-Kommandos
+
 ## Noch blockiert bis zu den Sicherheitsinkrementen
 
 - Dateiänderungen bleiben außerhalb des internen Core-Services blockiert, bis API- und UI-Anbindung einen eigenen Sicherheitsreview erhalten

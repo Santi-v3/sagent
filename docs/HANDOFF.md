@@ -2,10 +2,10 @@
 
 ## Projektstatus
 
-- **Phase:** MVP 1, MVP 2.A, MVP 2.B, MVP 2.C und MVP 2.D (Code Edit Preview) abgeschlossen; Code-Edit UI Hardening + History abgeschlossen; Capability Policy Offline-Vertrag abgeschlossen; Capability Policy Preview API + UI abgeschlossen
+- **Phase:** MVP 1, MVP 2.A, MVP 2.B, MVP 2.C und MVP 2.D (Code Edit Preview) abgeschlossen; Code-Edit UI Hardening + History abgeschlossen; Capability Policy Offline-Vertrag abgeschlossen; Capability Policy Preview API + UI abgeschlossen; Approval-Gated Test Runner abgeschlossen
 - **Stand:** 2026-07-02
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Capability Policy Preview API und UI als read-only Anzeige; Cloud-Approval-Preview bleibt sichtbar; `remote_http` und Cloud-Ausführung bleiben blockiert
+- **Aktueller Fokus:** Approval-gated Test Runner (erste echte Power-User-Fähigkeit) mit Preview → Approve → Run Flow; Capability-Policy-Gate; feste Allowlist; `remote_http` und Cloud-Ausführung bleiben blockiert
 
 ## Fertiggestellt
 
@@ -212,6 +212,25 @@
 - Integration in `sagent-shell.tsx` unter BenchmarkStatus
 - Insgesamt 266 Python-Tests, 47 Web-Tests, Ruff, ESLint, TypeScript, Next.js-Build: alle grün
 - Keine Runtime-Aktivierung, keine Shell/Git/Network/Cloud, keine Settings-Persistenz, keine Toggles/Enable-Buttons
+
+## Abgeschlossen – Approval-Gated Test Runner (PR #26)
+
+- `GET /agent/test-runs/commands` — listet 4 Allowlist-Kommandos
+- `POST /agent/test-runs/preview` (201) — Preview mit Capability-Policy-Entscheidung + approval_hash
+- `POST /agent/test-runs/approve` (200) — Hash-gebundene Freigabe
+- `POST /agent/test-runs/run` (200) — Ausführung nur nach Approval + Hash-Match
+- Capability-Policy-Gate: `evaluate_capability(RUN_TESTS)` ergibt `decision` in Preview
+- Feste Allowlist in `test_runner.py`: `python-pytest-all`, `python-pytest-capability`, `python-pytest-preview`, `python-lint`
+- argv aus Allowlist-Tupeln, `shell=False`, `subprocess.Popen` mit Timeout (60–120s) und Output-Begrenzung (20 KB)
+- Environment-Sanitisierung: Proxy-Block, keine Netzwerk-Variablen, Temp-Home
+- SHA-256-Hash-Bindung: `test_run_id:command_id:approval_token`
+- Lock schützt vor gleichzeitigen Läufen; completed-Runs sind nicht wiederholbar
+- 39 Tests: Allowlist-Validierung, Preview, Approve, Execute, Safety, Capability Gate, Secret-Freiheit
+- 305 Python-Tests, Ruff, Compile, Secret-Scan: alle grün
+- **Keine Git-Kommandos**, keine Network/Install/Download-Kommandos in der Allowlist
+- **Keine Secrets/Endpoints/Env** in Responses
+- **Keine Runtime-Aktivierung** außerhalb der Approval-Kette
+- **Keine Modell-Autorität** für Test-Kommandos
 
 ## Nächster sinnvoller Schritt
 
