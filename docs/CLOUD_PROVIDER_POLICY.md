@@ -182,6 +182,16 @@ Die folgende Form ist nur ein Architekturziel, keine aktuelle Konfiguration:
 Eine spätere Umsetzung benötigt ein eigenes kleines Inkrement mit Threat Model,
 Providervertragsprüfung, Datenschutzprüfung und negativen Sicherheitstests.
 
+### Deaktivierter Konfigurationsvertrag
+
+Der Core darf bereits vor einer Runtime-Integration unveränderliche, nicht
+ausführbare Cloud-Konfigurationsmetadaten typisieren. Dieser Vertrag bleibt stets
+deaktiviert, kennt keinen Endpoint und liest weder Secret- noch Umgebungswerte.
+`remote_http` ist darin nur die getrennte Transportklassifikation, keine Allowlist-
+oder Runtime-Freigabe. Eine solche Konfiguration darf keinen Provider bauen,
+`cloud_providers_enabled` nicht setzen und die erlaubten Router-Transporte nicht
+erweitern.
+
 ## Anforderungen an einen späteren Remote-HTTP-Transport
 
 `remote_http` darf erst freigegeben werden, wenn mindestens folgende Grenzen technisch
