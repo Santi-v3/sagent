@@ -755,15 +755,17 @@ export function SagentShell() {
                       onKeyDown={e => e.key === "Escape" && setEditingConvId(null)} />
                   </form>
                 ) : (
-                  <button type="button" className={`conversation-item${c.id === activeConvId ? " active" : ""}`}
-                    onClick={() => switchConversation(c.id)}>
-                    {c.pinned && <span className="conv-pin-icon" title="Angeheftet">📌</span>}
-                    <ChatCircleDots weight="regular" />
-                    <span className="conv-label">{c.label}</span>
-                  </button>
-                  <button type="button" className="conv-burger" onClick={e => { e.stopPropagation(); setCtxMenu({x: e.currentTarget.getBoundingClientRect().right - 160, y: e.currentTarget.getBoundingClientRect().bottom, convId: c.id}); }}>
-                    <DotsThreeVertical weight="bold" />
-                  </button>
+                  <div className="conversation-item-row">
+                    <button type="button" className={`conversation-item${c.id === activeConvId ? " active" : ""}`}
+                      onClick={() => switchConversation(c.id)}>
+                      {c.pinned && <span className="conv-pin-icon" title="Angeheftet">📌</span>}
+                      <ChatCircleDots weight="regular" />
+                      <span className="conv-label">{c.label}</span>
+                    </button>
+                    <button type="button" className="conv-burger" onClick={e => { e.stopPropagation(); setCtxMenu({x: e.currentTarget.getBoundingClientRect().right - 160, y: e.currentTarget.getBoundingClientRect().bottom, convId: c.id}); }}>
+                      <DotsThreeVertical weight="bold" />
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
