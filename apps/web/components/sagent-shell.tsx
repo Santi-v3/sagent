@@ -286,14 +286,14 @@ export function SagentShell() {
     fetch(`${API_URL}/agent/test-runs/commands`)
       .then(r => r.json())
       .then((cmds: TrCommand[]) => { setTrCommands(cmds); if (cmds.length) setTrSelectedId(cmds[0].command_id); })
-      .catch(() => {});
+      .catch((e: unknown) => { console.warn("Fehler beim Laden der Test-Kommandos:", e); });
   }, []);
 
   useEffect(() => {
     fetch(`${API_URL}/models`)
       .then(r => r.json())
       .then((models: typeof modelAdapters) => { setModelAdapters(models); if (models.length && !selectedAdapter) setSelectedAdapter(models[0].adapter_id); })
-      .catch(() => {});
+      .catch((e: unknown) => { console.warn("Fehler beim Laden der Modelle:", e); });
   }, []);
 
   function stopModelJobPoll() {
@@ -863,7 +863,7 @@ export function SagentShell() {
           <div className="feature-launcher">
             {featureTabs.map(f => (
               <button key={f.id} type="button"
-                className={`feature-btn${showFeaturePanel === f.id ? "" : ""}`}
+                className={`feature-btn${showFeaturePanel === f.id ? " active" : ""}`}
                 onClick={() => setShowFeaturePanel(showFeaturePanel === f.id ? null : f.id)}
                 title={f.desc}>
                 <f.icon weight="regular" />{f.label}
@@ -999,148 +999,146 @@ export function SagentShell() {
                     )}
                   </>
                 )}
-              </div>
-            </div>
-          )}
-
-          {showFeaturePanel === "model" && (
-            <div className="model-panel">
-              <div className="card-header">
-                <h2>
-                  <Brain weight="regular" style={{ verticalAlign: "middle", marginRight: 6 }} />
-                  Lokale Modelle
-                </h2>
-              </div>
-
-              {modelAdapters.length === 0 ? (
-                <p className="loading-text">Modelle werden geladen...</p>
-              ) : (
-                <div className="model-adapter-list">
-                  {modelAdapters.map(a => (
-                    <div key={a.adapter_id} className={`model-adapter${selectedAdapter === a.adapter_id ? " active" : ""}`}
-                      onClick={() => setSelectedAdapter(a.adapter_id)}>
-                      <div className="model-adapter-row">
-                        <strong>{a.model}</strong>
-                        <span className={`badge ${a.simulated ? "badge-warning" : "badge-success"}`}>
-                          {a.simulated ? "Simulation" : "Live"}
-                        </span>
-                      </div>
-                      <div className="model-adapter-meta">
-                        <span>{a.provider}</span>
-                        <span>{a.transport}</span>
-                        <span>{a.capabilities.join(", ")}</span>
-                      </div>
+                {showFeaturePanel === "model" && (
+                  <div className="model-panel">
+                    <div className="card-header">
+                      <h2>
+                        <Brain weight="regular" style={{ verticalAlign: "middle", marginRight: 6 }} />
+                        Lokale Modelle
+                      </h2>
                     </div>
-                  ))}
-                </div>
-              )}
 
-              <div className="form-group">
-                <label className="form-label">Prompt</label>
-                <textarea className="form-input model-prompt-input" rows={2}
-                  placeholder="Nachricht an das Modell..."
-                  value={modelPrompt} onChange={e => setModelPrompt(e.target.value)} />
-              </div>
-
-              <div className="btn-group">
-                <button type="button" className="btn btn-primary" disabled={!selectedAdapter || !modelPrompt.trim() || modelJobLoading}
-                  onClick={() => void startModelJob()}>
-                  {modelJobLoading ? <CircleNotch className="spin" weight="bold" /> : <Play weight="fill" />}
-                  {modelJobLoading ? "Läuft..." : "Absenden"}
-                </button>
-              </div>
-
-              {modelJobResult && (
-                <div className="model-result">
-                  <div className="model-result-header">
-                    <span className={`badge ${modelJobResult.state === "succeeded" ? "badge-success" : modelJobResult.state === "failed" || modelJobResult.state === "cancelled" ? "badge-danger" : "badge-info"}`}>
-                      {modelJobResult.state}
-                    </span>
-                    {modelJobResult.completed_at && (
-                      <span className="model-result-time">
-                        {((new Date(modelJobResult.completed_at).getTime() - new Date(modelJobResult.created_at).getTime()) / 1000).toFixed(1)}s
-                      </span>
+                    {modelAdapters.length === 0 ? (
+                      <p className="loading-text">Modelle werden geladen...</p>
+                    ) : (
+                      <div className="model-adapter-list">
+                        {modelAdapters.map(a => (
+                          <div key={a.adapter_id} className={`model-adapter${selectedAdapter === a.adapter_id ? " active" : ""}`}
+                            onClick={() => setSelectedAdapter(a.adapter_id)}>
+                            <div className="model-adapter-row">
+                              <strong>{a.model}</strong>
+                              <span className={`badge ${a.simulated ? "badge-warning" : "badge-success"}`}>
+                                {a.simulated ? "Simulation" : "Live"}
+                              </span>
+                            </div>
+                            <div className="model-adapter-meta">
+                              <span>{a.provider}</span>
+                              <span>{a.transport}</span>
+                              <span>{a.capabilities.join(", ")}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                    {modelJobResult.result && (
-                      <span className="model-result-tokens">
-                        {modelJobResult.result.input_tokens} in → {modelJobResult.result.output_tokens} out
-                      </span>
+
+                    <div className="form-group">
+                      <label className="form-label">Prompt</label>
+                      <textarea className="form-input model-prompt-input" rows={2}
+                        placeholder="Nachricht an das Modell..."
+                        value={modelPrompt} onChange={e => setModelPrompt(e.target.value)} />
+                    </div>
+
+                    <div className="btn-group">
+                      <button type="button" className="btn btn-primary" disabled={!selectedAdapter || !modelPrompt.trim() || modelJobLoading}
+                        onClick={() => void startModelJob()}>
+                        {modelJobLoading ? <CircleNotch className="spin" weight="bold" /> : <Play weight="fill" />}
+                        {modelJobLoading ? "Läuft..." : "Absenden"}
+                      </button>
+                    </div>
+
+                    {modelJobResult && (
+                      <div className="model-result">
+                        <div className="model-result-header">
+                          <span className={`badge ${modelJobResult.state === "succeeded" ? "badge-success" : modelJobResult.state === "failed" || modelJobResult.state === "cancelled" ? "badge-danger" : "badge-info"}`}>
+                            {modelJobResult.state}
+                          </span>
+                          {modelJobResult.completed_at && (
+                            <span className="model-result-time">
+                              {((new Date(modelJobResult.completed_at).getTime() - new Date(modelJobResult.created_at).getTime()) / 1000).toFixed(1)}s
+                            </span>
+                          )}
+                          {modelJobResult.result && (
+                            <span className="model-result-tokens">
+                              {modelJobResult.result.input_tokens} in → {modelJobResult.result.output_tokens} out
+                            </span>
+                          )}
+                        </div>
+                        {modelJobResult.state === "running" && (
+                          <button type="button" className="btn btn-danger btn-sm" onClick={() => void cancelModelJob()}>
+                            Abbrechen
+                          </button>
+                        )}
+                        {modelJobResult.result?.content && (
+                          <pre className="model-result-content">{modelJobResult.result.content}</pre>
+                        )}
+                        {modelJobResult.error && (
+                          <div className="inline-error" role="alert"><WarningCircle weight="regular" />{modelJobResult.error}</div>
+                        )}
+                      </div>
                     )}
                   </div>
-                  {modelJobResult.state === "running" && (
-                    <button type="button" className="btn btn-danger btn-sm" onClick={() => void cancelModelJob()}>
-                      Abbrechen
-                    </button>
-                  )}
-                  {modelJobResult.result?.content && (
-                    <pre className="model-result-content">{modelJobResult.result.content}</pre>
-                  )}
-                  {modelJobResult.error && (
-                    <div className="inline-error" role="alert"><WarningCircle weight="regular" />{modelJobResult.error}</div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {showFeaturePanel === "memory" && (
-            <div className="memory-panel">
-              <div className="card-header">
-                <h2>
-                  <BookOpen weight="regular" style={{ verticalAlign: "middle", marginRight: 6 }} />
-                  Memory (Vektor-Gedächtnis)
-                </h2>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Text speichern</label>
-                <textarea className="form-input memory-text-input" rows={2}
-                  placeholder="Wissen, Entscheidungen, Notizen …"
-                  value={memoryInput} onChange={e => setMemoryInput(e.target.value)} />
-                <div className="form-row" style={{ marginTop: 8 }}>
-                  <input className="form-input" placeholder="Kategorie (z.B. decision, note, project)"
-                    value={memoryCategory} onChange={e => setMemoryCategory(e.target.value)} />
-                  <button type="button" className="btn btn-primary btn-sm" disabled={!memoryInput.trim() || memoryLoading}
-                    onClick={() => void storeMemory()}>
-                    {memoryLoading ? <CircleNotch className="spin" weight="bold" /> : "Speichern"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <div className="form-row">
-                  <input className="form-input" placeholder="Suche im Gedächtnis …"
-                    value={memoryQuery} onChange={e => setMemoryQuery(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void searchMemory(); } }} />
-                  <button type="button" className="btn btn-sm" disabled={!memoryQuery.trim() || memorySearching}
-                    onClick={() => void searchMemory()}>
-                    {memorySearching ? <CircleNotch className="spin" weight="bold" /> : "Suchen"}
-                  </button>
-                </div>
-              </div>
-
-              {memoryResults.length > 0 && (
-                <div className="memory-results">
-                  <div className="memory-results-header">
-                    <span>{memoryResults.length} Ergebnis{memoryResults.length !== 1 ? "se" : ""}</span>
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => void refreshMemory()}>
-                      <ArrowsClockwise weight="regular" />Alle
-                    </button>
-                  </div>
-                  {memoryResults.map(r => (
-                    <div key={r.id} className="memory-entry">
-                      <div className="memory-entry-text">{r.text}</div>
-                      <div className="memory-entry-meta">
-                        {r.score != null && <span className="badge badge-info">{(r.score * 100).toFixed(0)}%</span>}
-                        {r.metadata?.category && <span className="badge">{r.metadata.category}</span>}
-                        <span className="memory-entry-time">{new Date(r.created_at * 1000).toLocaleString()}</span>
-                      </div>
-                      <button type="button" className="memory-entry-delete" onClick={() => void deleteMemory(r.id)}
-                        title="Löschen">×</button>
+                )}
+                {showFeaturePanel === "memory" && (
+                  <div className="memory-panel">
+                    <div className="card-header">
+                      <h2>
+                        <BookOpen weight="regular" style={{ verticalAlign: "middle", marginRight: 6 }} />
+                        Memory (Vektor-Gedächtnis)
+                      </h2>
                     </div>
-                  ))}
-                </div>
-              )}
+
+                    <div className="form-group">
+                      <label className="form-label">Text speichern</label>
+                      <textarea className="form-input memory-text-input" rows={2}
+                        placeholder="Wissen, Entscheidungen, Notizen …"
+                        value={memoryInput} onChange={e => setMemoryInput(e.target.value)} />
+                      <div className="form-row" style={{ marginTop: 8 }}>
+                        <input className="form-input" placeholder="Kategorie (z.B. decision, note, project)"
+                          value={memoryCategory} onChange={e => setMemoryCategory(e.target.value)} />
+                        <button type="button" className="btn btn-primary btn-sm" disabled={!memoryInput.trim() || memoryLoading}
+                          onClick={() => void storeMemory()}>
+                          {memoryLoading ? <CircleNotch className="spin" weight="bold" /> : "Speichern"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <div className="form-row">
+                        <input className="form-input" placeholder="Suche im Gedächtnis …"
+                          value={memoryQuery} onChange={e => setMemoryQuery(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void searchMemory(); } }} />
+                        <button type="button" className="btn btn-sm" disabled={!memoryQuery.trim() || memorySearching}
+                          onClick={() => void searchMemory()}>
+                          {memorySearching ? <CircleNotch className="spin" weight="bold" /> : "Suchen"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {memoryResults.length > 0 && (
+                      <div className="memory-results">
+                        <div className="memory-results-header">
+                          <span>{memoryResults.length} Ergebnis{memoryResults.length !== 1 ? "se" : ""}</span>
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => void refreshMemory()}>
+                            <ArrowsClockwise weight="regular" />Alle
+                          </button>
+                        </div>
+                        {memoryResults.map(r => (
+                          <div key={r.id} className="memory-entry">
+                            <div className="memory-entry-text">{r.text}</div>
+                            <div className="memory-entry-meta">
+                              {r.score != null && <span className="badge badge-info">{(r.score * 100).toFixed(0)}%</span>}
+                              {r.metadata?.category && <span className="badge">{r.metadata.category}</span>}
+                              <span className="memory-entry-time">{new Date(r.created_at * 1000).toLocaleString()}</span>
+                            </div>
+                            <button type="button" className="memory-entry-delete" onClick={() => void deleteMemory(r.id)}
+                              title="Löschen">×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
