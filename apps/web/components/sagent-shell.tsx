@@ -677,13 +677,14 @@ export function SagentShell() {
           <input type="search" className="sidebar-search-input" placeholder="Chats durchsuchen …"
             value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
         </div>
-        <div className="sidebar-new-project">
-          <button type="button" className="sidebar-new-project-btn" onClick={() => {
-            const name = prompt("Projektname:");
-            if (name) createProject(name);
-          }}><Plus weight="bold" /> Projekt</button>
-        </div>
         <div className="sidebar-conversations">
+          <div className="sidebar-section-header">
+            <span>Projekte</span>
+            <button type="button" className="sidebar-section-add" onClick={() => {
+              const name = prompt("Projektname:");
+              if (name) createProject(name);
+            }} title="Projekt erstellen"><Plus weight="bold" /></button>
+          </div>
           {projects.map(project => {
             const projectConvs = conversations.filter(c => c.projectId === project.id && (!searchQuery || c.label.toLowerCase().includes(searchQuery.toLowerCase())));
             if (projectConvs.length === 0 && !searchQuery) {
@@ -721,11 +722,16 @@ export function SagentShell() {
                           onKeyDown={e => e.key === "Escape" && setEditingConvId(null)} />
                       </form>
                     ) : (
-                      <button type="button" className={`conversation-item${c.id === activeConvId ? " active" : ""}`}
-                        onClick={() => switchConversation(c.id)}>
-                        <ChatCircleDots weight="regular" />
-                        <span className="conv-label">{c.label}</span>
-                      </button>
+                      <div className="conversation-item-row">
+                        <button type="button" className={`conversation-item${c.id === activeConvId ? " active" : ""}`}
+                          onClick={() => switchConversation(c.id)}>
+                          <ChatCircleDots weight="regular" />
+                          <span className="conv-label">{c.label}</span>
+                        </button>
+                        <button type="button" className="conv-burger" onClick={e => { e.stopPropagation(); setCtxMenu({x: e.currentTarget.getBoundingClientRect().right - 160, y: e.currentTarget.getBoundingClientRect().bottom, convId: c.id}); }}>
+                          <DotsThreeVertical weight="bold" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -754,6 +760,9 @@ export function SagentShell() {
                     {c.pinned && <span className="conv-pin-icon" title="Angeheftet">📌</span>}
                     <ChatCircleDots weight="regular" />
                     <span className="conv-label">{c.label}</span>
+                  </button>
+                  <button type="button" className="conv-burger" onClick={e => { e.stopPropagation(); setCtxMenu({x: e.currentTarget.getBoundingClientRect().right - 160, y: e.currentTarget.getBoundingClientRect().bottom, convId: c.id}); }}>
+                    <DotsThreeVertical weight="bold" />
                   </button>
                 )}
               </div>
