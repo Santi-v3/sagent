@@ -180,6 +180,8 @@ __all__ = [
     "ModelUsage",
     "SYNTHETIC_BENCHMARK_TASKS",
     "SyntheticBenchmarkTask",
+    "ToolDef",
+    "ToolRegistry",
     "WorkspaceGuard",
     "WorkspaceSecurityError",
     "get_local_provider_profile",
