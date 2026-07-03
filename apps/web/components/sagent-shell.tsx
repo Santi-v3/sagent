@@ -43,7 +43,8 @@ const safetyLevels: { id: SafetyLevel; label: string; desc: string }[] = [
   { id: "fullaccess", label: "Vollzugriff", desc: "Keine Nachfragen, voller Zugriff" },
 ];
 
-type Conversation = { id: string; label: string; messages: {role: "user" | "assistant"; content: string}[]; updatedAt: number };
+type Conversation = { id: string; label: string; messages: {role: "user" | "assistant"; content: string}[]; updatedAt: number; pinned?: boolean; projectId?: string | null };
+type Project = { id: string; name: string; createdAt: number };
 
 function generateId(): string { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
@@ -57,6 +58,19 @@ function loadConversations(): Conversation[] {
 function saveConversations(convs: Conversation[]) {
   try { localStorage.setItem("sagent-conversations", JSON.stringify(convs)); } catch {}
 }
+
+function loadProjects(): Project[] {
+  try {
+    const raw = localStorage.getItem("sagent-projects");
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveProjects(ps: Project[]) {
+  try { localStorage.setItem("sagent-projects", JSON.stringify(ps)); } catch {}
+}
+
+type ThemeMode = "system" | "light" | "dark";
 
 const featureTabs = [
   { id: "policy", icon: ShieldCheck, label: "Policy", desc: "Sicherheitsrichtlinien einsehen" },
@@ -100,6 +114,11 @@ export function SagentShell() {
   const [ctxMenu, setCtxMenu] = useState<{x: number; y: number; convId: string} | null>(null);
   const [editingConvId, setEditingConvId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [projects, setProjects] = useState<Project[]>(loadProjects);
+  const [ctxMenuProject, setCtxMenuProject] = useState<{x: number; y: number; projectId: string} | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [theme, setTheme] = useState<ThemeMode>("system");
   const [testProfiles, setTestProfiles] = useState<TestProfile[]>([]);
   const [selectedTestProfileId, setSelectedTestProfileId] = useState("");
   const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -145,8 +164,10 @@ export function SagentShell() {
   const [modelJobResult, setModelJobResult] = useState<{job_id: string; state: string; created_at: string; completed_at: string | null; result: {content: string; input_tokens: number; output_tokens: number} | null; error: string | null} | null>(null);
   const modelJobPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Save conversations to localStorage
+  // Save conversations & projects to localStorage
   useEffect(() => { saveConversations(conversations); }, [conversations]);
+  useEffect(() => { saveProjects(projects); }, [projects]);
+  useEffect(() => { document.documentElement.setAttribute("data-theme", theme); }, [theme]);
 
   function saveCurrentConversation(msgs: {role: "user" | "assistant"; content: string}[], firstMsg: string) {
     setConversations(prev => {
@@ -159,7 +180,7 @@ export function SagentShell() {
       }
       const id = generateId();
       setTimeout(() => setActiveConvId(id), 0);
-      return [...prev, { id, label: firstMsg.slice(0, 40), messages: msgs, updatedAt: Date.now() }];
+      return [...prev, { id, label: firstMsg.slice(0, 40), messages: msgs, updatedAt: Date.now(), pinned: false, projectId: null }];
     });
   }
 
@@ -175,6 +196,25 @@ export function SagentShell() {
     setActiveConvId(id);
     setMessages(conv.messages);
     setChatResponse(null); setChatResponseLoading(false); setSubmittedTask(""); setResult(null); setError("");
+  }
+
+  function createProject(name: string) {
+    const n = name.trim();
+    if (!n) return;
+    setProjects(prev => [...prev, { id: generateId(), name: n, createdAt: Date.now() }]);
+  }
+
+  function deleteProject(id: string) {
+    setProjects(prev => prev.filter(p => p.id !== id));
+    setConversations(prev => prev.map(c => c.projectId === id ? {...c, projectId: null} : c));
+  }
+
+  function renameProject(id: string, name: string) {
+    setProjects(prev => prev.map(p => p.id === id ? {...p, name: name.trim() || p.name} : p));
+  }
+
+  function assignChatToProject(convId: string, projectId: string | null) {
+    setConversations(prev => prev.map(c => c.id === convId ? {...c, projectId} : c));
   }
 
   const [memoryInput, setMemoryInput] = useState("");
@@ -250,14 +290,7 @@ export function SagentShell() {
   }
 
   function toggleToolPanel() {
-    if (toolPanelOpen) {
-      setToolPanelOpen(false);
-    } else {
-      setToolPanelOpen(true);
-      if (toolTabs.length === 0) {
-        openToolTab("terminal", "Terminal", "💻");
-      }
-    }
+    setToolPanelOpen(prev => !prev);
   }
 
   useEffect(() => {
@@ -640,20 +673,41 @@ export function SagentShell() {
             <Plus weight="bold" />Neu
           </button>
         </div>
+        <div className="sidebar-search">
+          <input type="search" className="sidebar-search-input" placeholder="Chats durchsuchen …"
+            value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+        </div>
+        <div className="sidebar-new-project">
+          <button type="button" className="sidebar-new-project-btn" onClick={() => {
+            const name = prompt("Projektname:");
+            if (name) createProject(name);
+          }}><Plus weight="bold" /> Projekt</button>
+        </div>
         <div className="sidebar-conversations">
-          {[{id: "today", label: "Heute"}, {id: "yesterday", label: "Gestern"}, {id: "older", label: "Älter"}].map(group => {
-            const now = Date.now();
-            const day = 86400000;
-            const convs = conversations.filter(c => {
-              if (group.id === "today") return now - c.updatedAt < day;
-              if (group.id === "yesterday") return now - c.updatedAt < 2 * day;
-              return now - c.updatedAt >= 2 * day;
-            });
-            if (convs.length === 0) return null;
+          {projects.map(project => {
+            const projectConvs = conversations.filter(c => c.projectId === project.id && (!searchQuery || c.label.toLowerCase().includes(searchQuery.toLowerCase())));
+            if (projectConvs.length === 0 && !searchQuery) {
+              return (
+                <div key={project.id} className="project-item"
+                  onContextMenu={e => { e.preventDefault(); setCtxMenuProject({x: e.clientX, y: e.clientY, projectId: project.id}); }}>
+                  <span className="project-icon">📁</span>
+                  <span className="project-name">{project.name}</span>
+                  <button type="button" className="project-add-chat" title="Chat zu Projekt" onClick={() => {
+                    const unassigned = conversations.find(c => !c.projectId);
+                    if (unassigned) assignChatToProject(unassigned.id, project.id);
+                  }}><Plus weight="bold" /></button>
+                </div>
+              );
+            }
+            if (projectConvs.length === 0) return null;
             return (
-              <div key={group.id}>
-                <div className="conversation-group-label">{group.label}</div>
-                {convs.map(c => (
+              <div key={project.id} className="project-section">
+                <div className="project-item"
+                  onContextMenu={e => { e.preventDefault(); setCtxMenuProject({x: e.clientX, y: e.clientY, projectId: project.id}); }}>
+                  <span className="project-icon">📁</span>
+                  <span className="project-name">{project.name}</span>
+                </div>
+                {projectConvs.map(c => (
                   <div key={c.id} className="conversation-item-wrap"
                     onContextMenu={e => { e.preventDefault(); setCtxMenu({x: e.clientX, y: e.clientY, convId: c.id}); }}>
                     {editingConvId === c.id ? (
@@ -678,32 +732,99 @@ export function SagentShell() {
               </div>
             );
           })}
-          {conversations.length === 0 && (
-            <div className="sidebar-empty">Noch keine Konversationen</div>
+          {[...conversations]
+            .filter(c => !c.projectId && (!searchQuery || c.label.toLowerCase().includes(searchQuery.toLowerCase())))
+            .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.updatedAt - a.updatedAt)
+            .map(c => (
+              <div key={c.id} className="conversation-item-wrap"
+                onContextMenu={e => { e.preventDefault(); setCtxMenu({x: e.clientX, y: e.clientY, convId: c.id}); }}>
+                {editingConvId === c.id ? (
+                  <form onSubmit={ev => { ev.preventDefault(); if (editLabel.trim()) {
+                    setConversations(prev => prev.map(cc => cc.id === c.id ? {...cc, label: editLabel.trim()} : cc));
+                    setEditingConvId(null);
+                  }}} className="conv-rename-form">
+                    <input type="text" className="conv-rename-input" value={editLabel}
+                      onChange={e => setEditLabel(e.target.value)} autoFocus
+                      onBlur={() => setEditingConvId(null)}
+                      onKeyDown={e => e.key === "Escape" && setEditingConvId(null)} />
+                  </form>
+                ) : (
+                  <button type="button" className={`conversation-item${c.id === activeConvId ? " active" : ""}`}
+                    onClick={() => switchConversation(c.id)}>
+                    {c.pinned && <span className="conv-pin-icon" title="Angeheftet">📌</span>}
+                    <ChatCircleDots weight="regular" />
+                    <span className="conv-label">{c.label}</span>
+                  </button>
+                )}
+              </div>
+            ))}
+          {conversations.filter(c => !searchQuery || c.label.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+            <div className="sidebar-empty">{searchQuery ? "Keine Treffer" : "Noch keine Konversationen"}</div>
           )}
         </div>
 
-        {/* Context Menu */}
+        {/* Project Context Menu */}
+        {ctxMenuProject && (
+          <>
+            <div className="ctx-menu-overlay" onClick={() => setCtxMenuProject(null)} />
+            <div className="ctx-menu" style={{left: ctxMenuProject.x, top: ctxMenuProject.y}}>
+              <button type="button" className="ctx-menu-item danger" onClick={() => {
+                deleteProject(ctxMenuProject.projectId);
+                setCtxMenuProject(null);
+              }}><Trash weight="regular" /> Projekt löschen</button>
+            </div>
+          </>
+        )}
+
+        {/* Conversation Context Menu */}
         {ctxMenu && (
           <>
             <div className="ctx-menu-overlay" onClick={() => setCtxMenu(null)} />
             <div className="ctx-menu" style={{left: ctxMenu.x, top: ctxMenu.y}}>
-              <button type="button" className="ctx-menu-item" onClick={() => {
+              {(() => {
                 const conv = conversations.find(c => c.id === ctxMenu.convId);
-                if (conv) { setEditLabel(conv.label); setEditingConvId(conv.id); }
-                setCtxMenu(null);
-              }}><Pencil weight="regular" /> Umbenennen</button>
-              <button type="button" className="ctx-menu-item danger" onClick={() => {
-                setConversations(prev => prev.filter(c => c.id !== ctxMenu.convId));
-                if (activeConvId === ctxMenu.convId) startNewConversation();
-                setCtxMenu(null);
-              }}><Trash weight="regular" /> Löschen</button>
+                if (!conv) return null;
+                const isPinned = conv.pinned;
+                return (
+                  <>
+                    <button type="button" className="ctx-menu-item" onClick={() => {
+                      setConversations(prev => prev.map(c => c.id === ctxMenu.convId ? {...c, pinned: !c.pinned} : c));
+                      setCtxMenu(null);
+                    }}>{isPinned ? "📌" : "📌"} {isPinned ? "Loslösen" : "Anheften"}</button>
+                    <button type="button" className="ctx-menu-item" onClick={() => {
+                      setEditLabel(conv.label); setEditingConvId(conv.id);
+                      setCtxMenu(null);
+                    }}><Pencil weight="regular" /> Umbenennen</button>
+                    {conv.projectId ? (
+                      <button type="button" className="ctx-menu-item" onClick={() => {
+                        assignChatToProject(ctxMenu.convId, null);
+                        setCtxMenu(null);
+                      }}><Folder weight="regular" /> Aus Projekt entfernen</button>
+                    ) : projects.length > 0 && (
+                      <>
+                        {projects.map(p => (
+                          <button key={p.id} type="button" className="ctx-menu-item" onClick={() => {
+                            assignChatToProject(ctxMenu.convId, p.id);
+                            setCtxMenu(null);
+                          }}><Folder weight="regular" /> In Projekt »{p.name}«</button>
+                        ))}
+                      </>
+                    )}
+                    <div className="ctx-menu-divider" />
+                    <button type="button" className="ctx-menu-item danger" onClick={() => {
+                      setConversations(prev => prev.filter(c => c.id !== ctxMenu.convId));
+                      if (activeConvId === ctxMenu.convId) startNewConversation();
+                      setCtxMenu(null);
+                    }}><Trash weight="regular" /> Löschen</button>
+                  </>
+                );
+              })()}
             </div>
           </>
         )}
 
         <div className="sidebar-footer">
-          <button type="button" className="sidebar-footer-btn"><Gear weight="regular" />Einstellungen</button>
+          <button type="button" className="sidebar-footer-btn" onClick={() => setShowSettings(true)}><Gear weight="regular" />Einstellungen</button>
         </div>
       </aside>
 
@@ -859,17 +980,46 @@ export function SagentShell() {
 
           <div className="composer-hint">Shift + Enter für neue Zeile</div>
 
-          {/* ── Feature Launcher ── */}
-          <div className="feature-launcher">
-            {featureTabs.map(f => (
-              <button key={f.id} type="button"
-                className={`feature-btn${showFeaturePanel === f.id ? " active" : ""}`}
-                onClick={() => setShowFeaturePanel(showFeaturePanel === f.id ? null : f.id)}
-                title={f.desc}>
-                <f.icon weight="regular" />{f.label}
-              </button>
-            ))}
-          </div>
+          {/* ── Settings Panel ── */}
+          {showSettings && (
+            <div className="settings-panel">
+              <div className="settings-header">
+                <h2><Gear weight="regular" style={{ verticalAlign: "middle", marginRight: 8 }} />Einstellungen</h2>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowSettings(false)}>Schließen</button>
+              </div>
+
+              <div className="settings-section">
+                <h3>Design</h3>
+                <div className="theme-selector">
+                  {([["system", "System"], ["light", "Hell"], ["dark", "Dunkel"]] as [ThemeMode, string][]).map(([val, label]) => (
+                    <button key={val} type="button"
+                      className={`theme-option${theme === val ? " active" : ""}`}
+                      onClick={() => setTheme(val)}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="settings-section">
+                <h3>Werkzeuge</h3>
+                <div className="settings-tools">
+                  {featureTabs.map(f => (
+                    <button key={f.id} type="button"
+                      className={`settings-tool-btn${showFeaturePanel === f.id ? " active" : ""}`}
+                      onClick={() => setShowFeaturePanel(showFeaturePanel === f.id ? null : f.id)}
+                      title={f.desc}>
+                      <f.icon weight="regular" />
+                      <div className="settings-tool-info">
+                        <strong>{f.label}</strong>
+                        <span>{f.desc}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ── Feature Panels ── */}
           {showFeaturePanel && (
@@ -1155,100 +1305,120 @@ export function SagentShell() {
         {/* ── Tool Panel ── */}
         {toolPanelOpen && (
           <aside className="tool-panel" aria-label="Tools">
-          <div className="tool-panel-tabs">
-            {toolTabs.map(tab => (
-              <button key={tab.id} type="button"
-                className={`tool-panel-tab${activeToolTab === tab.id ? " active" : ""}`}
-                onClick={() => setActiveToolTab(tab.id)}>
-                <span className="tool-tab-icon">{tab.icon}</span>
-                <span className="tool-tab-label">{tab.label}</span>
-                <span className="tool-tab-close" onClick={e => { e.stopPropagation(); closeToolTab(tab.id); }}>×</span>
-              </button>
-            ))}
-          </div>
-          <div className="tool-panel-content">
-            {activeToolTab === "terminal" && (
-              <div className="tool-terminal">
-                <div className="tool-terminal-header">
-                  <span className="tool-terminal-dot" style={{background:"#ff5f57"}} />
-                  <span className="tool-terminal-dot" style={{background:"#ffbd2e"}} />
-                  <span className="tool-terminal-dot" style={{background:"#28c840"}} />
-                  <span className="tool-terminal-title">bash</span>
-                </div>
-                <div className="tool-terminal-body">
-                  <div className="term-line"><span className="term-prompt">$</span> ls -la</div>
-                  <div className="term-line term-output">total 24</div>
-                  <div className="term-line term-output">drwxr-xr-x  10 user  staff   320 Jun 30 14:23 .</div>
-                  <div className="term-line term-output">drwxr-xr-x   5 user  staff   160 Jun 30 10:00 ..</div>
-                  <div className="term-line term-output">-rw-r--r--   1 user  staff  1024 Jun 30 14:23 README.md</div>
-                  <div className="term-line term-output">drwxr-xr-x   3 user  staff    96 Jun 30 14:23 src</div>
-                  <div className="term-line term-output">drwxr-xr-x   2 user  staff    64 Jun 30 14:23 tests</div>
-                  <div className="term-line"><span className="term-prompt">$</span> <span className="term-cursor">█</span></div>
-                </div>
-              </div>
-            )}
-            {activeToolTab === "browser" && (
-              <div className="tool-browser">
-                <div className="tool-browser-bar">
-                  <div className="tool-browser-nav">
-                    <span className="browser-nav-btn">←</span>
-                    <span className="browser-nav-btn">→</span>
-                    <span className="browser-nav-btn">↻</span>
+          {toolTabs.length > 0 ? (
+            <>
+            <div className="tool-panel-tabs">
+              {toolTabs.map(tab => (
+                <button key={tab.id} type="button"
+                  className={`tool-panel-tab${activeToolTab === tab.id ? " active" : ""}`}
+                  onClick={() => setActiveToolTab(tab.id)}>
+                  <span className="tool-tab-icon">{tab.icon}</span>
+                  <span className="tool-tab-label">{tab.label}</span>
+                  <span className="tool-tab-close" onClick={e => { e.stopPropagation(); closeToolTab(tab.id); }}>×</span>
+                </button>
+              ))}
+              <button type="button" className="tool-tab-add" title="Neuen Tab öffnen"
+                onClick={() => {
+                  const nextId = toolTabs.length + 1;
+                  openToolTab(`tab-${nextId}`, `Tab ${nextId}`, "📄");
+                }}>+</button>
+            </div>
+            <div className="tool-panel-content">
+              {activeToolTab === "terminal" && (
+                <div className="tool-terminal">
+                  <div className="tool-terminal-header">
+                    <span className="tool-terminal-dot" style={{background:"#ff5f57"}} />
+                    <span className="tool-terminal-dot" style={{background:"#ffbd2e"}} />
+                    <span className="tool-terminal-dot" style={{background:"#28c840"}} />
+                    <span className="tool-terminal-title">bash</span>
                   </div>
-                  <div className="tool-browser-url">
-                    <span className="browser-url-icon">🔒</span>
-                    <span>localhost:3000</span>
+                  <div className="tool-terminal-body">
+                    <div className="term-line"><span className="term-prompt">$</span> ls -la</div>
+                    <div className="term-line term-output">total 24</div>
+                    <div className="term-line term-output">drwxr-xr-x  10 user  staff   320 Jun 30 14:23 .</div>
+                    <div className="term-line term-output">drwxr-xr-x   5 user  staff   160 Jun 30 10:00 ..</div>
+                    <div className="term-line term-output">-rw-r--r--   1 user  staff  1024 Jun 30 14:23 README.md</div>
+                    <div className="term-line term-output">drwxr-xr-x   3 user  staff    96 Jun 30 14:23 src</div>
+                    <div className="term-line term-output">drwxr-xr-x   2 user  staff    64 Jun 30 14:23 tests</div>
+                    <div className="term-line"><span className="term-prompt">$</span> <span className="term-cursor">█</span></div>
                   </div>
                 </div>
-                <div className="tool-browser-body">
-                  <div className="browser-placeholder">
-                    <span className="browser-placeholder-icon">🌐</span>
-                    <h3>Sagent läuft lokal</h3>
-                    <p>API: port 8765 · Web: port 3000</p>
-                  </div>
-                </div>
-              </div>
-            )}
-            {activeToolTab === "files" && (
-              <div className="tool-files">
-                <div className="tool-files-header">
-                  <Folder weight="regular" />
-                  <span>Workspace: sagent</span>
-                </div>
-                <div className="tool-files-tree">
-                  {[
-                    { name: "apps/", type: "dir", children: ["web/", "agent/"] },
-                    { name: "packages/", type: "dir", children: ["core/"] },
-                    { name: "docs/", type: "dir" },
-                    { name: "tests/", type: "dir" },
-                    { name: "README.md", type: "file" },
-                    { name: "package.json", type: "file" },
-                    { name: "pnpm-lock.yaml", type: "file" },
-                    { name: "tsconfig.json", type: "file" },
-                  ].map(item => (
-                    <div key={item.name} className="tool-file-item">
-                      <span className="tool-file-icon">{item.type === "dir" ? "📁" : "📄"}</span>
-                      <span className="tool-file-name">{item.name}</span>
+              )}
+              {activeToolTab === "browser" && (
+                <div className="tool-browser">
+                  <div className="tool-browser-bar">
+                    <div className="tool-browser-nav">
+                      <span className="browser-nav-btn">←</span>
+                      <span className="browser-nav-btn">→</span>
+                      <span className="browser-nav-btn">↻</span>
                     </div>
-                  ))}
+                    <div className="tool-browser-url">
+                      <span className="browser-url-icon">🔒</span>
+                      <span>https://example.com</span>
+                    </div>
+                  </div>
+                  <div className="tool-browser-body">
+                    <iframe src="https://example.com" className="tool-browser-iframe"
+                      title="Browser" sandbox="allow-scripts allow-same-origin allow-forms" />
+                  </div>
                 </div>
-                <div className="tool-files-footer">
-                  <span>Nur Lesezugriff · Keine Shell-Ausführung</span>
+              )}
+              {activeToolTab === "files" && (
+                <div className="tool-files">
+                  <div className="tool-files-header">
+                    <Folder weight="regular" />
+                    <span>Workspace{activeConvId ? ` (Chat: ${conversations.find(c => c.id === activeConvId)?.label ?? activeConvId.slice(0, 8)})` : ""}: sagent</span>
+                  </div>
+                  <div className="tool-files-tree">
+                    {[
+                      { name: "apps/", type: "dir", children: ["web/", "agent/"] },
+                      { name: "packages/", type: "dir", children: ["core/"] },
+                      { name: "docs/", type: "dir" },
+                      { name: "tests/", type: "dir" },
+                      { name: "README.md", type: "file" },
+                      { name: "package.json", type: "file" },
+                      { name: "pnpm-lock.yaml", type: "file" },
+                      { name: "tsconfig.json", type: "file" },
+                    ].map(item => (
+                      <div key={item.name} className="tool-file-item">
+                        <span className="tool-file-icon">{item.type === "dir" ? "📁" : "📄"}</span>
+                        <span className="tool-file-name">{item.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="tool-files-footer">
+                    <span>Nur Lesezugriff · Keine Shell-Ausführung</span>
+                  </div>
                 </div>
+              )}
+            </div>
+            <div className="tool-panel-actions">
+              <button type="button" className="tool-panel-action-btn" onClick={() => openToolTab("terminal", "Terminal", "💻")}>
+                <TerminalWindow weight="regular" />Terminal
+              </button>
+              <button type="button" className="tool-panel-action-btn" onClick={() => openToolTab("browser", "Browser", "🌐")}>
+                <span>🌐</span>Browser
+              </button>
+              <button type="button" className="tool-panel-action-btn" onClick={() => openToolTab("files", "Dateien", "📁")}>
+                <Folder weight="regular" />Dateien
+              </button>
+            </div>
+            </>
+          ) : (
+            <div className="tool-panel-empty">
+              <div className="tool-panel-empty-buttons">
+                <button type="button" className="tool-panel-empty-btn" onClick={() => openToolTab("terminal", "Terminal", "💻")}>
+                  <TerminalWindow weight="regular" /><span>Terminal</span>
+                </button>
+                <button type="button" className="tool-panel-empty-btn" onClick={() => openToolTab("browser", "Browser", "🌐")}>
+                  <span>🌐</span><span>Browser</span>
+                </button>
+                <button type="button" className="tool-panel-empty-btn" onClick={() => openToolTab("files", "Dateien", "📁")}>
+                  <Folder weight="regular" /><span>Dateien</span>
+                </button>
               </div>
-            )}
-          </div>
-          <div className="tool-panel-actions">
-            <button type="button" className="tool-panel-action-btn" onClick={() => openToolTab("terminal", "Terminal", "💻")}>
-              <TerminalWindow weight="regular" />Terminal
-            </button>
-            <button type="button" className="tool-panel-action-btn" onClick={() => openToolTab("browser", "Browser", "🌐")}>
-              <span>🌐</span>Browser
-            </button>
-            <button type="button" className="tool-panel-action-btn" onClick={() => openToolTab("files", "Dateien", "📁")}>
-              <Folder weight="regular" />Dateien
-            </button>
-          </div>
+            </div>
+          )}
         </aside>
       )}
       </div>
