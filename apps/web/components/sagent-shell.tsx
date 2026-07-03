@@ -391,6 +391,7 @@ export function SagentShell() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullText = "";
+      const toolCallLog: {name: string; args: string; result?: string}[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -405,15 +406,27 @@ export function SagentShell() {
               setChatResponse(fullText);
             } else if (event.type === "tool_call") {
               setToolCalls(prev => [...prev, {name: event.name, status: "running"}]);
+              toolCallLog.push({name: event.name, args: event.args || "{}"});
             } else if (event.type === "tool_result" && event.name) {
               setToolCalls(prev => prev.map(tc =>
                 tc.name === event.name && tc.status === "running"
                   ? {...tc, status: "done"} : tc
               ));
+              const entry = toolCallLog.find(tc => tc.name === event.name && !tc.result);
+              if (entry) entry.result = event.result;
             } else if (event.type === "error" && event.message) {
               setChatResponse(fullText || event.message);
             } else if (event.type === "done") {
-              const assistantMsg = {role: "assistant" as const, content: fullText || "Fertig."};
+              let content = fullText || "Fertig.";
+              if (toolCallLog.length > 0) {
+                content += "\n\n---\n**Ausgeführte Werkzeuge:**\n";
+                for (const tc of toolCallLog) {
+                  let argsPreview = tc.args;
+                  try { const parsed = JSON.parse(tc.args); argsPreview = JSON.stringify(parsed, null, 2); } catch {}
+                  content += `\n🔧 \`${tc.name}\` ${argsPreview}\n`;
+                }
+              }
+              const assistantMsg = {role: "assistant" as const, content};
               const newMsgs = [...messages, userMessage, assistantMsg];
               setMessages(newMsgs);
               setChatResponseLoading(false);
@@ -430,7 +443,16 @@ export function SagentShell() {
         }
       }
       if (fullText && !chatResponse) {
-        const assistantMsg = {role: "assistant" as const, content: fullText};
+        let content = fullText;
+        if (toolCallLog.length > 0) {
+          content += "\n\n---\n**Ausgeführte Werkzeuge:**\n";
+          for (const tc of toolCallLog) {
+            let argsPreview = tc.args;
+            try { const parsed = JSON.parse(tc.args); argsPreview = JSON.stringify(parsed, null, 2); } catch {}
+            content += `\n🔧 \`${tc.name}\` ${argsPreview}\n`;
+          }
+        }
+        const assistantMsg = {role: "assistant" as const, content};
         const newMsgs = [...messages, userMessage, assistantMsg];
         setMessages(newMsgs);
         setChatResponseLoading(false);
