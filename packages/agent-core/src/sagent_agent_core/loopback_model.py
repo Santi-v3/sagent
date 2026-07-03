@@ -240,18 +240,13 @@ class LoopbackOpenAIChatAdapter:
     def _request_payload(self, request: ModelRequest) -> dict[str, object]:
         messages = []
         for part in request.parts:
-            role = "system" if part.source is ModelInputSource.POLICY else "user"
-            messages.append(
-                {
-                    "role": role,
-                    "content": json.dumps(
-                        {"content": part.content, "sagent_source": part.source.value},
-                        ensure_ascii=False,
-                        separators=(",", ":"),
-                        sort_keys=True,
-                    ),
-                }
-            )
+            if part.source is ModelInputSource.POLICY:
+                role = "system"
+            elif part.source is ModelInputSource.ASSISTANT:
+                role = "assistant"
+            else:
+                role = "user"
+            messages.append({"role": role, "content": part.content})
         return {
             "model": self.model,
             "messages": messages,

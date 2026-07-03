@@ -25,6 +25,7 @@ pythonpath = [
   "apps/agent-api/src",
   "packages/agent-core/src",
   "packages/tools/src",
+  "packages/memory/src",
 ]
 addopts = "-ra"
 
