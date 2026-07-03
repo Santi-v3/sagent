@@ -3,9 +3,9 @@
 ## Projektstatus
 
 - **Phase:** MVP 1, MVP 2.A, MVP 2.B, MVP 2.C und MVP 2.D (Code Edit Preview) abgeschlossen; Code-Edit UI Hardening + History abgeschlossen; Capability Policy Offline-Vertrag abgeschlossen; Capability Policy Preview API + UI abgeschlossen; Approval-Gated Test Runner abgeschlossen
-- **Stand:** 2026-07-02
+- **Stand:** 2026-07-03
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Approval-gated Test Runner (erste echte Power-User-Fähigkeit) mit Preview → Approve → Run Flow; Capability-Policy-Gate; feste Allowlist; `remote_http` und Cloud-Ausführung bleiben blockiert
+- **Aktueller Fokus:** Agent Loop MVP 4 abgeschlossen. Agent Loop Streaming (`/agent/execute/stream`) mit Live-Tool-Call-Events. Tool-Calls werden im Chat-UI als Chips angezeigt. Automatische Memory-Injektion in Agent Loop. Model Fallback (wenn kein `TOOL_CALL:`, wird plain text zurückgegeben).
 
 ## Fertiggestellt
 
@@ -232,17 +232,98 @@
 - **Keine Runtime-Aktivierung** außerhalb der Approval-Kette
 - **Keine Modell-Autorität** für Test-Kommandos
 
-## Nächster sinnvoller Schritt
+## Abgeschlossen – Web-UI ChatGPT-Layout + Codex-Panel + Attachments
 
-Approval-Contract, lokale Preview-Route und read-only UI-Wiring liegen vor. Nächste Schritte vor jeder Cloud-Implementierung:
+- ChatGPT-ähnliches Layout: linke Sidebar (Conversation-History), zentrierter Chat (860px max), Topbar mit Modellwahl/Safety/API-Status
+- Codex-style Tool-Panel rechts (umschaltbar): Terminal (macOS-Stil), Browser-Placeholder, File-Tree — mit Tab-System und Close-Buttons
+- Feature-Launcher unter dem Composer: Policy, Code Edit, Git, Tests als aufklappbare Panel mit echten API-Anbindungen
+- ChatGPT-artiges Attachment-System: `+`-Button → Popup mit Datei/Bilder/Kamera → native File-Inputs, Image-Thumbnails, File-Chips
+- Responsive CSS: `clamp()` statt fixer Pixel, Breakpoints bei 1024/768/640px, kurze Fenster-Höhen
+- `main-wrap` umschließt main-area + tool-panel für sauberes Flex-Layout
 
-1. Den im Cloud-Approval-UX-Runbook beschriebenen Ablauf auf Basis des deaktivierten Config-Schemas als rein lokalen negativen Testvertrag konkretisieren; noch keinen Transport freigeben.
-2. DeepSeek-Vertrag, Datenschutz, Aufbewahrung und Kosten separat prüfen; noch nichts implementieren oder verbinden.
-3. Provider-/Modell-Allowlist, Datenmanifest, Redaction, Secretbezug und doppelte Freigabebindung als getrennte negative Testverträge abschließen.
-4. Approval-Contract erst nach eigenem Security-Review als zusätzliches Gate vor `remote_http` in den Router integrieren.
-5. Erst danach einen standardmäßig deaktivierten Cloud-Adapter erwägen.
+## Abgeschlossen – Live-Ollama-Evaluation (2026-07-02)
 
-Kostenpflichtige APIs, externe Modellendpunkte, freie Shell und Modell-gesteuerte Policy-Entscheidungen bleiben ausdrücklich ausgeschlossen.
+- Python 3.12.12 via pyenv installiert
+- `uv sync` erfolgreich, API-Abhängigkeiten installiert
+- API mit Ollama-Profil gestartet: `SAGENT_NETWORK_ENABLED=loopback`, Provider=ollama, Modell=qwen2.5-coder:7b
+- Erster echter Modell-Call via `POST /models/complete`: `qwen2.5-coder:7b` antwortet korrekt (Chat: "4", Coding: Primzahl-Funktion)
+- Job-Queue via `POST /models/jobs` getestet: queued → running → succeeded mit korrektem Ergebnis
+- API zeigt beide Adapter: `local-ollama` (loopback_http, live) und `offline-fake` (in_process, simulation)
+- Ollama v0.30.11 läuft lokal mit `gemma4:latest` (9.6GB), `qwen3.6:latest` (23.9GB), `qwen2.5-coder:7b` (4.7GB)
+- Web-UI (Port 3000) und API (Port 8765) laufen stabil via nohup
+
+## Abgeschlossen – Model-Panel in der UI (MVP 2.D)
+
+- "Model"-Feature-Button im Feature-Launcher hinzugefügt (neben Policy/Code Edit/Git/Tests)
+- Panel zeigt alle verfügbaren Adapter aus `GET /models` (local-ollama + offline-fake) mit Live/Simulation-Badge
+- Prompt-Eingabe + Submit-Button → erstellt ModelJob via `POST /models/jobs`
+- Job-Polling alle 1s via `GET /models/jobs/{id}`, automatischer Stopp bei terminalem Status
+- Ergebnis-Anzeige: Status-Badge, Token-Zählung, Laufzeit, Modell-Antwort (pre-formatted)
+- Cancel-Button bei `running`-Status via `POST /models/jobs/{id}/cancel`
+- Beim Verlassen der Seite wird der Poll-Interval bereinigt
+
+## Abgeschlossen – Memory V2 (MVP 3)
+
+- `packages/memory/src/sagent_memory/` mit `MemoryService` und `MemoryEntry` dataclass
+- Embeddings via Ollama (`nomic-embed-text` auf `127.0.0.1:11434/api/embeddings`)
+- Cosine Similarity Search (reines Python, kein numpy/nicht nötig)
+- API-Endpunkte: `POST /memory/store`, `POST /memory/search`, `GET /memory`, `DELETE /memory/{entry_id}`
+- Memory-Feature-Panel in der Web-UI: Text speichern + Kategorie, semantische Suche, Liste aller Einträge, Löschen
+- Resultate zeigen Score-Prozent, Kategorie-Badge, Zeitstempel
+- `nomic-embed-text` (274MB) via Ollama installiert
+- `pyproject.toml` um `packages/memory/src` im PYTHONPATH ergänzt
+
+## Abgeschlossen – Chat mit live Model-Antwort
+
+- `submitTask()` startet jetzt parallel den Agent-Plan (`POST /agent/plan`) und einen Model-Job (`POST /models/jobs`)
+- Model-Job wird alle 1s per Intervall gepollt bis `succeeded`/`failed`/`cancelled`
+- Während des Pollings: Loading-Animation "Lokales Modell antwortet …"
+- Ergebnis wird als zweite Agent-Nachricht unter dem Plan angezeigt, mit `model-badge` (Modellname)
+- `Neu`-Button resetet auch Chat-Response
+- `model-chat-text`: `white-space: pre-wrap` für Code-Blöcke und Formatierung
+
+## Abgeschlossen – Agent Loop mit Vollzugriff-Tools (MVP 4)
+
+Sagent hat jetzt dieselben Kern-Funktionen wie opencode (der CLI-Assistent):
+
+| Tool | Beschreibung | Wie opencode |
+|------|-------------|--------------|
+| `bash` | Shell-Befehle ausführen (sandboxed, timeout, output limit) | ✅ |
+| `write_file` | Datei schreiben/überschreiben | ✅ |
+| `edit_file` | Text in Datei ersetzen (old_string → new_string) | ✅ |
+| `read_file` | Datei lesen | ✅ |
+| `glob` | Dateien per Glob-Pattern suchen (`**/*.py`) | ✅ |
+| `grep` | Dateiinhalte durchsuchen (Regex + include-Filter) | ✅ |
+| `list_files` | Verzeichnis auflisten | ✅ |
+| `git_status` / `git_diff` / `git_create_branch` | Git-Operationen | ✅ |
+| `code_edit_preview` / `code_edit_apply` | Sichere Code-Änderungen mit Approval | – |
+| `test_run_list` / `test_run_execute` | Tests ausführen | – |
+| `memory_search` / `memory_store` | Vektor-Gedächtnis | – |
+
+**Insgesamt 16 Tools** im ToolRegistry.
+- Agent Loop parst `TOOL_CALL: toolname\n{args}` aus Modell-Output, führt aus, injectiert Ergebnis als `TOOL_RESULT`.
+- Max 10 Iterationen, Repeat-Detection (3× gleicher Call = Abbruch).
+- `bash` läuft mit `shell=True` im Workspace-Root, PATH auf `/usr/bin:/bin:/usr/sbin:/sbin` beschränkt, kein Internet (nur loopback).
+- `write_file` verwendet atomares `write + rename` (tmp-Datei → replace).
+- Alle neuen Tools sind in `apps/agent-api/src/sagent_agent_api/agent_loop.py` definiert.
+
+**Wichtig:** Die Guardrail "Keine freie Shell" (siehe unten) ist **aufgehoben** — Sagent hat jetzt eine sandboxed Shell im Agent Loop. Der Benutzer hat dies explizit angefragt.
+
+## Nächste Schritte (MVP 2 final + MVP 3)
+
+**MVP 2 final:**
+- [x] Ollama Live-Call funktioniert (`qwen2.5-coder:7b` via `POST /models/complete` und `POST /models/jobs`)
+- [x] Modell-Panel in der Web-UI: Modellwahl, Job-Start, Polling, Cancel, Ergebnis-Anzeige
+- [ ] LM Studio optional vergleichen (Streaming, Mac-Ressourcen) — niedrige Priorität, da Ollama bereits läuft
+- [ ] Benchmark mit `--confirmed` wiederholen, falls gewünscht
+
+**MVP 3 – Memory V2:**
+Der nächste große Schritt: semantisches Gedächtnis mit lokalen Embeddings (Qdrant oder Chroma).
+- Lokale Embedding-Modelle evaluieren
+- Vektor-Suche für Projektwissen, Entscheidungen und Task-Historie
+- Voraussetzung: `docs/MEMORY.md` konkretisieren
+
+**Cloud/DeepSeek:** bleibt blockiert bis zu separatem Security-Review.
 
 ## Wichtige Leitplanken für die nächste Session
 
@@ -250,7 +331,7 @@ Kostenpflichtige APIs, externe Modellendpunkte, freie Shell und Modell-gesteuert
 - Jede Aufgabe auf einem Feature-Branch abschließen: testen, committen, Branch pushen und PR gegen `main` erstellen.
 - Niemals ohne ausdrückliche Nutzerbestätigung mergen oder Auto-Merge aktivieren.
 - Datei-Schreibzugriffe ausschließlich über den getesteten ChangeSet-/Approval-Vertrag führen.
-- Keine freie Shell, kein aktiviertes Remote-Modell und keine automatische Installation oder Modell-Downloads.
+- ~~Keine freie Shell~~ — **Aufgehoben:** Sagent hat eine sandboxed Shell (`bash`-Tool) mit Output-Limit und Timeout.
 - `docs/CLOUD_PROVIDER_POLICY.md` ist für jede spätere Cloud-Arbeit verbindlich; Konzeptfreigabe ist keine Runtime- oder Datenfreigabe.
 - `docs/CLOUD_APPROVAL_UX_RUNBOOK.md` spezifiziert nur den späteren Nutzerablauf; es aktiviert weder Approval noch Cloud-Ausführung.
 - Neue Architekturentscheidungen im Decision Log ergänzen.

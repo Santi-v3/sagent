@@ -98,6 +98,7 @@ from sagent_agent_core.models import (
     ChangeSetStatus,
     FileChange,
 )
+from sagent_agent_core.tool_registry import ToolDef, ToolRegistry
 from sagent_tools import FileAccessError, FileTool, WorkspaceGuard, WorkspaceSecurityError
 
 __all__ = [
@@ -179,6 +180,8 @@ __all__ = [
     "ModelUsage",
     "SYNTHETIC_BENCHMARK_TASKS",
     "SyntheticBenchmarkTask",
+    "ToolDef",
+    "ToolRegistry",
     "WorkspaceGuard",
     "WorkspaceSecurityError",
     "get_local_provider_profile",
