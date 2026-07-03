@@ -95,6 +95,18 @@ button { color: inherit; }
 .conversation-item:hover { background: var(--surface-hover); }
 .conversation-item.active { background: var(--bg); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
 .conversation-item svg { width: 16px; height: 16px; color: var(--text-muted); flex-shrink: 0; }
+.conversation-item-wrap { position: relative; }
+.conversation-item-wrap .conv-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-rename-form { padding: 4px 10px; }
+.conv-rename-input { width: 100%; padding: 4px 6px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: 13px; outline: none; }
+.sidebar-empty { padding: 20px 16px; font-size: 12px; color: var(--text-muted); text-align: center; }
+
+.ctx-menu-overlay { position: fixed; inset: 0; z-index: 999; }
+.ctx-menu { position: fixed; z-index: 1000; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 4px 12px rgba(0,0,0,0.3); padding: 4px; min-width: 160px; }
+.ctx-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: 0; border-radius: 4px; background: transparent; cursor: pointer; font-size: 13px; color: var(--text); text-align: left; }
+.ctx-menu-item:hover { background: var(--surface-hover); }
+.ctx-menu-item.danger { color: var(--danger); }
+.ctx-menu-item svg { width: 16px; height: 16px; }
 
 .sidebar-footer {
   padding: 12px 16px;

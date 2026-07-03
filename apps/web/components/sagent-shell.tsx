@@ -3,9 +3,9 @@
 import {
   ArrowUp, ArrowsClockwise, CheckCircle, CircleNotch,
   FileCode, Folder, GitBranch, GitDiff as GitDiffIcon,
-  HourglassMedium, Lightbulb, Play, ShieldCheck,
+  HourglassMedium, Lightbulb, Play, Pencil, ShieldCheck,
   TerminalWindow, Warning, WarningCircle, XCircle,
-  Plus, Code, ChatCircleDots, Gear,
+  Plus, Code, ChatCircleDots, DotsThreeVertical, Gear,
   Brain, Wrench, ChartBar, BookOpen,
   Trash,
 } from "@phosphor-icons/react";
@@ -43,13 +43,20 @@ const safetyLevels: { id: SafetyLevel; label: string; desc: string }[] = [
   { id: "fullaccess", label: "Vollzugriff", desc: "Keine Nachfragen, voller Zugriff" },
 ];
 
-const conversationHistory = [
-  { id: "1", label: "Approval-Flow simulieren", date: "Heute" },
-  { id: "2", label: "Agent-Datenmodell planen", date: "Heute" },
-  { id: "3", label: "WorkspaceGuard vorbereiten", date: "Gestern" },
-  { id: "4", label: "Test-Setup erweitern", date: "Gestern" },
-  { id: "5", label: "Refactoring: Logger", date: "Letzte Woche" },
-];
+type Conversation = { id: string; label: string; messages: {role: "user" | "assistant"; content: string}[]; updatedAt: number };
+
+function generateId(): string { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+function loadConversations(): Conversation[] {
+  try {
+    const raw = localStorage.getItem("sagent-conversations");
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveConversations(convs: Conversation[]) {
+  try { localStorage.setItem("sagent-conversations", JSON.stringify(convs)); } catch {}
+}
 
 const featureTabs = [
   { id: "policy", icon: ShieldCheck, label: "Policy", desc: "Sicherheitsrichtlinien einsehen" },
@@ -88,6 +95,11 @@ export function SagentShell() {
   const [chatResponseLoading, setChatResponseLoading] = useState(false);
   const [messages, setMessages] = useState<{role: "user" | "assistant"; content: string}[]>([]);
   const [toolCalls, setToolCalls] = useState<{name: string; status: "running" | "done"}[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
+  const [activeConvId, setActiveConvId] = useState<string | null>(null);
+  const [ctxMenu, setCtxMenu] = useState<{x: number; y: number; convId: string} | null>(null);
+  const [editingConvId, setEditingConvId] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState("");
   const [testProfiles, setTestProfiles] = useState<TestProfile[]>([]);
   const [selectedTestProfileId, setSelectedTestProfileId] = useState("");
   const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -132,6 +144,38 @@ export function SagentShell() {
   const [modelJobLoading, setModelJobLoading] = useState(false);
   const [modelJobResult, setModelJobResult] = useState<{job_id: string; state: string; created_at: string; completed_at: string | null; result: {content: string; input_tokens: number; output_tokens: number} | null; error: string | null} | null>(null);
   const modelJobPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Save conversations to localStorage
+  useEffect(() => { saveConversations(conversations); }, [conversations]);
+
+  function saveCurrentConversation(msgs: {role: "user" | "assistant"; content: string}[], firstMsg: string) {
+    setConversations(prev => {
+      if (activeConvId) {
+        const existing = prev.find(c => c.id === activeConvId);
+        if (existing) {
+          const label = existing.label === "Neue Konversation" ? firstMsg.slice(0, 40) : existing.label;
+          return prev.map(c => c.id === activeConvId ? {...c, label, messages: msgs, updatedAt: Date.now()} : c);
+        }
+      }
+      const id = generateId();
+      setTimeout(() => setActiveConvId(id), 0);
+      return [...prev, { id, label: firstMsg.slice(0, 40), messages: msgs, updatedAt: Date.now() }];
+    });
+  }
+
+  function startNewConversation() {
+    setSubmittedTask(""); setResult(null); setError(""); setTask("");
+    setChatResponse(null); setChatResponseLoading(false); setMessages([]);
+    setToolCalls([]); setActiveConvId(null);
+  }
+
+  function switchConversation(id: string) {
+    const conv = conversations.find(c => c.id === id);
+    if (!conv) return;
+    setActiveConvId(id);
+    setMessages(conv.messages);
+    setChatResponse(null); setChatResponseLoading(false); setSubmittedTask(""); setResult(null); setError("");
+  }
 
   const [memoryInput, setMemoryInput] = useState("");
   const [memoryCategory, setMemoryCategory] = useState("");
@@ -369,10 +413,12 @@ export function SagentShell() {
             } else if (event.type === "error" && event.message) {
               setChatResponse(fullText || event.message);
             } else if (event.type === "done") {
-              setMessages(prev => [...prev, {role: "assistant", content: fullText || "Fertig."}]);
+              const assistantMsg = {role: "assistant" as const, content: fullText || "Fertig."};
+              const newMsgs = [...messages, userMessage, assistantMsg];
+              setMessages(newMsgs);
               setChatResponseLoading(false);
               setToolCalls([]);
-              // Automatisch Antwort ins Gedächtnis
+              saveCurrentConversation(newMsgs, t);
               if (fullText.length > 20) {
                 try { await fetch(`${API_URL}/memory/store`, {
                   method: "POST", headers: {"Content-Type": "application/json"},
@@ -384,9 +430,12 @@ export function SagentShell() {
         }
       }
       if (fullText && !chatResponse) {
-        setMessages(prev => [...prev, {role: "assistant", content: fullText}]);
+        const assistantMsg = {role: "assistant" as const, content: fullText};
+        const newMsgs = [...messages, userMessage, assistantMsg];
+        setMessages(newMsgs);
         setChatResponseLoading(false);
         setToolCalls([]);
+        saveCurrentConversation(newMsgs, t);
       }
     } catch {
       // Fallback: direktes Model-Streaming ohne Agent Loop
@@ -409,8 +458,11 @@ export function SagentShell() {
                 const data = JSON.parse(line.slice(6));
                 if (data.done) {
                   setChatResponse(fullText);
-                  setMessages(prev => [...prev, {role: "assistant", content: fullText}]);
+                  const assistantMsg = {role: "assistant" as const, content: fullText};
+                  const newMsgs = [...messages, userMessage, assistantMsg];
+                  setMessages(newMsgs);
                   setChatResponseLoading(false);
+                  saveCurrentConversation(newMsgs, t);
                   break;
                 }
                 if (data.content) {
@@ -427,8 +479,11 @@ export function SagentShell() {
         }
         if (fullText && !chatResponse) {
           setChatResponse(fullText);
-          setMessages(prev => [...prev, {role: "assistant", content: fullText}]);
+          const assistantMsg = {role: "assistant" as const, content: fullText};
+          const newMsgs = [...messages, userMessage, assistantMsg];
+          setMessages(newMsgs);
           setChatResponseLoading(false);
+          saveCurrentConversation(newMsgs, t);
         }
       } catch {
         setChatResponse("Verbindung zur API fehlgeschlagen.");
@@ -559,27 +614,74 @@ export function SagentShell() {
       <aside className="sidebar" aria-label="Conversations">
         <div className="sidebar-header">
           <span className="sidebar-brand">Sagent</span>
-<button type="button" className="new-chat-btn" onClick={() => { setSubmittedTask(""); setResult(null); setError(""); setTask(""); setChatResponse(null); setChatResponseLoading(false); setMessages([]); setToolCalls([]); }}>
-              <Plus weight="bold" />Neu
+          <button type="button" className="new-chat-btn" onClick={startNewConversation}>
+            <Plus weight="bold" />Neu
           </button>
         </div>
         <div className="sidebar-conversations">
-          {["Heute", "Gestern", "Letzte Woche"].map(group => (
-            <div key={group}>
-              <div className="conversation-group-label">{group}</div>
-              {conversationHistory.filter(c => c.date === group).map(c => (
-                <button key={c.id} type="button" className={`conversation-item${c.id === "1" ? " active" : ""}`}
-                  onClick={() => handleExampleClick(c.label)}>
-                  <ChatCircleDots weight="regular" />
-                  <span>{c.label}</span>
-                </button>
-              ))}
-            </div>
-          ))}
+          {[{id: "today", label: "Heute"}, {id: "yesterday", label: "Gestern"}, {id: "older", label: "Älter"}].map(group => {
+            const now = Date.now();
+            const day = 86400000;
+            const convs = conversations.filter(c => {
+              if (group.id === "today") return now - c.updatedAt < day;
+              if (group.id === "yesterday") return now - c.updatedAt < 2 * day;
+              return now - c.updatedAt >= 2 * day;
+            });
+            if (convs.length === 0) return null;
+            return (
+              <div key={group.id}>
+                <div className="conversation-group-label">{group.label}</div>
+                {convs.map(c => (
+                  <div key={c.id} className="conversation-item-wrap"
+                    onContextMenu={e => { e.preventDefault(); setCtxMenu({x: e.clientX, y: e.clientY, convId: c.id}); }}>
+                    {editingConvId === c.id ? (
+                      <form onSubmit={ev => { ev.preventDefault(); if (editLabel.trim()) {
+                        setConversations(prev => prev.map(cc => cc.id === c.id ? {...cc, label: editLabel.trim()} : cc));
+                        setEditingConvId(null);
+                      }}} className="conv-rename-form">
+                        <input type="text" className="conv-rename-input" value={editLabel}
+                          onChange={e => setEditLabel(e.target.value)} autoFocus
+                          onBlur={() => setEditingConvId(null)}
+                          onKeyDown={e => e.key === "Escape" && setEditingConvId(null)} />
+                      </form>
+                    ) : (
+                      <button type="button" className={`conversation-item${c.id === activeConvId ? " active" : ""}`}
+                        onClick={() => switchConversation(c.id)}>
+                        <ChatCircleDots weight="regular" />
+                        <span className="conv-label">{c.label}</span>
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+          {conversations.length === 0 && (
+            <div className="sidebar-empty">Noch keine Konversationen</div>
+          )}
         </div>
+
+        {/* Context Menu */}
+        {ctxMenu && (
+          <>
+            <div className="ctx-menu-overlay" onClick={() => setCtxMenu(null)} />
+            <div className="ctx-menu" style={{left: ctxMenu.x, top: ctxMenu.y}}>
+              <button type="button" className="ctx-menu-item" onClick={() => {
+                const conv = conversations.find(c => c.id === ctxMenu.convId);
+                if (conv) { setEditLabel(conv.label); setEditingConvId(conv.id); }
+                setCtxMenu(null);
+              }}><Pencil weight="regular" /> Umbenennen</button>
+              <button type="button" className="ctx-menu-item danger" onClick={() => {
+                setConversations(prev => prev.filter(c => c.id !== ctxMenu.convId));
+                if (activeConvId === ctxMenu.convId) startNewConversation();
+                setCtxMenu(null);
+              }}><Trash weight="regular" /> Löschen</button>
+            </div>
+          </>
+        )}
+
         <div className="sidebar-footer">
           <button type="button" className="sidebar-footer-btn"><Gear weight="regular" />Einstellungen</button>
-          <button type="button" className="sidebar-footer-btn"><Trash weight="regular" />Conversation löschen</button>
         </div>
       </aside>
 
