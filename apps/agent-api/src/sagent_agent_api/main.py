@@ -11,7 +11,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 
-from sagent_agent_api.agent_loop import build_agent_registry, run_agent_loop
+from sagent_agent_api.agent_loop import build_agent_registry, run_agent_loop, run_agent_loop_stream
 from sagent_agent_api.code_edits import CodeEditPolicyError, CodeEditService, get_code_edit_service
 from sagent_agent_api.git_integration import get_git_tool
 from sagent_agent_api.model_integration import get_model_router
@@ -285,7 +285,7 @@ def agent_execute(
         pass
 
     try:
-        loop_result = run_agent_loop(request.task, router, registry, request.messages, adapter_id="local-ollama")
+        loop_result = run_agent_loop(request.task, router, registry, request.messages, adapter_id="local-ollama", memory=memory)
     except Exception as e:
         return AgentExecuteResponse(final_response="", error=str(e))
 
@@ -309,6 +309,46 @@ def agent_execute(
         duration_ms=round(loop_result.duration_ms, 1),
         error=loop_result.error,
     )
+
+
+class StreamEvent(BaseModel):
+    type: str
+    name: str | None = None
+    args: str | None = None
+    result: str | None = None
+    content: str | None = None
+    message: str | None = None
+    iteration: int | None = None
+    full_text: str | None = None
+    total_model_calls: int | None = None
+    duration_ms: float | None = None
+
+
+@app.post("/agent/execute/stream")
+def agent_execute_stream(
+    request: AgentExecuteRequest,
+    router: ModelRouterDependency,
+    memory: MemoryServiceDependency,
+    git_tool: GitToolDependency,
+    code_edit: CodeEditDependency,
+    test_runner: TestRunnerDependency,
+) -> StreamingResponse:
+    """SSE-Streaming: Agent Loop mit Live-Tool-Call-Events."""
+    workspace_root = str(Path(__file__).resolve().parents[4])
+    file_tool = FileTool(WorkspaceGuard(Path(workspace_root)))
+    registry = build_agent_registry(file_tool, git_tool, code_edit, test_runner, memory, workspace_root)
+
+    try:
+        memory.store(request.task, {"category": "user-input", "type": "chat"})
+    except Exception:
+        pass
+
+    def event_stream() -> Generator[str, None, None]:
+        for event in run_agent_loop_stream(request.task, router, registry, request.messages, adapter_id="local-ollama", memory=memory):
+            se = StreamEvent(**event)
+            yield f"data: {se.model_dump_json()}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @app.post("/agent/approve", response_model=ApprovalResponse)
