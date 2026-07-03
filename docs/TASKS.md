@@ -63,7 +63,6 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Lokalen OpenAI-kompatiblen Adapter ohne fest eingebettete Zugangsdaten implementieren
 - [x] Loopback-Literale, Providerports, Redirects, Proxies und Request-/Response-Größen absichern
 - [x] Bestätigten `POST /models/complete` ohne frei wählbaren Endpoint bereitstellen
-- [ ] LM Studio und Ollama anhand von Installation, API-Kompatibilität, Streaming und Mac-Ressourcen vergleichen
 - [x] Reproduzierbaren Benchmark-Plan mit festen synthetischen Aufgaben und Metrikdefinitionen dokumentieren
 - [x] Opt-in Benchmark-CLI mit `--confirmed`, bestehender Loopback-Konfiguration und prompt-freier Metrikausgabe implementieren
 - [x] Benchmark-Harness ausschließlich mit Mock-Transports deterministisch testen
@@ -77,11 +76,24 @@ Aktueller Ausführungsausschnitt aus [`MASTER_PLAN.md`](MASTER_PLAN.md), Abschni
 - [x] Begrenzte ModelJobs mit queued/running/cancelling/terminalen Zuständen bereitstellen
 - [x] Prompt-freie Status-, Result- und Cancel-Endpunkte implementieren
 - [x] Echten lokalen Modellaufruf ausschließlich als expliziten, bestätigten API-Opt-in aktivierbar machen
-- [ ] Live-Aufruf mit LM Studio und Ollama auf dem Ziel-Mac prüfen
-- [x] Ersten echten Benchmark nach bewusster Provider-/Modellvorbereitung und ausdrücklicher Nutzerbestätigung ausführen; Ergebnis war ein sicherer Negativtest ohne Modelloutput
-- [ ] Außerhalb von Sagent manuell prüfen, ob Ollama läuft und `gemma4:latest` direkt erreichbar ist; bei negativem Befund keinen Sagent-Benchmark wiederholen
-- [ ] Nur bei positivem manuellem Erreichbarkeitsbefund später genau einen weiteren Benchmark erneut ausdrücklich bestätigen
-- [ ] Modellwahl, Jobstatus und Abbruch nach Live-Evaluation in die UI integrieren
+- [x] Live-Aufruf mit Ollama auf dem Ziel-Mac geprüft: `qwen2.5-coder:7b` via Ollama API antwortet korrekt (Chat + Coding, direct + Jobs)
+- [x] Außerhalb von Sagent manuell geprüft: Ollama läuft (v0.30.11) mit `gemma4:latest`, `qwen3.6:latest`, `qwen2.5-coder:7b`; API auf `127.0.0.1:11434` erreichbar
+- [ ] LM Studio und Ollama anhand von Installation, API-Kompatibilität, Streaming und Mac-Ressourcen vergleichen
+- [x] Modellwahl, Jobstatus und Abbruch nach Live-Evaluation in die UI integriert
+- [x] Chat sendet Nachrichten an lokales Modell (qwen2.5-coder:7b) und zeigt Antwort live an
+
+### MVP 3 – Memory V2
+
+- [x] Evaluierung: nomic-embed-text via Ollama installiert und getestet (274MB)
+- [x] MemoryService: speichern, semantische Suche, listen, löschen (in-memory)
+- [x] Cosine Similarity in reinem Python (keine externen Dependencies)
+- [x] API-Endpunkte: `POST /memory/store`, `POST /memory/search`, `GET /memory`, `DELETE /memory/{entry_id}`
+- [x] Memory-Feature-Panel in der Web-UI (Text + Kategorie speichern, semantische Suche, Liste, Löschen)
+- [x] `docs/MEMORY.md` auf V2-Architektur aktualisiert
+- [x] Persistenz (SQLite, API-Neustart überlebt)
+- [ ] Automatisches Speichern von Agent-Entscheidungen
+- [x] Memory als Chat-Context (automatische Anreicherung bei `/models/complete` und `/models/jobs`)
+- [ ] Nur bei Bedarf genau einen weiteren Benchmark erneut ausdrücklich bestätigen
 
 ## Cloud-Provider – Policy vor Implementierung
 

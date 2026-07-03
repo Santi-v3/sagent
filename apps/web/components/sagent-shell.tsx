@@ -1,158 +1,76 @@
 "use client";
 
 import {
-  ArrowUp,
-  ArrowsClockwise,
-  CheckCircle,
-  CircleNotch,
-  Circle,
-  FileCode,
-  GitBranch,
-  GitDiff as GitDiffIcon,
-  HourglassMedium,
-  LockKey,
-  Play,
-  ShieldCheck,
-  TerminalWindow,
-  Warning,
-  WarningCircle,
-  XCircle,
+  ArrowUp, ArrowsClockwise, CheckCircle, CircleNotch,
+  FileCode, Folder, GitBranch, GitDiff as GitDiffIcon,
+  HourglassMedium, Lightbulb, Play, ShieldCheck,
+  TerminalWindow, Warning, WarningCircle, XCircle,
+  Plus, Code, ChatCircleDots, Gear,
+  Brain, Wrench, ChartBar, BookOpen,
+  Trash,
 } from "@phosphor-icons/react";
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 
-import { BenchmarkStatus } from "@/components/benchmark-status";
 import { CapabilityPolicyPreview } from "@/components/capability-policy-preview";
-import { CloudApprovalPreview } from "@/components/cloud-approval-preview";
 import { CodeEditPreviewPanel } from "@/components/code-edit-preview-panel";
 
 type ApprovalState = "pending" | "approved" | "rejected" | "needs_changes";
 type ApprovalDecision = Exclude<ApprovalState, "pending">;
 
-type PlanStep = {
-  position: number;
-  title: string;
-  description: string;
-};
+type PlanStep = { position: number; title: string; description: string };
+type ChangeProposal = { summary: string; risk_level: "low" | "medium" | "high"; affected_files: string[]; required_approvals: string[] };
+type PlannedTask = { task_id: string; task: string; goal: string; steps: PlanStep[]; risks: string[]; next_actions: string[]; proposal: ChangeProposal; approval_state: ApprovalState; created_at: string; updated_at: string };
+type ApprovalResponse = { message: string; task: PlannedTask };
+type TestProfile = { profile_id: string; command: string; working_directory: string; timeout_seconds: number };
+type TestResult = { result_id: string; profile_id: string; command: string; exit_code: number; stdout: string; stderr: string; passed: boolean; created_at: string; duration_ms: number; timed_out: boolean; output_truncated: boolean };
+type GitFileStatus = { path: string; index_status: string; worktree_status: string; original_path: string | null; sensitive: boolean };
+type GitStatus = { branch: string | null; detached: boolean; is_main: boolean; clean: boolean; ahead: number; behind: number; head_sha: string | null; files: GitFileStatus[]; warning: string | null };
+type GitDiffState = { patch: string; diff_hash: string; file_count: number; truncated: boolean; secrets_redacted: boolean; sensitive_paths_hidden: number };
+type GitBranchResponse = { message: string; status: GitStatus };
 
-type ChangeProposal = {
-  summary: string;
-  risk_level: "low" | "medium" | "high";
-  affected_files: string[];
-  required_approvals: string[];
-};
+type TrCommand = { command_id: string; display_name: string; timeout_seconds: number };
+type TrPreview = { test_run_id: string; command_id: string; display_name: string; command_args: string[]; capability: string; decision: string; requires_approval: boolean; approval_hash: string; shell_used: boolean; git_used: boolean; network_used: boolean; cloud_used: boolean; model_called: boolean };
+type TrApprove = { status: string; test_run_id: string };
+type TrExecute = { test_run_id: string; command_id: string; exit_code: number | null; stdout: string; stderr: string; timed_out: boolean; output_truncated: boolean; error: string | null; shell_used: boolean; git_used: boolean; network_used: boolean; cloud_used: boolean; model_called: boolean };
 
-type PlannedTask = {
-  task_id: string;
-  task: string;
-  goal: string;
-  steps: PlanStep[];
-  risks: string[];
-  next_actions: string[];
-  proposal: ChangeProposal;
-  approval_state: ApprovalState;
-  created_at: string;
-  updated_at: string;
-};
-
-type ApprovalResponse = {
-  message: string;
-  task: PlannedTask;
-};
-
-type TestProfile = {
-  profile_id: string;
-  command: string;
-  timeout_seconds: number;
-};
-
-type TestResult = {
-  result_id: string;
-  profile_id: string;
-  command: string;
-  exit_code: number;
-  stdout: string;
-  stderr: string;
-  passed: boolean;
-  created_at: string;
-  duration_ms: number;
-  timed_out: boolean;
-  output_truncated: boolean;
-};
-
-type GitFileStatus = {
-  path: string;
-  index_status: string;
-  worktree_status: string;
-  original_path: string | null;
-  sensitive: boolean;
-};
-
-type GitStatus = {
-  branch: string | null;
-  detached: boolean;
-  is_main: boolean;
-  clean: boolean;
-  ahead: number;
-  behind: number;
-  head_sha: string | null;
-  files: GitFileStatus[];
-  warning: string | null;
-};
-
-type GitDiffState = {
-  patch: string;
-  diff_hash: string;
-  file_count: number;
-  truncated: boolean;
-  secrets_redacted: boolean;
-  sensitive_paths_hidden: number;
-};
-
-type GitBranchResponse = {
-  message: string;
-  status: GitStatus;
-};
+type SafetyLevel = "watchful" | "balanced" | "fullaccess";
 
 const API_URL = process.env.NEXT_PUBLIC_AGENT_API_URL ?? "http://127.0.0.1:8765";
 
-const sampleTasks = [
-  "Approval-Flow simulieren",
-  "Agent-Datenmodell planen",
-  "WorkspaceGuard vorbereiten",
-  "Test-Setup erweitern",
+const safetyLevels: { id: SafetyLevel; label: string; desc: string }[] = [
+  { id: "watchful", label: "Vorsichtig", desc: "Bei jeder Änderung fragen" },
+  { id: "balanced", label: "Ausgewogen", desc: "Kritische Änderungen fragen" },
+  { id: "fullaccess", label: "Vollzugriff", desc: "Keine Nachfragen, voller Zugriff" },
+];
+
+const conversationHistory = [
+  { id: "1", label: "Approval-Flow simulieren", date: "Heute" },
+  { id: "2", label: "Agent-Datenmodell planen", date: "Heute" },
+  { id: "3", label: "WorkspaceGuard vorbereiten", date: "Gestern" },
+  { id: "4", label: "Test-Setup erweitern", date: "Gestern" },
+  { id: "5", label: "Refactoring: Logger", date: "Letzte Woche" },
+];
+
+const featureTabs = [
+  { id: "policy", icon: ShieldCheck, label: "Policy", desc: "Sicherheitsrichtlinien einsehen" },
+  { id: "code", icon: Code, label: "Code Edit", desc: "Dateiänderungen vorschlagen und prüfen" },
+  { id: "git", icon: GitBranch, label: "Git", desc: "Git-Status, Diff & Branches" },
+  { id: "tests", icon: Play, label: "Tests", desc: "Test-Runner" },
+  { id: "model", icon: Brain, label: "Model", desc: "Lokale Modelle & Jobs" },
+  { id: "memory", icon: BookOpen, label: "Memory", desc: "Vektor-Gedächtnis (MVP 3)" },
 ];
 
 const approvalCopy: Record<ApprovalState, { label: string; message: string }> = {
-  pending: {
-    label: "Freigabe ausstehend",
-    message: "Prüfe Plan, Risiken und Änderungsvorschlag, bevor du entscheidest.",
-  },
-  approved: {
-    label: "Freigegeben",
-    message: "Der Plan ist freigegeben. Sichere, explizit ausgewählte Prüfungen sind jetzt möglich.",
-  },
-  rejected: {
-    label: "Abgelehnt",
-    message: "Der Vorschlag wurde verworfen und wird nicht ausgeführt.",
-  },
-  needs_changes: {
-    label: "Überarbeitung nötig",
-    message: "Der Vorschlag benötigt Änderungen, bevor eine neue Freigabe möglich ist.",
-  },
-};
-
-const riskCopy: Record<ChangeProposal["risk_level"], string> = {
-  low: "niedrig",
-  medium: "mittel",
-  high: "hoch",
+  pending: { label: "Freigabe ausstehend", message: "Prüfe Plan, Risiken und Änderungsvorschlag, bevor du entscheidest." },
+  approved: { label: "Freigegeben", message: "Der Plan ist freigegeben. Sichere Prüfungen sind jetzt möglich." },
+  rejected: { label: "Abgelehnt", message: "Der Vorschlag wurde verworfen." },
+  needs_changes: { label: "Überarbeitung nötig", message: "Der Vorschlag benötigt Änderungen." },
 };
 
 function ApprovalIcon({ state }: { state: ApprovalState }) {
   if (state === "approved") return <CheckCircle weight="regular" aria-hidden="true" />;
   if (state === "rejected") return <XCircle weight="regular" aria-hidden="true" />;
-  if (state === "needs_changes") {
-    return <ArrowsClockwise weight="regular" aria-hidden="true" />;
-  }
+  if (state === "needs_changes") return <ArrowsClockwise weight="regular" aria-hidden="true" />;
   return <HourglassMedium weight="regular" aria-hidden="true" />;
 }
 
@@ -166,6 +84,9 @@ export function SagentShell() {
   const [isLoading, setIsLoading] = useState(false);
   const [isApprovalLoading, setIsApprovalLoading] = useState(false);
   const [isApiOnline, setIsApiOnline] = useState(false);
+  const [chatResponse, setChatResponse] = useState<string | null>(null);
+  const [chatResponseLoading, setChatResponseLoading] = useState(false);
+  const [messages, setMessages] = useState<{role: "user" | "assistant"; content: string}[]>([]);
   const [testProfiles, setTestProfiles] = useState<TestProfile[]>([]);
   const [selectedTestProfileId, setSelectedTestProfileId] = useState("");
   const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -182,786 +103,965 @@ export function SagentShell() {
   const [isBranchLoading, setIsBranchLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const [trCommands, setTrCommands] = useState<TrCommand[]>([]);
+  const [trSelectedId, setTrSelectedId] = useState("");
+  const [trPreview, setTrPreview] = useState<TrPreview | null>(null);
+  const [trApprove, setTrApprove] = useState<TrApprove | null>(null);
+  const [trResult, setTrResult] = useState<TrExecute | null>(null);
+  const [trError, setTrError] = useState("");
+  const [trLoading, setTrLoading] = useState(false);
+  const trStep: "idle" | "previewed" | "approved" | "done" | "error" = !trPreview ? "idle" : trResult ? "done" : trApprove ? "approved" : "previewed";
+
+  const [safetyLevel, setSafetyLevel] = useState<SafetyLevel>("balanced");
+  const [showSafetyMenu, setShowSafetyMenu] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showFeaturePanel, setShowFeaturePanel] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  const [toolPanelOpen, setToolPanelOpen] = useState(false);
+  const [toolTabs, setToolTabs] = useState<{id: string; label: string; icon: string}[]>([]);
+  const [activeToolTab, setActiveToolTab] = useState<string | null>(null);
+
+  const [modelAdapters, setModelAdapters] = useState<{adapter_id: string; provider: string; model: string; capabilities: string[]; transport: string; simulated: boolean; supports_streaming: boolean}[]>([]);
+  const [selectedAdapter, setSelectedAdapter] = useState<string>("");
+  const [modelPrompt, setModelPrompt] = useState("");
+  const [modelJobLoading, setModelJobLoading] = useState(false);
+  const [modelJobResult, setModelJobResult] = useState<{job_id: string; state: string; created_at: string; completed_at: string | null; result: {content: string; input_tokens: number; output_tokens: number} | null; error: string | null} | null>(null);
+  const modelJobPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const [memoryInput, setMemoryInput] = useState("");
+  const [memoryCategory, setMemoryCategory] = useState("");
+  const [memoryQuery, setMemoryQuery] = useState("");
+  const [memoryResults, setMemoryResults] = useState<{id: string; text: string; metadata: Record<string, string | number | boolean>; created_at: number; score: number | null}[]>([]);
+  const [memoryLoading, setMemoryLoading] = useState(false);
+  const [memorySearching, setMemorySearching] = useState(false);
+
+  async function storeMemory() {
+    const t = memoryInput.trim();
+    if (!t) return;
+    setMemoryLoading(true);
+    try {
+      const meta: Record<string, string | number | boolean> = {};
+      if (memoryCategory.trim()) meta.category = memoryCategory.trim();
+      const r = await fetch(`${API_URL}/memory/store`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: t, metadata: meta }),
+      });
+      if (r.ok) { setMemoryInput(""); setMemoryCategory(""); await refreshMemory(); }
+    } catch {}
+    finally { setMemoryLoading(false); }
+  }
+
+  async function searchMemory() {
+    const q = memoryQuery.trim();
+    if (!q) return;
+    setMemorySearching(true);
+    try {
+      const r = await fetch(`${API_URL}/memory/search`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: q, n_results: 20 }),
+      });
+      if (r.ok) setMemoryResults(await r.json());
+    } catch {}
+    finally { setMemorySearching(false); }
+  }
+
+  async function refreshMemory() {
+    try {
+      const r = await fetch(`${API_URL}/memory`);
+      if (r.ok) {
+        const entries: typeof memoryResults = await r.json();
+        setMemoryResults(entries.reverse());
+      }
+    } catch {}
+  }
+
+  async function deleteMemory(id: string) {
+    try {
+      const r = await fetch(`${API_URL}/memory/${id}`, { method: "DELETE" });
+      if (r.ok) await refreshMemory();
+    } catch {}
+  }
+
+  function openToolTab(id: string, label: string, icon: string) {
+    setToolPanelOpen(true);
+    setToolTabs(prev => {
+      if (prev.some(t => t.id === id)) return prev;
+      return [...prev, { id, label, icon }];
+    });
+    setActiveToolTab(id);
+  }
+
+  function closeToolTab(id: string) {
+    const newTabs = toolTabs.filter(t => t.id !== id);
+    setToolTabs(newTabs);
+    if (activeToolTab === id) {
+      setActiveToolTab(newTabs.length > 0 ? newTabs[newTabs.length - 1].id : null);
+    }
+    if (newTabs.length === 0) setToolPanelOpen(false);
+  }
+
+  function toggleToolPanel() {
+    if (toolPanelOpen) {
+      setToolPanelOpen(false);
+    } else {
+      setToolPanelOpen(true);
+      if (toolTabs.length === 0) {
+        openToolTab("terminal", "Terminal", "💻");
+      }
+    }
+  }
+
   useEffect(() => {
-    const controller = new AbortController();
-
-    fetch(`${API_URL}/health`, { signal: controller.signal })
-      .then((response) => setIsApiOnline(response.ok))
-      .catch(() => setIsApiOnline(false));
-
-    return () => controller.abort();
+    const c = new AbortController();
+    fetch(`${API_URL}/health`, { signal: c.signal }).then(r => setIsApiOnline(r.ok)).catch(() => setIsApiOnline(false));
+    return () => c.abort();
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-
+    const c = new AbortController();
     Promise.all([
-      fetch(`${API_URL}/git/status`, { signal: controller.signal }),
-      fetch(`${API_URL}/git/diff`, { signal: controller.signal }),
-    ])
-      .then(async ([statusResponse, diffResponse]) => {
-        if (!statusResponse.ok || !diffResponse.ok) {
-          throw new Error("Git snapshot request failed");
-        }
-        const [statusData, diffData] = (await Promise.all([
-          statusResponse.json(),
-          diffResponse.json(),
-        ])) as [GitStatus, GitDiffState];
-        setGitStatus(statusData);
-        setGitDiff(diffData);
-        setGitError("");
-      })
-      .catch((requestError: unknown) => {
-        if (requestError instanceof DOMException && requestError.name === "AbortError") return;
-        setGitError("Git-Status konnte nicht sicher geladen werden.");
-      })
-      .finally(() => setIsGitLoading(false));
+      fetch(`${API_URL}/git/status`, { signal: c.signal }),
+      fetch(`${API_URL}/git/diff`, { signal: c.signal }),
+    ]).then(async ([sr, dr]) => {
+      if (!sr.ok || !dr.ok) throw new Error();
+      const [sd, dd] = await Promise.all([sr.json(), dr.json()]) as [GitStatus, GitDiffState];
+      setGitStatus(sd); setGitDiff(dd); setGitError("");
+    }).catch((e: unknown) => {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      setGitError("Git-Status konnte nicht geladen werden.");
+    }).finally(() => setIsGitLoading(false));
+    return () => c.abort();
+  }, []);
 
-    return () => controller.abort();
+  useEffect(() => {
+    fetch(`${API_URL}/agent/test-runs/commands`)
+      .then(r => r.json())
+      .then((cmds: TrCommand[]) => { setTrCommands(cmds); if (cmds.length) setTrSelectedId(cmds[0].command_id); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API_URL}/models`)
+      .then(r => r.json())
+      .then((models: typeof modelAdapters) => { setModelAdapters(models); if (models.length && !selectedAdapter) setSelectedAdapter(models[0].adapter_id); })
+      .catch(() => {});
+  }, []);
+
+  function stopModelJobPoll() {
+    if (modelJobPollRef.current) { clearInterval(modelJobPollRef.current); modelJobPollRef.current = null; }
+  }
+
+  async function pollModelJob(jobId: string) {
+    stopModelJobPoll();
+    modelJobPollRef.current = setInterval(async () => {
+      try {
+        const r = await fetch(`${API_URL}/models/jobs/${jobId}`);
+        if (!r.ok) { stopModelJobPoll(); setModelJobLoading(false); return; }
+        const j = await r.json();
+        setModelJobResult(j);
+        if (["succeeded", "failed", "cancelled"].includes(j.state)) {
+          stopModelJobPoll();
+          setModelJobLoading(false);
+        }
+      } catch { stopModelJobPoll(); setModelJobLoading(false); }
+    }, 1000);
+  }
+
+  async function startModelJob() {
+    if (!selectedAdapter || !modelPrompt.trim()) return;
+    setModelJobLoading(true);
+    setModelJobResult(null);
+    try {
+      const r = await fetch(`${API_URL}/models/jobs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adapter_id: selectedAdapter, prompt: modelPrompt, capability: "chat", max_output_tokens: 512, confirmed: true }),
+      });
+      if (!r.ok) { setModelJobResult({ job_id: "", state: "failed", created_at: "", completed_at: null, result: null, error: `Fehler ${r.status}` }); setModelJobLoading(false); return; }
+      const j = await r.json();
+      setModelJobResult(j);
+      if (["succeeded", "failed", "cancelled"].includes(j.state)) { setModelJobLoading(false); return; }
+      await pollModelJob(j.job_id);
+    } catch { setModelJobResult({ job_id: "", state: "failed", created_at: "", completed_at: null, result: null, error: "Verbindungsfehler" }); setModelJobLoading(false); }
+  }
+
+  async function cancelModelJob() {
+    const job = modelJobResult;
+    if (!job?.job_id) return;
+    try {
+      const r = await fetch(`${API_URL}/models/jobs/${job.job_id}/cancel`, { method: "POST" });
+      if (r.ok) {
+        const j = await r.json();
+        setModelJobResult(j);
+      }
+    } catch {}
+  }
+
+  useEffect(() => {
+    return () => stopModelJobPoll();
   }, []);
 
   const loadTestProfiles = useCallback(async () => {
-    setIsTestProfilesLoading(true);
-    setTestProfileError("");
-
+    setIsTestProfilesLoading(true); setTestProfileError("");
     try {
-      const response = await fetch(`${API_URL}/agent/test-profiles`);
-      if (!response.ok) {
-        throw new Error(`Profile request failed with status ${response.status}`);
-      }
-      const profiles = (await response.json()) as TestProfile[];
+      const r = await fetch(`${API_URL}/agent/test-profiles`);
+      if (!r.ok) throw new Error();
+      const profiles = await r.json() as TestProfile[];
       setTestProfiles(profiles);
-      setSelectedTestProfileId((current) => {
-        if (profiles.some((profile) => profile.profile_id === current)) return current;
-        return profiles.find((profile) => profile.profile_id === "project-tests")?.profile_id ??
-          profiles[0]?.profile_id ??
-          "";
-      });
+      setSelectedTestProfileId(p => profiles.some(x => x.profile_id === p) ? p : (profiles[0]?.profile_id ?? ""));
       setIsApiOnline(true);
-    } catch {
-      setTestProfileError("Die lokale Test-Allowlist konnte nicht geladen werden.");
-      setIsApiOnline(false);
-    } finally {
-      setIsTestProfilesLoading(false);
-    }
+    } catch { setTestProfileError("Test-Allowlist konnte nicht geladen werden."); setIsApiOnline(false); }
+    finally { setIsTestProfilesLoading(false); }
   }, []);
 
   async function submitTask(event?: FormEvent) {
     event?.preventDefault();
-    const normalizedTask = task.trim();
-    if (!normalizedTask || isLoading) return;
+    const t = task.trim();
+    if (!t || isLoading) return;
+    setIsLoading(true); setError(""); setRetryDecision(null); setResult(null); setApprovalMessage("");
+    setTestProfiles([]); setSelectedTestProfileId(""); setTestResult(null); setTestProfileError(""); setRetryTest(false);
+    setChatResponse(null); setChatResponseLoading(true);
+    setSubmittedTask(t); setTask("");
+    setIsLoading(false);
 
-    setIsLoading(true);
-    setError("");
-    setRetryDecision(null);
-    setResult(null);
-    setApprovalMessage("");
-    setTestProfiles([]);
-    setSelectedTestProfileId("");
-    setTestResult(null);
-    setTestProfileError("");
-    setRetryTest(false);
-    setSubmittedTask(normalizedTask);
+    const userMessage: {role: "user"; content: string} = {role: "user", content: t};
+    setMessages(prev => [...prev, userMessage]);
 
     try {
-      const response = await fetch(`${API_URL}/agent/plan`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task: normalizedTask }),
+      const streamR = await fetch(`${API_URL}/models/complete/stream`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: t }),
       });
-
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
+      if (!streamR.ok || !streamR.body) { setChatResponseLoading(false); return; }
+      const reader = streamR.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        for (const line of chunk.split("\n")) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.done) {
+                setChatResponse(fullText);
+                setMessages(prev => [...prev, {role: "assistant", content: fullText}]);
+                setChatResponseLoading(false);
+                break;
+              }
+              if (data.content) {
+                fullText += data.content;
+                setChatResponse(fullText);
+              }
+              if (data.error) {
+                setChatResponse(data.error);
+                setChatResponseLoading(false);
+              }
+            } catch {}
+          }
+        }
       }
-
-      const data = (await response.json()) as PlannedTask;
-      setResult(data);
-      setTask("");
-      setIsApiOnline(true);
+      if (fullText && !chatResponse) {
+        setChatResponse(fullText);
+        setMessages(prev => [...prev, {role: "assistant", content: fullText}]);
+        setChatResponseLoading(false);
+      }
     } catch {
-      setError("Verbindung zur lokalen API fehlgeschlagen.");
-      setIsApiOnline(false);
-    } finally {
-      setIsLoading(false);
+      setChatResponse("Verbindung zur API fehlgeschlagen.");
+      setChatResponseLoading(false);
     }
   }
 
   async function decide(decision: ApprovalDecision) {
     if (!result || result.approval_state !== "pending" || isApprovalLoading) return;
-
-    setIsApprovalLoading(true);
-    setError("");
-    setRetryDecision(decision);
-    setRetryTest(false);
-
+    setIsApprovalLoading(true); setError(""); setRetryDecision(decision); setRetryTest(false);
     try {
-      const response = await fetch(`${API_URL}/agent/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task_id: result.task_id, decision }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Approval request failed with status ${response.status}`);
-      }
-
-      const data = (await response.json()) as ApprovalResponse;
-      setResult(data.task);
-      setApprovalMessage(data.message);
-      setRetryDecision(null);
-      setIsApiOnline(true);
-      if (data.task.approval_state === "approved") {
-        void loadTestProfiles();
-      }
-    } catch {
-      setError("Die Freigabeentscheidung konnte nicht gespeichert werden.");
-      setIsApiOnline(false);
-    } finally {
-      setIsApprovalLoading(false);
-    }
+      const r = await fetch(`${API_URL}/agent/approve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task_id: result.task_id, decision }) });
+      if (!r.ok) throw new Error();
+      const d = await r.json() as ApprovalResponse;
+      setResult(d.task); setApprovalMessage(d.message); setRetryDecision(null); setIsApiOnline(true);
+      if (d.task.approval_state === "approved") void loadTestProfiles();
+    } catch { setError("Freigabe konnte nicht gespeichert werden."); setIsApiOnline(false); }
+    finally { setIsApprovalLoading(false); }
   }
 
   async function runTests() {
-    const selectedProfile = testProfiles.find(
-      (profile) => profile.profile_id === selectedTestProfileId,
-    );
-    if (
-      !result ||
-      result.approval_state !== "approved" ||
-      !selectedProfile ||
-      isTestLoading
-    ) {
-      return;
-    }
-
-    setIsTestLoading(true);
-    setError("");
-    setRetryDecision(null);
-    setRetryTest(true);
-    setTestResult(null);
-
+    const p = testProfiles.find(x => x.profile_id === selectedTestProfileId);
+    if (!result || result.approval_state !== "approved" || !p || isTestLoading) return;
+    setIsTestLoading(true); setError(""); setRetryDecision(null); setRetryTest(true); setTestResult(null);
     try {
-      const response = await fetch(`${API_URL}/agent/run-tests`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          task_id: result.task_id,
-          profile_id: selectedProfile.profile_id,
-          expected_command: selectedProfile.command,
-          confirmed: true,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Test request failed with status ${response.status}`);
-      }
-
-      const data = (await response.json()) as TestResult;
-      setTestResult(data);
-      setRetryTest(false);
-      setIsApiOnline(true);
-    } catch {
-      setError("Der lokale Testlauf konnte nicht gestartet werden.");
-      setIsApiOnline(false);
-    } finally {
-      setIsTestLoading(false);
-    }
+      const r = await fetch(`${API_URL}/agent/run-tests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task_id: result.task_id, profile_id: p.profile_id, expected_command: p.command, confirmed: true }) });
+      if (!r.ok) throw new Error();
+      setTestResult(await r.json() as TestResult); setRetryTest(false); setIsApiOnline(true);
+    } catch { setError("Testlauf konnte nicht gestartet werden."); setIsApiOnline(false); }
+    finally { setIsTestLoading(false); }
   }
 
   async function refreshGit() {
-    setIsGitLoading(true);
-    setGitError("");
-
+    setIsGitLoading(true); setGitError("");
     try {
-      const [statusResponse, diffResponse] = await Promise.all([
-        fetch(`${API_URL}/git/status`),
-        fetch(`${API_URL}/git/diff`),
-      ]);
-      if (!statusResponse.ok || !diffResponse.ok) {
-        throw new Error("Git snapshot request failed");
-      }
-      const [statusData, diffData] = (await Promise.all([
-        statusResponse.json(),
-        diffResponse.json(),
-      ])) as [GitStatus, GitDiffState];
-      setGitStatus(statusData);
-      setGitDiff(diffData);
-      setIsApiOnline(true);
-    } catch {
-      setGitError("Git-Status konnte nicht sicher geladen werden.");
-      setIsApiOnline(false);
-    } finally {
-      setIsGitLoading(false);
-    }
+      const [sr, dr] = await Promise.all([fetch(`${API_URL}/git/status`), fetch(`${API_URL}/git/diff`)]);
+      if (!sr.ok || !dr.ok) throw new Error();
+      const [sd, dd] = await Promise.all([sr.json(), dr.json()]) as [GitStatus, GitDiffState];
+      setGitStatus(sd); setGitDiff(dd); setIsApiOnline(true);
+    } catch { setGitError("Git-Status konnte nicht geladen werden."); setIsApiOnline(false); }
+    finally { setIsGitLoading(false); }
   }
 
   async function createFeatureBranch(event: FormEvent) {
     event.preventDefault();
-    const normalizedName = branchName.trim();
-    if (!gitStatus || !normalizedName || isBranchLoading) return;
-
-    setIsBranchLoading(true);
-    setGitError("");
-    setBranchMessage("");
+    const n = branchName.trim();
+    if (!gitStatus || !n || isBranchLoading) return;
+    setIsBranchLoading(true); setGitError(""); setBranchMessage("");
     try {
-      const response = await fetch(`${API_URL}/git/branch`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: normalizedName,
-          expected_current_branch: gitStatus.branch,
-          confirmed: true,
-        }),
-      });
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { detail?: string } | null;
-        setGitError(payload?.detail ?? "Der lokale Feature-Branch wurde abgelehnt.");
-        setIsApiOnline(true);
-        return;
-      }
-      const data = (await response.json()) as GitBranchResponse;
-      setGitStatus(data.status);
-      setBranchMessage(`Lokaler Branch „${data.status.branch}“ wurde erstellt.`);
-      setBranchName("");
-      setIsApiOnline(true);
-      await refreshGit();
-    } catch {
-      setGitError("Der lokale Feature-Branch konnte nicht erstellt werden.");
-      setIsApiOnline(false);
-    } finally {
-      setIsBranchLoading(false);
-    }
+      const r = await fetch(`${API_URL}/git/branch`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: n, expected_current_branch: gitStatus.branch, confirmed: true }) });
+      if (!r.ok) { const d = await r.json().catch(() => null) as { detail?: string } | null; setGitError(d?.detail ?? "Branch wurde abgelehnt."); setIsApiOnline(true); return; }
+      const d = await r.json() as GitBranchResponse;
+      setGitStatus(d.status); setBranchMessage(`Branch „${d.status.branch}“ erstellt.`); setBranchName(""); setIsApiOnline(true); await refreshGit();
+    } catch { setGitError("Branch konnte nicht erstellt werden."); setIsApiOnline(false); }
+    finally { setIsBranchLoading(false); }
   }
 
-  function retryLastAction() {
-    if (retryTest) {
-      void runTests();
-      return;
-    }
-    if (retryDecision) {
-      void decide(retryDecision);
-      return;
-    }
-    void submitTask();
+  function retryLastAction() { if (retryTest) { void runTests(); return; } if (retryDecision) { void decide(retryDecision); return; } void submitTask(); }
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void submitTask(); } }
+
+  async function trPreview_() {
+    if (!trSelectedId || trLoading) return;
+    setTrLoading(true); setTrError(""); setTrPreview(null); setTrApprove(null); setTrResult(null);
+    try {
+      const r = await fetch(`${API_URL}/agent/test-runs/preview`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ command_id: trSelectedId }) });
+      if (!r.ok) throw new Error("Preview fehlgeschlagen");
+      setTrPreview(await r.json() as TrPreview);
+    } catch (e) { setTrError(e instanceof Error ? e.message : "Preview fehlgeschlagen"); }
+    finally { setTrLoading(false); }
   }
 
-  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      void submitTask();
-    }
+  async function trApprove_() {
+    if (!trPreview || trLoading) return;
+    setTrLoading(true); setTrError("");
+    try {
+      const r = await fetch(`${API_URL}/agent/test-runs/approve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ test_run_id: trPreview.test_run_id, approval_hash: trPreview.approval_hash, approved: true }) });
+      if (!r.ok) throw new Error("Approve fehlgeschlagen");
+      setTrApprove(await r.json() as TrApprove);
+    } catch (e) { setTrError(e instanceof Error ? e.message : "Approve fehlgeschlagen"); }
+    finally { setTrLoading(false); }
   }
 
-  function selectSampleTask(sample: string) {
-    setTask(sample);
+  async function trRun_() {
+    if (!trPreview || trLoading) return;
+    setTrLoading(true); setTrError("");
+    try {
+      const r = await fetch(`${API_URL}/agent/test-runs/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ test_run_id: trPreview.test_run_id, approval_hash: trPreview.approval_hash, confirmed: true }) });
+      if (!r.ok) throw new Error("Run fehlgeschlagen");
+      setTrResult(await r.json() as TrExecute);
+    } catch (e) { setTrError(e instanceof Error ? e.message : "Run fehlgeschlagen"); }
+    finally { setTrLoading(false); }
+  }
+
+  function handleFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    if (files.length) {
+      setAttachedFiles(prev => [...prev, ...files]);
+      setShowAttachMenu(false);
+    }
+    e.target.value = "";
+  }
+
+  function removeFile(index: number) {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  }
+
+  function getFileIcon(file: File) {
+    if (file.type.startsWith("image/")) return "🖼️";
+    if (file.type.includes("pdf")) return "📄";
+    if (file.type.includes("zip") || file.type.includes("tar") || file.type.includes("rar")) return "📦";
+    return "📎";
+  }
+
+  function getFilePreviewUrl(file: File) {
+    if (file.type.startsWith("image/")) return URL.createObjectURL(file);
+    return null;
+  }
+
+  function handleExampleClick(label: string) {
+    setTask(label);
     textareaRef.current?.focus();
   }
 
   return (
     <main className="app-shell">
-      <aside className="sidebar" aria-label="Projekt-Navigation">
-        <div className="brand">Sagent</div>
-
-        <section className="sidebar-section">
-          <h2>Projekte</h2>
-          <div className="project-item" aria-current="page">
-            <span>sagent</span>
-          </div>
-        </section>
-
-        <section className="sidebar-section history">
-          <h2>Verlauf</h2>
-          <div className="history-list">
-            {sampleTasks.map((sample) => (
-              <button key={sample} type="button" onClick={() => selectSampleTask(sample)}>
-                {sample}
-              </button>
-            ))}
-          </div>
-        </section>
+      {/* ── Sidebar ── */}
+      <aside className="sidebar" aria-label="Conversations">
+        <div className="sidebar-header">
+          <span className="sidebar-brand">Sagent</span>
+<button type="button" className="new-chat-btn" onClick={() => { setSubmittedTask(""); setResult(null); setError(""); setTask(""); setChatResponse(null); setChatResponseLoading(false); }}>
+              <Plus weight="bold" />Neu
+          </button>
+        </div>
+        <div className="sidebar-conversations">
+          {["Heute", "Gestern", "Letzte Woche"].map(group => (
+            <div key={group}>
+              <div className="conversation-group-label">{group}</div>
+              {conversationHistory.filter(c => c.date === group).map(c => (
+                <button key={c.id} type="button" className={`conversation-item${c.id === "1" ? " active" : ""}`}
+                  onClick={() => handleExampleClick(c.label)}>
+                  <ChatCircleDots weight="regular" />
+                  <span>{c.label}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="sidebar-footer">
+          <button type="button" className="sidebar-footer-btn"><Gear weight="regular" />Einstellungen</button>
+          <button type="button" className="sidebar-footer-btn"><Trash weight="regular" />Conversation löschen</button>
+        </div>
       </aside>
 
-      <section className="workspace">
-        <header className="topbar">
-          <strong>sagent</strong>
-          <div className="topbar-state">
-            {gitStatus?.branch ? (
-              <div className={gitStatus.is_main ? "branch-state protected" : "branch-state"}>
-                <GitBranch weight="regular" aria-hidden="true" />
-                <span>{gitStatus.branch}</span>
-              </div>
-            ) : null}
-            <div className={isApiOnline ? "api-state online" : "api-state"}>
-              <Circle weight="fill" aria-hidden="true" />
-              <span>{isApiOnline ? "Lokal" : "Offline"}</span>
+      {/* ── Main Wrap (Area + Tool Panel) ── */}
+      <div className="main-wrap">
+        <div className="main-area">
+          {/* ── Top Bar ── */}
+          <header className="topbar">
+          <div className="topbar-center">
+            <span className="topbar-brand">Sagent</span>
+            <button type="button" className="model-selector" title="Modell wählen (Demo)">
+              <Brain weight="regular" />
+              <span>Lokales Modell</span>
+            </button>
+          </div>
+          <div className="topbar-right">
+            <div className={`api-status${isApiOnline ? " online" : ""}`}>
+              <span className="api-dot" />
+              <span>{isApiOnline ? "Online" : "Offline"}</span>
             </div>
+            <div className="safety-wrap">
+              <button type="button" className="safety-btn" onClick={() => setShowSafetyMenu(s => !s)}>
+                <ShieldCheck weight="regular" aria-hidden="true" />
+                {safetyLevels.find(s => s.id === safetyLevel)?.label}
+              </button>
+              {showSafetyMenu && (
+                <div className="safety-dropdown">
+                  {safetyLevels.map(level => (
+                    <button key={level.id} type="button"
+                      className={`safety-option${level.id === safetyLevel ? " active" : ""}`}
+                      onClick={() => { setSafetyLevel(level.id); setShowSafetyMenu(false); }}>
+                      <strong>{level.label}</strong>
+                      <span>{level.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button type="button" className="safety-btn" title="Einstellungen (Demo)">
+              <Gear weight="regular" aria-hidden="true" />
+            </button>
+            <button type="button" className={`safety-btn tool-toggle${toolPanelOpen ? " active" : ""}`}
+              onClick={toggleToolPanel} title="Werkzeuge anzeigen">
+              <Code weight="regular" aria-hidden="true" />
+            </button>
           </div>
         </header>
 
-        <div className="thread" aria-live="polite">
-          <div className="thread-content">
-            {submittedTask ? (
-              <article className="message user-message">
-                <p className="message-label">Du</p>
-                <p>{submittedTask}</p>
-              </article>
-            ) : (
+        {/* ── Chat Area ── */}
+        <div className="chat-area">
+          <div className="messages">
+            {messages.length === 0 && !submittedTask ? (
               <div className="empty-state">
-                <p className="message-label">Lokaler Developer-Agent</p>
-                <h1>Was soll Sagent planen?</h1>
-                <p>
-                  Sagent simuliert einen sicheren Plan und wartet vor jeder möglichen
-                  Änderung auf deine Entscheidung.
-                </p>
+                <h1>Sagent</h1>
+                <p className="subtitle">Lokaler KI-Assistent mit Werkzeugen und Gedächtnis.</p>
+                <div className="quick-actions">
+                  {["Was kann Sagent?", "Lies die README", "Zeige Git-Status"].map(label => (
+                    <button key={label} type="button" className="quick-action-btn" onClick={() => handleExampleClick(label)}>
+                      <Lightbulb weight="regular" />{label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              messages.map((msg, i) => (
+                <article key={i} className={`message ${msg.role === "user" ? "user-message" : "agent-message"}`}>
+                  <p className="message-label">
+                    <span className={`avatar ${msg.role === "user" ? "user" : "agent"}`}>
+                      {msg.role === "user" ? "U" : "S"}
+                    </span>
+                    {msg.role === "user" ? "Du" : "Sagent"}
+                    {msg.role === "assistant" && <span className="model-badge">qwen2.5-coder:7b</span>}
+                  </p>
+                  <p className="model-chat-text">{msg.content}</p>
+                </article>
+              ))
+            )}
+
+            {chatResponseLoading && (
+              <div className="loading-state" role="status">
+                <span className="pulse" />
+                <span className="pulse" style={{ animationDelay: "0.2s" }} />
+                <span className="pulse" style={{ animationDelay: "0.4s" }} />
+                <span>Lokales Modell antwortet …</span>
               </div>
             )}
 
-            {isLoading ? (
-              <div className="loading-state" role="status">
-                Sicherer Plan wird lokal erstellt …
+            {/* Spacer so content doesn't hit bottom */}
+            <div style={{ height: 16 }} />
+          </div>
+        </div>
+
+        {/* ── Input Area ── */}
+        <div className="input-area">
+          {attachedFiles.length > 0 && (
+            <div className="attachment-chips">
+              {attachedFiles.map((f, i) => (
+                <span key={i} className="chip">
+                  {f.type.startsWith("image/")
+                    ? <img src={URL.createObjectURL(f)} alt="" className="chip-thumb" />
+                    : <Code weight="regular" aria-hidden="true" />}
+                  {f.name}
+                  <button type="button" className="chip-remove" onClick={() => removeFile(i)} aria-label="Entfernen">×</button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {showAttachMenu && (
+            <div className="attach-menu">
+              <button type="button" className="attach-menu-item" onClick={() => fileInputRef.current?.click()}>
+                <span className="attach-menu-icon">📁</span>
+                <div><strong>Datei</strong><span>Ordner oder Datei auswählen</span></div>
+              </button>
+              <button type="button" className="attach-menu-item" onClick={() => imageInputRef.current?.click()}>
+                <span className="attach-menu-icon">🖼️</span>
+                <div><strong>Bilder</strong><span>Fotos aus der Galerie auswählen</span></div>
+              </button>
+              <button type="button" className="attach-menu-item" onClick={() => cameraInputRef.current?.click()}>
+                <span className="attach-menu-icon">📷</span>
+                <div><strong>Kamera</strong><span>Foto aufnehmen (Handy)</span></div>
+              </button>
+            </div>
+          )}
+
+          <input ref={fileInputRef} type="file" multiple style={{ display: "none" }} onChange={handleFilesSelected} />
+          <input ref={imageInputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handleFilesSelected} />
+          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleFilesSelected} />
+
+          <form className="composer" onSubmit={submitTask}>
+            <textarea ref={textareaRef} value={task} onChange={e => setTask(e.target.value)} onKeyDown={handleKeyDown}
+              placeholder="Aufgabe an Sagent senden" rows={1} maxLength={4000} />
+            <div className="composer-actions">
+              <button type="button" className="attach-btn" onClick={() => setShowAttachMenu(s => !s)}
+                title="Datei anhängen">
+                <Plus weight="bold" aria-hidden="true" />
+              </button>
+              <button type="submit" className="send-btn" disabled={!task.trim() || isLoading}
+                aria-label="Senden">
+                <ArrowUp weight="bold" aria-hidden="true" />
+              </button>
+            </div>
+          </form>
+
+          <div className="composer-hint">Shift + Enter für neue Zeile</div>
+
+          {/* ── Feature Launcher ── */}
+          <div className="feature-launcher">
+            {featureTabs.map(f => (
+              <button key={f.id} type="button"
+                className={`feature-btn${showFeaturePanel === f.id ? "" : ""}`}
+                onClick={() => setShowFeaturePanel(showFeaturePanel === f.id ? null : f.id)}
+                title={f.desc}>
+                <f.icon weight="regular" />{f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Feature Panels ── */}
+          {showFeaturePanel && (
+            <div className="feature-panel">
+              <div className="feature-panel-header">
+                <span className="feature-panel-title">
+                  {(() => { const Icon = featureTabs.find(f => f.id === showFeaturePanel)!.icon; return <Icon weight="regular" style={{ verticalAlign: "middle", marginRight: 6 }} />; })()}
+                  {featureTabs.find(f => f.id === showFeaturePanel)?.label}
+                </span>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowFeaturePanel(null)}>Schließen</button>
               </div>
-            ) : null}
 
-            {result ? (
-              <article className="message agent-message">
-                <p className="message-label">Sagent</p>
-                <div className={`approval-status status-${result.approval_state}`}>
-                  <ApprovalIcon state={result.approval_state} />
-                  <span>{approvalCopy[result.approval_state].label}</span>
-                </div>
-                <p>{result.goal}</p>
+              <div className="feature-panel-body">
+                {showFeaturePanel === "policy" && <CapabilityPolicyPreview apiUrl={API_URL} />}
+                {showFeaturePanel === "code" && <CodeEditPreviewPanel apiUrl={API_URL} />}
 
-                <section className="workflow-section" aria-labelledby="plan-heading">
-                  <h2 id="plan-heading">Plan</h2>
-                  <ol className="plan-steps">
-                    {result.steps.map((step) => (
-                      <li key={step.position}>
-                        <div>
-                          <strong>{step.title}</strong>
-                          <p>{step.description}</p>
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                </section>
-
-                <section className="workflow-section" aria-labelledby="risks-heading">
-                  <h2 id="risks-heading">Risiken</h2>
-                  <ul className="risk-list">
-                    {result.risks.map((risk) => (
-                      <li key={risk}>
-                        <Warning weight="regular" aria-hidden="true" />
-                        <span>{risk}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-
-                <section className="workflow-section" aria-labelledby="proposal-heading">
-                  <div className="section-heading-row">
-                    <h2 id="proposal-heading">Änderungsvorschlag</h2>
-                    <span className={`risk-badge risk-${result.proposal.risk_level}`}>
-                      Risiko: {riskCopy[result.proposal.risk_level]}
-                    </span>
-                  </div>
-                  <p>{result.proposal.summary}</p>
-                  <dl className="proposal-details">
-                    <div>
-                      <dt>
-                        <FileCode weight="regular" aria-hidden="true" />
-                        Betroffene Bereiche
-                      </dt>
-                      <dd>
-                        {result.proposal.affected_files.length
-                          ? result.proposal.affected_files.join(", ")
-                          : "Nach sicherer Projektanalyse festzulegen"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>
-                        <ShieldCheck weight="regular" aria-hidden="true" />
-                        Benötigte Freigabe
-                      </dt>
-                      <dd>Menschliche Prüfung</dd>
-                    </div>
-                  </dl>
-                </section>
-
-                <section className="workflow-section approval-section" aria-labelledby="approval-heading">
-                  <h2 id="approval-heading">Entscheidung</h2>
-                  <p>{approvalMessage || approvalCopy[result.approval_state].message}</p>
-                  {result.approval_state === "pending" ? (
-                    <div className="approval-actions">
-                      <button
-                        type="button"
-                        className="approval-button approve"
-                        disabled={isApprovalLoading}
-                        onClick={() => void decide("approved")}
-                      >
-                        <CheckCircle weight="regular" aria-hidden="true" />
-                        Freigeben
-                      </button>
-                      <button
-                        type="button"
-                        className="approval-button revise"
-                        disabled={isApprovalLoading}
-                        onClick={() => void decide("needs_changes")}
-                      >
-                        <ArrowsClockwise weight="regular" aria-hidden="true" />
-                        Überarbeiten
-                      </button>
-                      <button
-                        type="button"
-                        className="approval-button reject"
-                        disabled={isApprovalLoading}
-                        onClick={() => void decide("rejected")}
-                      >
-                        <XCircle weight="regular" aria-hidden="true" />
-                        Ablehnen
-                      </button>
-                    </div>
-                  ) : null}
-                </section>
-
-                {result.approval_state === "approved" ? (
-                  <section className="workflow-section test-section" aria-labelledby="tests-heading">
-                    <div className="section-heading-row">
-                      <h2 id="tests-heading">Tests</h2>
-                      <span
-                        className={`test-status ${
-                          isTestLoading
-                            ? "running"
-                            : testResult?.passed
-                              ? "passed"
-                              : testResult
-                                ? "failed"
-                                : "ready"
-                        }`}
-                      >
-                        {isTestLoading
-                          ? "Läuft"
-                          : testResult?.passed
-                            ? "Bestanden"
-                            : testResult
-                              ? "Fehlgeschlagen"
-                              : "Bereit"}
-                      </span>
-                    </div>
-                    <p>
-                      Nur der unten angezeigte Allowlist-Befehl wird lokal und ohne freie Shell
-                      ausgeführt.
-                    </p>
-
-                    {testProfileError ? (
-                      <div className="test-inline-error" role="alert">
-                        <WarningCircle weight="regular" aria-hidden="true" />
-                        <span>{testProfileError}</span>
-                        <button type="button" onClick={() => void loadTestProfiles()}>
-                          Erneut laden
-                        </button>
+                {showFeaturePanel === "git" && (
+                  <>
+                    {gitError && (
+                      <div className="inline-error" role="alert" style={{ marginTop: 0 }}>
+                        <WarningCircle weight="regular" aria-hidden="true" /><span>{gitError}</span>
+                        <button type="button" onClick={() => void refreshGit()}>Erneut laden</button>
                       </div>
-                    ) : null}
+                    )}
+                    {gitStatus && (
+                      <>
+                        {gitStatus.warning && <div className="git-warning" role="status"><Warning weight="regular" aria-hidden="true" /><span>{gitStatus.warning}</span></div>}
+                        <div className="git-summary" style={{ marginTop: 0 }}>
+                          <div><GitBranch weight="regular" aria-hidden="true" /><span><small>Branch</small><strong>{gitStatus.branch ?? "Detached HEAD"}</strong></span></div>
+                          <div><GitDiffIcon weight="regular" aria-hidden="true" /><span><small>Status</small><strong>{gitStatus.clean ? "Sauber" : `${gitStatus.files.length} geändert`}</strong></span></div>
+                          <div><ShieldCheck weight="regular" aria-hidden="true" /><span><small>Remote</small><strong>Push/Merge blockiert</strong></span></div>
+                        </div>
+                        {gitStatus.files.length > 0 && (
+                          <ul className="git-file-list">
+                            {gitStatus.files.slice(0, 50).map((f, i) => (
+                              <li key={`${f.path}-${i}`}><code>{f.index_status === " " ? "·" : f.index_status}{f.worktree_status === " " ? "·" : f.worktree_status}</code><span>{f.path}</span></li>
+                            ))}
+                            {gitStatus.files.length > 50 && <li className="git-file-more">+ {gitStatus.files.length - 50} weitere</li>}
+                          </ul>
+                        )}
+                        <form className="form-group" onSubmit={createFeatureBranch}>
+                          <label htmlFor="branch-name-panel" className="form-label">Neuer Feature-Branch</label>
+                          <div className="form-row">
+                            <input id="branch-name-panel" className="form-input" value={branchName} onChange={e => setBranchName(e.target.value)} placeholder="feature/mein-branch" maxLength={100} autoComplete="off" />
+                            <button type="submit" className="btn btn-primary btn-sm" disabled={!branchName.trim() || isBranchLoading}>
+                              {isBranchLoading ? <CircleNotch className="spin" weight="bold" aria-hidden="true" /> : <GitBranch weight="regular" aria-hidden="true" />}
+                              {isBranchLoading ? "Erstellt" : "Erstellen"}
+                            </button>
+                          </div>
+                          <p className="form-hint">Erlaubt: codex/, feature/, fix/, docs/, test/, chore/</p>
+                        </form>
+                        {branchMessage && <div className="inline-success"><CheckCircle weight="regular" aria-hidden="true" /><span>{branchMessage}</span></div>}
+                        <div className="git-diff-panel">
+                          <div className="git-diff-heading">
+                            <span>Diff</span>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <code>{gitDiff?.diff_hash.slice(0, 10) ?? "–"}</code>
+                              <button type="button" className="btn btn-sm btn-ghost" disabled={isGitLoading} onClick={() => void refreshGit()}><ArrowsClockwise weight="regular" aria-hidden="true" />Aktualisieren</button>
+                            </div>
+                          </div>
+                          {(gitDiff?.secrets_redacted || gitDiff?.sensitive_paths_hidden) && <div className="git-diff-warning">Sensible Inhalte verborgen.</div>}
+                          {gitDiff?.truncated && <div className="git-diff-warning">Diff wurde gekürzt.</div>}
+                          <pre tabIndex={0}>{gitDiff?.patch || "Keine Änderungen."}</pre>
+                        </div>
+                      </>
+                    )}
+                    {!gitStatus && isGitLoading && <div className="test-profile-loading" role="status">Git-Status wird geladen …</div>}
+                  </>
+                )}
 
-                    {testProfiles.length ? (
-                      <div className="test-controls">
-                        <label htmlFor="test-profile">Testprofil</label>
-                        <select
-                          id="test-profile"
-                          value={selectedTestProfileId}
-                          disabled={isTestLoading}
-                          onChange={(event) => {
-                            setSelectedTestProfileId(event.target.value);
-                            setTestResult(null);
-                          }}
-                        >
-                          {testProfiles.map((profile) => (
-                            <option key={profile.profile_id} value={profile.profile_id}>
-                              {profile.profile_id}
-                            </option>
-                          ))}
+                {showFeaturePanel === "tests" && (
+                  <>
+                    <div className="form-group" style={{ marginTop: 0 }}>
+                      <label htmlFor="test-profile-panel" className="form-label">Testprofil</label>
+                      <div className="form-row">
+                        <select id="test-profile-panel" className="form-select" value={selectedTestProfileId}
+                          onChange={e => { setSelectedTestProfileId(e.target.value); setTestResult(null); }}>
+                          {testProfiles.length === 0 && <option value="">Keine Profile</option>}
+                          {testProfiles.map(p => <option key={p.profile_id} value={p.profile_id}>{p.profile_id}</option>)}
                         </select>
-                        <div className="test-command">
-                          <TerminalWindow weight="regular" aria-hidden="true" />
-                          <code>
-                            {
-                              testProfiles.find(
-                                (profile) => profile.profile_id === selectedTestProfileId,
-                              )?.command
-                            }
-                          </code>
-                        </div>
-                        <button
-                          type="button"
-                          className="test-run-button"
-                          disabled={isTestLoading || !selectedTestProfileId}
-                          onClick={() => void runTests()}
-                        >
-                          {isTestLoading ? (
-                            <CircleNotch className="spin" weight="bold" aria-hidden="true" />
-                          ) : (
-                            <Play weight="fill" aria-hidden="true" />
-                          )}
-                          {isTestLoading ? "Tests laufen" : "Tests ausführen"}
+                        <button type="button" className="btn btn-primary" disabled={isTestLoading || !selectedTestProfileId || testProfiles.length === 0}
+                          onClick={() => void loadTestProfiles()}>
+                          <Play weight="fill" aria-hidden="true" />Laden
                         </button>
                       </div>
-                    ) : isTestProfilesLoading ? (
-                      <div className="test-profile-loading" role="status">
-                        Testprofile werden geladen …
+                    </div>
+                    {isTestProfilesLoading && <div className="test-profile-loading" role="status" style={{ marginTop: 8 }}>Testprofile werden geladen …</div>}
+                    {testProfileError && (
+                      <div className="test-inline-error" role="alert">
+                        <WarningCircle weight="regular" aria-hidden="true" /><span>{testProfileError}</span>
+                        <button type="button" onClick={() => void loadTestProfiles()}>Erneut laden</button>
                       </div>
-                    ) : null}
-
-                    {testResult ? (
-                      <div className={`test-result ${testResult.passed ? "passed" : "failed"}`}>
+                    )}
+                    {testProfiles.length > 0 && (
+                      <>
+                        <div className="test-command-display" style={{ marginTop: 8 }}>
+                          <TerminalWindow weight="regular" aria-hidden="true" />
+                          <code>{testProfiles.find(p => p.profile_id === selectedTestProfileId)?.command}</code>
+                        </div>
+                        <div className="btn-group">
+                          <button type="button" className="btn btn-primary" disabled={isTestLoading || !selectedTestProfileId} onClick={() => void runTests()}>
+                            {isTestLoading ? <CircleNotch className="spin" weight="bold" aria-hidden="true" /> : <Play weight="fill" aria-hidden="true" />}
+                            {isTestLoading ? "Läuft" : "Test ausführen"}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                    {testResult && (
+                      <div className={`test-result-card ${testResult.passed ? "passed" : "failed"}`}>
                         <div className="test-result-summary">
-                          {testResult.passed ? (
-                            <CheckCircle weight="regular" aria-hidden="true" />
-                          ) : (
-                            <XCircle weight="regular" aria-hidden="true" />
-                          )}
+                          {testResult.passed ? <CheckCircle weight="regular" aria-hidden="true" /> : <XCircle weight="regular" aria-hidden="true" />}
                           <div>
-                            <strong>
-                              {testResult.passed ? "Testlauf bestanden" : "Testlauf fehlgeschlagen"}
-                            </strong>
-                            <span>
-                              Exit {testResult.exit_code} · {testResult.duration_ms} ms
-                              {testResult.timed_out ? " · Zeitlimit erreicht" : ""}
-                            </span>
+                            <strong>{testResult.passed ? "Testlauf bestanden" : "Testlauf fehlgeschlagen"}</strong>
+                            <span>Exit {testResult.exit_code} · {testResult.duration_ms}ms{testResult.timed_out ? " · Zeitlimit" : ""}</span>
                           </div>
                         </div>
                         <div className="test-logs">
                           <div className="test-logs-heading">
                             <span>Logs</span>
-                            {testResult.output_truncated ? <span>gekürzt</span> : null}
+                            {testResult.output_truncated && <span>gekürzt</span>}
                           </div>
-                          {testResult.stdout ? (
-                            <div>
-                              <span className="test-log-label">stdout</span>
-                              <pre tabIndex={0}>{testResult.stdout}</pre>
-                            </div>
-                          ) : null}
-                          {testResult.stderr ? (
-                            <div>
-                              <span className="test-log-label">stderr</span>
-                              <pre tabIndex={0}>{testResult.stderr}</pre>
-                            </div>
-                          ) : null}
-                          {!testResult.stdout && !testResult.stderr ? (
-                            <p>Der Testlauf hat keine Ausgabe erzeugt.</p>
-                          ) : null}
+                          {testResult.stdout && <><span className="test-log-label">stdout</span><pre tabIndex={0}>{testResult.stdout}</pre></>}
+                          {testResult.stderr && <><span className="test-log-label">stderr</span><pre tabIndex={0}>{testResult.stderr}</pre></>}
+                          {!testResult.stdout && !testResult.stderr && <p>Keine Ausgabe.</p>}
                         </div>
                       </div>
-                    ) : null}
-                  </section>
-                ) : null}
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
-                {result.approval_state === "approved" ? (
-                  <section className="workflow-section git-section" aria-labelledby="git-heading">
-                    <div className="section-heading-row">
-                      <h2 id="git-heading">Git</h2>
-                      <span
-                        className={`git-status-badge ${
-                          gitStatus?.is_main
-                            ? "protected"
-                            : gitStatus?.clean
-                              ? "clean"
-                              : "changed"
-                        }`}
-                      >
-                        {isGitLoading
-                          ? "Lädt"
-                          : gitStatus?.is_main
-                            ? "Geschützt"
-                            : gitStatus?.clean
-                              ? "Sauber"
-                              : `${gitStatus?.files.length ?? 0} Änderungen`}
-                      </span>
+          {showFeaturePanel === "model" && (
+            <div className="model-panel">
+              <div className="card-header">
+                <h2>
+                  <Brain weight="regular" style={{ verticalAlign: "middle", marginRight: 6 }} />
+                  Lokale Modelle
+                </h2>
+              </div>
+
+              {modelAdapters.length === 0 ? (
+                <p className="loading-text">Modelle werden geladen...</p>
+              ) : (
+                <div className="model-adapter-list">
+                  {modelAdapters.map(a => (
+                    <div key={a.adapter_id} className={`model-adapter${selectedAdapter === a.adapter_id ? " active" : ""}`}
+                      onClick={() => setSelectedAdapter(a.adapter_id)}>
+                      <div className="model-adapter-row">
+                        <strong>{a.model}</strong>
+                        <span className={`badge ${a.simulated ? "badge-warning" : "badge-success"}`}>
+                          {a.simulated ? "Simulation" : "Live"}
+                        </span>
+                      </div>
+                      <div className="model-adapter-meta">
+                        <span>{a.provider}</span>
+                        <span>{a.transport}</span>
+                        <span>{a.capabilities.join(", ")}</span>
+                      </div>
                     </div>
-                    <p>
-                      Status und Diff sind lokal und read-only. Push, Merge und automatischer Commit
-                      bleiben blockiert.
-                    </p>
+                  ))}
+                </div>
+              )}
 
-                    {gitError ? (
-                      <div className="test-inline-error" role="alert">
-                        <WarningCircle weight="regular" aria-hidden="true" />
-                        <span>{gitError}</span>
-                        <button type="button" onClick={() => void refreshGit()}>
-                          Erneut laden
-                        </button>
-                      </div>
-                    ) : null}
+              <div className="form-group">
+                <label className="form-label">Prompt</label>
+                <textarea className="form-input model-prompt-input" rows={2}
+                  placeholder="Nachricht an das Modell..."
+                  value={modelPrompt} onChange={e => setModelPrompt(e.target.value)} />
+              </div>
 
-                    {gitStatus ? (
-                      <>
-                        {gitStatus.warning ? (
-                          <div className="git-warning" role="status">
-                            <Warning weight="regular" aria-hidden="true" />
-                            <span>{gitStatus.warning}</span>
-                          </div>
-                        ) : null}
-
-                        <div className="git-summary">
-                          <div>
-                            <GitBranch weight="regular" aria-hidden="true" />
-                            <span>
-                              <small>Branch</small>
-                              <strong>{gitStatus.branch ?? "Detached HEAD"}</strong>
-                            </span>
-                          </div>
-                          <div>
-                            <GitDiffIcon weight="regular" aria-hidden="true" />
-                            <span>
-                              <small>Status</small>
-                              <strong>
-                                {gitStatus.clean
-                                  ? "Keine Änderungen"
-                                  : `${gitStatus.files.length} geänderte Dateien`}
-                              </strong>
-                            </span>
-                          </div>
-                          <div>
-                            <LockKey weight="regular" aria-hidden="true" />
-                            <span>
-                              <small>Remote-Aktionen</small>
-                              <strong>Push und Merge blockiert</strong>
-                            </span>
-                          </div>
-                        </div>
-
-                        {gitStatus.files.length ? (
-                          <ul className="git-file-list" aria-label="Geänderte Dateien">
-                            {gitStatus.files.slice(0, 50).map((file, index) => (
-                              <li key={`${file.path}-${index}`}>
-                                <code>
-                                  {file.index_status === " " ? "·" : file.index_status}
-                                  {file.worktree_status === " " ? "·" : file.worktree_status}
-                                </code>
-                                <span>{file.path}</span>
-                              </li>
-                            ))}
-                            {gitStatus.files.length > 50 ? (
-                              <li className="git-file-more">
-                                + {gitStatus.files.length - 50} weitere Dateien
-                              </li>
-                            ) : null}
-                          </ul>
-                        ) : null}
-
-                        <form className="git-branch-form" onSubmit={createFeatureBranch}>
-                          <label htmlFor="branch-name">Neuer lokaler Feature-Branch</label>
-                          <div>
-                            <input
-                              id="branch-name"
-                              value={branchName}
-                              onChange={(event) => setBranchName(event.target.value)}
-                              placeholder="feature/sicherer-workflow"
-                              maxLength={100}
-                              autoComplete="off"
-                            />
-                            <button
-                              type="submit"
-                              disabled={!branchName.trim() || isBranchLoading}
-                            >
-                              {isBranchLoading ? (
-                                <CircleNotch className="spin" weight="bold" aria-hidden="true" />
-                              ) : (
-                                <GitBranch weight="regular" aria-hidden="true" />
-                              )}
-                              {isBranchLoading ? "Wird erstellt" : "Branch erstellen"}
-                            </button>
-                          </div>
-                          <p>Erlaubt: codex/, feature/, fix/, docs/, test/ oder chore/.</p>
-                        </form>
-
-                        {branchMessage ? (
-                          <div className="git-branch-message" role="status">
-                            <CheckCircle weight="regular" aria-hidden="true" />
-                            <span>{branchMessage}</span>
-                          </div>
-                        ) : null}
-
-                        <div className="git-diff-panel">
-                          <div className="git-diff-heading">
-                            <span>Diff</span>
-                            <div>
-                              <code>{gitDiff?.diff_hash.slice(0, 10) ?? "–"}</code>
-                              <button
-                                type="button"
-                                disabled={isGitLoading}
-                                onClick={() => void refreshGit()}
-                              >
-                                <ArrowsClockwise weight="regular" aria-hidden="true" />
-                                Aktualisieren
-                              </button>
-                            </div>
-                          </div>
-                          {gitDiff?.secrets_redacted || gitDiff?.sensitive_paths_hidden ? (
-                            <div className="git-diff-warning">
-                              Sensible Inhalte wurden verborgen. Commit-Vorbereitung ist blockiert.
-                            </div>
-                          ) : null}
-                          {gitDiff?.truncated ? (
-                            <div className="git-diff-warning">
-                              Der Diff wurde gekürzt und kann nicht für einen Commit freigegeben werden.
-                            </div>
-                          ) : null}
-                          <pre tabIndex={0}>
-                            {gitDiff?.patch || "Keine sichtbaren Änderungen im Worktree."}
-                          </pre>
-                        </div>
-                      </>
-                    ) : isGitLoading ? (
-                      <div className="test-profile-loading" role="status">
-                        Git-Status wird geladen …
-                      </div>
-                    ) : null}
-                  </section>
-                ) : null}
-              </article>
-            ) : null}
-
-            <BenchmarkStatus />
-            <CapabilityPolicyPreview apiUrl={API_URL} />
-            <CloudApprovalPreview apiUrl={API_URL} />
-            <CodeEditPreviewPanel apiUrl={API_URL} />
-          </div>
-
-          <div className="composer-wrap">
-            <form className="composer" onSubmit={submitTask}>
-              <label htmlFor="task-input" className="sr-only">
-                Aufgabe für Sagent
-              </label>
-              <textarea
-                ref={textareaRef}
-                id="task-input"
-                value={task}
-                onChange={(event) => setTask(event.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Aufgabe an Sagent senden"
-                rows={3}
-                maxLength={4000}
-              />
-              <div className="composer-footer">
-                <span>Shift + Enter für neue Zeile</span>
-                <button type="submit" disabled={!task.trim() || isLoading}>
-                  <span>{isLoading ? "Plant" : "Plan erstellen"}</span>
-                  <ArrowUp weight="bold" aria-hidden="true" />
+              <div className="btn-group">
+                <button type="button" className="btn btn-primary" disabled={!selectedAdapter || !modelPrompt.trim() || modelJobLoading}
+                  onClick={() => void startModelJob()}>
+                  {modelJobLoading ? <CircleNotch className="spin" weight="bold" /> : <Play weight="fill" />}
+                  {modelJobLoading ? "Läuft..." : "Absenden"}
                 </button>
               </div>
-            </form>
 
-            {error ? (
-              <div className="error-banner" role="alert">
-                <WarningCircle weight="regular" aria-hidden="true" />
-                <span>{error}</span>
-                <button type="button" onClick={retryLastAction}>
-                  Erneut versuchen
-                </button>
+              {modelJobResult && (
+                <div className="model-result">
+                  <div className="model-result-header">
+                    <span className={`badge ${modelJobResult.state === "succeeded" ? "badge-success" : modelJobResult.state === "failed" || modelJobResult.state === "cancelled" ? "badge-danger" : "badge-info"}`}>
+                      {modelJobResult.state}
+                    </span>
+                    {modelJobResult.completed_at && (
+                      <span className="model-result-time">
+                        {((new Date(modelJobResult.completed_at).getTime() - new Date(modelJobResult.created_at).getTime()) / 1000).toFixed(1)}s
+                      </span>
+                    )}
+                    {modelJobResult.result && (
+                      <span className="model-result-tokens">
+                        {modelJobResult.result.input_tokens} in → {modelJobResult.result.output_tokens} out
+                      </span>
+                    )}
+                  </div>
+                  {modelJobResult.state === "running" && (
+                    <button type="button" className="btn btn-danger btn-sm" onClick={() => void cancelModelJob()}>
+                      Abbrechen
+                    </button>
+                  )}
+                  {modelJobResult.result?.content && (
+                    <pre className="model-result-content">{modelJobResult.result.content}</pre>
+                  )}
+                  {modelJobResult.error && (
+                    <div className="inline-error" role="alert"><WarningCircle weight="regular" />{modelJobResult.error}</div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {showFeaturePanel === "memory" && (
+            <div className="memory-panel">
+              <div className="card-header">
+                <h2>
+                  <BookOpen weight="regular" style={{ verticalAlign: "middle", marginRight: 6 }} />
+                  Memory (Vektor-Gedächtnis)
+                </h2>
               </div>
-            ) : null}
+
+              <div className="form-group">
+                <label className="form-label">Text speichern</label>
+                <textarea className="form-input memory-text-input" rows={2}
+                  placeholder="Wissen, Entscheidungen, Notizen …"
+                  value={memoryInput} onChange={e => setMemoryInput(e.target.value)} />
+                <div className="form-row" style={{ marginTop: 8 }}>
+                  <input className="form-input" placeholder="Kategorie (z.B. decision, note, project)"
+                    value={memoryCategory} onChange={e => setMemoryCategory(e.target.value)} />
+                  <button type="button" className="btn btn-primary btn-sm" disabled={!memoryInput.trim() || memoryLoading}
+                    onClick={() => void storeMemory()}>
+                    {memoryLoading ? <CircleNotch className="spin" weight="bold" /> : "Speichern"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <div className="form-row">
+                  <input className="form-input" placeholder="Suche im Gedächtnis …"
+                    value={memoryQuery} onChange={e => setMemoryQuery(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void searchMemory(); } }} />
+                  <button type="button" className="btn btn-sm" disabled={!memoryQuery.trim() || memorySearching}
+                    onClick={() => void searchMemory()}>
+                    {memorySearching ? <CircleNotch className="spin" weight="bold" /> : "Suchen"}
+                  </button>
+                </div>
+              </div>
+
+              {memoryResults.length > 0 && (
+                <div className="memory-results">
+                  <div className="memory-results-header">
+                    <span>{memoryResults.length} Ergebnis{memoryResults.length !== 1 ? "se" : ""}</span>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => void refreshMemory()}>
+                      <ArrowsClockwise weight="regular" />Alle
+                    </button>
+                  </div>
+                  {memoryResults.map(r => (
+                    <div key={r.id} className="memory-entry">
+                      <div className="memory-entry-text">{r.text}</div>
+                      <div className="memory-entry-meta">
+                        {r.score != null && <span className="badge badge-info">{(r.score * 100).toFixed(0)}%</span>}
+                        {r.metadata?.category && <span className="badge">{r.metadata.category}</span>}
+                        <span className="memory-entry-time">{new Date(r.created_at * 1000).toLocaleString()}</span>
+                      </div>
+                      <button type="button" className="memory-entry-delete" onClick={() => void deleteMemory(r.id)}
+                        title="Löschen">×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {error && (
+            <div className="error-banner" role="alert">
+              <WarningCircle weight="regular" aria-hidden="true" />
+              <span>{error}</span>
+              <button type="button" onClick={retryLastAction}>Erneut versuchen</button>
+            </div>
+          )}
           </div>
         </div>
-      </section>
+
+        {/* ── Tool Panel ── */}
+        {toolPanelOpen && (
+          <aside className="tool-panel" aria-label="Tools">
+          <div className="tool-panel-tabs">
+            {toolTabs.map(tab => (
+              <button key={tab.id} type="button"
+                className={`tool-panel-tab${activeToolTab === tab.id ? " active" : ""}`}
+                onClick={() => setActiveToolTab(tab.id)}>
+                <span className="tool-tab-icon">{tab.icon}</span>
+                <span className="tool-tab-label">{tab.label}</span>
+                <span className="tool-tab-close" onClick={e => { e.stopPropagation(); closeToolTab(tab.id); }}>×</span>
+              </button>
+            ))}
+          </div>
+          <div className="tool-panel-content">
+            {activeToolTab === "terminal" && (
+              <div className="tool-terminal">
+                <div className="tool-terminal-header">
+                  <span className="tool-terminal-dot" style={{background:"#ff5f57"}} />
+                  <span className="tool-terminal-dot" style={{background:"#ffbd2e"}} />
+                  <span className="tool-terminal-dot" style={{background:"#28c840"}} />
+                  <span className="tool-terminal-title">bash</span>
+                </div>
+                <div className="tool-terminal-body">
+                  <div className="term-line"><span className="term-prompt">$</span> ls -la</div>
+                  <div className="term-line term-output">total 24</div>
+                  <div className="term-line term-output">drwxr-xr-x  10 user  staff   320 Jun 30 14:23 .</div>
+                  <div className="term-line term-output">drwxr-xr-x   5 user  staff   160 Jun 30 10:00 ..</div>
+                  <div className="term-line term-output">-rw-r--r--   1 user  staff  1024 Jun 30 14:23 README.md</div>
+                  <div className="term-line term-output">drwxr-xr-x   3 user  staff    96 Jun 30 14:23 src</div>
+                  <div className="term-line term-output">drwxr-xr-x   2 user  staff    64 Jun 30 14:23 tests</div>
+                  <div className="term-line"><span className="term-prompt">$</span> <span className="term-cursor">█</span></div>
+                </div>
+              </div>
+            )}
+            {activeToolTab === "browser" && (
+              <div className="tool-browser">
+                <div className="tool-browser-bar">
+                  <div className="tool-browser-nav">
+                    <span className="browser-nav-btn">←</span>
+                    <span className="browser-nav-btn">→</span>
+                    <span className="browser-nav-btn">↻</span>
+                  </div>
+                  <div className="tool-browser-url">
+                    <span className="browser-url-icon">🔒</span>
+                    <span>localhost:3000</span>
+                  </div>
+                </div>
+                <div className="tool-browser-body">
+                  <div className="browser-placeholder">
+                    <span className="browser-placeholder-icon">🌐</span>
+                    <h3>Sagent läuft lokal</h3>
+                    <p>API: port 8765 · Web: port 3000</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            {activeToolTab === "files" && (
+              <div className="tool-files">
+                <div className="tool-files-header">
+                  <Folder weight="regular" />
+                  <span>Workspace: sagent</span>
+                </div>
+                <div className="tool-files-tree">
+                  {[
+                    { name: "apps/", type: "dir", children: ["web/", "agent/"] },
+                    { name: "packages/", type: "dir", children: ["core/"] },
+                    { name: "docs/", type: "dir" },
+                    { name: "tests/", type: "dir" },
+                    { name: "README.md", type: "file" },
+                    { name: "package.json", type: "file" },
+                    { name: "pnpm-lock.yaml", type: "file" },
+                    { name: "tsconfig.json", type: "file" },
+                  ].map(item => (
+                    <div key={item.name} className="tool-file-item">
+                      <span className="tool-file-icon">{item.type === "dir" ? "📁" : "📄"}</span>
+                      <span className="tool-file-name">{item.name}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="tool-files-footer">
+                  <span>Nur Lesezugriff · Keine Shell-Ausführung</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="tool-panel-actions">
+            <button type="button" className="tool-panel-action-btn" onClick={() => openToolTab("terminal", "Terminal", "💻")}>
+              <TerminalWindow weight="regular" />Terminal
+            </button>
+            <button type="button" className="tool-panel-action-btn" onClick={() => openToolTab("browser", "Browser", "🌐")}>
+              <span>🌐</span>Browser
+            </button>
+            <button type="button" className="tool-panel-action-btn" onClick={() => openToolTab("files", "Dateien", "📁")}>
+              <Folder weight="regular" />Dateien
+            </button>
+          </div>
+        </aside>
+      )}
+      </div>
     </main>
   );
 }
+
