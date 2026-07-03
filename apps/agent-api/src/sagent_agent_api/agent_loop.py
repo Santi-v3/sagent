@@ -493,14 +493,11 @@ def run_agent_loop(
     max_iterations: int = 10,
     adapter_id: str | None = None,
     memory: Any = None,
-    workspace_root: str | None = None,
 ) -> AgentLoopResult:
     result = AgentLoopResult()
     start = time.time()
 
     system_prompt = registry.system_prompt_block()
-    if workspace_root:
-        system_prompt += f"\n\nDein Arbeitsverzeichnis ist: {workspace_root}\n"
     tool_result_buffer: str | None = None
     iteration = 0
     kwargs = {}
@@ -548,7 +545,6 @@ def run_agent_loop_stream(
     max_iterations: int = 10,
     adapter_id: str | None = None,
     memory: Any = None,
-    workspace_root: str | None = None,
 ) -> Generator[dict[str, Any], None, None]:
     """Generator-Version des Agent Loop für SSE-Streaming.
     
@@ -556,8 +552,6 @@ def run_agent_loop_stream(
     """
     yield {"type": "status", "message": "Starte Agent-Loop..."}
     system_prompt = registry.system_prompt_block()
-    if workspace_root:
-        system_prompt += f"\n\nDein Arbeitsverzeichnis ist: {workspace_root}\n"
     tool_result_buffer: str | None = None
     iteration = 0
     kwargs = {}
