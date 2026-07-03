@@ -246,17 +246,7 @@ class LoopbackOpenAIChatAdapter:
                 role = "assistant"
             else:
                 role = "user"
-            messages.append(
-                {
-                    "role": role,
-                    "content": json.dumps(
-                        {"content": part.content, "sagent_source": part.source.value},
-                        ensure_ascii=False,
-                        separators=(",", ":"),
-                        sort_keys=True,
-                    ),
-                }
-            )
+            messages.append({"role": role, "content": part.content})
         return {
             "model": self.model,
             "messages": messages,
