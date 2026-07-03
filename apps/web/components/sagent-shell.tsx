@@ -119,6 +119,8 @@ export function SagentShell() {
   const [ctxMenuProject, setCtxMenuProject] = useState<{x: number; y: number; projectId: string} | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>("system");
+  const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
+  const [showProjects, setShowProjects] = useState(true);
   const [testProfiles, setTestProfiles] = useState<TestProfile[]>([]);
   const [selectedTestProfileId, setSelectedTestProfileId] = useState("");
   const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -668,47 +670,51 @@ export function SagentShell() {
       {/* ── Sidebar ── */}
       <aside className="sidebar" aria-label="Conversations">
         <div className="sidebar-header">
-          <span className="sidebar-brand">Sagent</span>
           <button type="button" className="new-chat-btn" onClick={startNewConversation}>
-            <Plus weight="bold" />Neu
+            <Plus weight="bold" /> Neuer Chat
           </button>
         </div>
         <div className="sidebar-search">
+          <span className="sidebar-search-icon">🔍</span>
           <input type="search" className="sidebar-search-input" placeholder="Chats durchsuchen …"
             value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
         </div>
         <div className="sidebar-conversations">
-          <div className="sidebar-section-header">
-            <span>Projekte</span>
-            <button type="button" className="sidebar-section-add" onClick={() => {
-              const name = prompt("Projektname:");
-              if (name) createProject(name);
-            }} title="Projekt erstellen"><Plus weight="bold" /></button>
-          </div>
-          {projects.map(project => {
+          {projects.length > 0 && (
+            <div className="sidebar-projects-toggle">
+              <button type="button" className="sidebar-projects-toggle-btn" onClick={() => setShowProjects(p => !p)}>
+                <span className={`sidebar-toggle-arrow${showProjects ? " open" : ""}`}>&#9662;</span>
+                Projekte
+              </button>
+              <button type="button" className="sidebar-projects-add" onClick={() => {
+                const name = prompt("Projektname:");
+                if (name) createProject(name);
+              }} title="Projekt erstellen"><Plus weight="bold" /></button>
+            </div>
+          )}
+          {showProjects && projects.map(project => {
             const projectConvs = conversations.filter(c => c.projectId === project.id && (!searchQuery || c.label.toLowerCase().includes(searchQuery.toLowerCase())));
             if (projectConvs.length === 0 && !searchQuery) {
               return (
                 <div key={project.id} className="project-item"
                   onContextMenu={e => { e.preventDefault(); setCtxMenuProject({x: e.clientX, y: e.clientY, projectId: project.id}); }}>
-                  <span className="project-icon">📁</span>
+                  <span className="sidebar-toggle-arrow">&#9662;</span>
                   <span className="project-name">{project.name}</span>
-                  <button type="button" className="project-add-chat" title="Chat zu Projekt" onClick={() => {
-                    const unassigned = conversations.find(c => !c.projectId);
-                    if (unassigned) assignChatToProject(unassigned.id, project.id);
-                  }}><Plus weight="bold" /></button>
                 </div>
               );
             }
             if (projectConvs.length === 0) return null;
+            const isCollapsed = collapsedProjects.has(project.id);
             return (
               <div key={project.id} className="project-section">
-                <div className="project-item"
+                <button type="button" className="project-toggle"
+                  onClick={() => setCollapsedProjects(prev => { const n = new Set(prev); if (n.has(project.id)) n.delete(project.id); else n.add(project.id); return n; })}
                   onContextMenu={e => { e.preventDefault(); setCtxMenuProject({x: e.clientX, y: e.clientY, projectId: project.id}); }}>
-                  <span className="project-icon">📁</span>
+                  <span className={`sidebar-toggle-arrow${isCollapsed ? "" : " open"}`}>&#9662;</span>
+                  <span className="project-folder-icon">📁</span>
                   <span className="project-name">{project.name}</span>
-                </div>
-                {projectConvs.map(c => (
+                </button>
+                {!isCollapsed && projectConvs.map(c => (
                   <div key={c.id} className="conversation-item-wrap"
                     onContextMenu={e => { e.preventDefault(); setCtxMenu({x: e.clientX, y: e.clientY, convId: c.id}); }}>
                     {editingConvId === c.id ? (
@@ -725,7 +731,6 @@ export function SagentShell() {
                       <div className="conversation-item-row">
                         <button type="button" className={`conversation-item${c.id === activeConvId ? " active" : ""}`}
                           onClick={() => switchConversation(c.id)}>
-                          <ChatCircleDots weight="regular" />
                           <span className="conv-label">{c.label}</span>
                         </button>
                         <button type="button" className="conv-burger" onClick={e => { e.stopPropagation(); setCtxMenu({x: e.currentTarget.getBoundingClientRect().right - 160, y: e.currentTarget.getBoundingClientRect().bottom, convId: c.id}); }}>
@@ -740,7 +745,7 @@ export function SagentShell() {
           })}
           {[...conversations]
             .filter(c => !c.projectId && (!searchQuery || c.label.toLowerCase().includes(searchQuery.toLowerCase())))
-            .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.updatedAt - a.updatedAt)
+            .sort((a, b) => b.updatedAt - a.updatedAt)
             .map(c => (
               <div key={c.id} className="conversation-item-wrap"
                 onContextMenu={e => { e.preventDefault(); setCtxMenu({x: e.clientX, y: e.clientY, convId: c.id}); }}>
@@ -759,7 +764,6 @@ export function SagentShell() {
                     <button type="button" className={`conversation-item${c.id === activeConvId ? " active" : ""}`}
                       onClick={() => switchConversation(c.id)}>
                       {c.pinned && <span className="conv-pin-icon" title="Angeheftet">📌</span>}
-                      <ChatCircleDots weight="regular" />
                       <span className="conv-label">{c.label}</span>
                     </button>
                     <button type="button" className="conv-burger" onClick={e => { e.stopPropagation(); setCtxMenu({x: e.currentTarget.getBoundingClientRect().right - 160, y: e.currentTarget.getBoundingClientRect().bottom, convId: c.id}); }}>
@@ -779,10 +783,15 @@ export function SagentShell() {
           <>
             <div className="ctx-menu-overlay" onClick={() => setCtxMenuProject(null)} />
             <div className="ctx-menu" style={{left: ctxMenuProject.x, top: ctxMenuProject.y}}>
+              <button type="button" className="ctx-menu-item" onClick={() => {
+                const name = prompt("Projekt umbenennen in:", projects.find(p => p.id === ctxMenuProject.projectId)?.name);
+                if (name) renameProject(ctxMenuProject.projectId, name);
+                setCtxMenuProject(null);
+              }}><Pencil weight="regular" /> Umbenennen</button>
               <button type="button" className="ctx-menu-item danger" onClick={() => {
                 deleteProject(ctxMenuProject.projectId);
                 setCtxMenuProject(null);
-              }}><Trash weight="regular" /> Projekt löschen</button>
+              }}><Trash weight="regular" /> Löschen</button>
             </div>
           </>
         )}
