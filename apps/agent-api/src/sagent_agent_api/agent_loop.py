@@ -54,6 +54,22 @@ def _build_request(
     )
 
 
+def _extract_json(text: str) -> str:
+    """Extrahiere das erste JSON-Objekt aus einem Text (ignoriere Folge-Text)."""
+    start = text.find("{")
+    if start == -1:
+        return text
+    depth = 0
+    for i in range(start, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+        if depth == 0:
+            return text[start:i+1]
+    return text[start:] if start >= 0 else text
+
+
 def _parse_tool_calls(text: str) -> list[tuple[str, str]]:
     calls: list[tuple[str, str]] = []
     lines = text.split("\n")
@@ -68,6 +84,7 @@ def _parse_tool_calls(text: str) -> list[tuple[str, str]]:
                 args_lines.append(lines[i])
                 i += 1
             args_str = "\n".join(args_lines).strip()
+            args_str = _extract_json(args_str)
             calls.append((name, args_str))
         else:
             i += 1
