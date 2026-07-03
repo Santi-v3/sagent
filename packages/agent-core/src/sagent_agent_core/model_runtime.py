@@ -122,6 +122,7 @@ class ModelInputSource(StrEnum):
 
     POLICY = "policy"
     USER = "user"
+    ASSISTANT = "assistant"
     WORKSPACE = "workspace"
     MEMORY = "memory"
     TOOL_RESULT = "tool_result"

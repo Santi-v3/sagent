@@ -42,7 +42,7 @@ def _build_request(
         parts.append(ModelInputPart(source=ModelInputSource.MEMORY, content=memory_context))
     if conversation:
         for msg in conversation:
-            source = ModelInputSource.USER if msg.get("role") == "user" else ModelInputSource.POLICY
+            source = ModelInputSource.USER if msg.get("role") == "user" else ModelInputSource.ASSISTANT
             parts.append(ModelInputPart(source=source, content=msg.get("content", "")))
     parts.append(ModelInputPart(source=ModelInputSource.USER, content=user_task))
     if tool_result:
