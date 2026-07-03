@@ -285,7 +285,7 @@ def agent_execute(
         pass
 
     try:
-        loop_result = run_agent_loop(request.task, router, registry, request.messages, adapter_id="local-ollama", memory=memory)
+        loop_result = run_agent_loop(request.task, router, registry, request.messages, adapter_id="local-ollama", memory=memory, workspace_root=workspace_root)
     except Exception as e:
         return AgentExecuteResponse(final_response="", error=str(e))
 
@@ -344,7 +344,7 @@ def agent_execute_stream(
         pass
 
     def event_stream() -> Generator[str, None, None]:
-        for event in run_agent_loop_stream(request.task, router, registry, request.messages, adapter_id="local-ollama", memory=memory):
+        for event in run_agent_loop_stream(request.task, router, registry, request.messages, adapter_id="local-ollama", memory=memory, workspace_root=workspace_root):
             se = StreamEvent(**event)
             yield f"data: {se.model_dump_json()}\n\n"
 
