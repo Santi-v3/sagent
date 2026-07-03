@@ -383,7 +383,7 @@ export function SagentShell() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           task: t,
-          messages: [...messages, userMessage].map(m => ({role: m.role, content: m.content})),
+          messages: messages.map(m => ({role: m.role, content: m.content})),
         }),
       });
       if (!response.ok || !response.body) { setChatResponseLoading(false); return; }
