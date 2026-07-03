@@ -87,6 +87,7 @@ export function SagentShell() {
   const [chatResponse, setChatResponse] = useState<string | null>(null);
   const [chatResponseLoading, setChatResponseLoading] = useState(false);
   const [messages, setMessages] = useState<{role: "user" | "assistant"; content: string}[]>([]);
+  const [toolCalls, setToolCalls] = useState<{name: string; status: "running" | "done"}[]>([]);
   const [testProfiles, setTestProfiles] = useState<TestProfile[]>([]);
   const [selectedTestProfileId, setSelectedTestProfileId] = useState("");
   const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -324,56 +325,115 @@ export function SagentShell() {
     if (!t || isLoading) return;
     setIsLoading(true); setError(""); setRetryDecision(null); setResult(null); setApprovalMessage("");
     setTestProfiles([]); setSelectedTestProfileId(""); setTestResult(null); setTestProfileError(""); setRetryTest(false);
-    setChatResponse(null); setChatResponseLoading(true);
+      setChatResponse(null); setChatResponseLoading(true);
+      setToolCalls([]);
     setSubmittedTask(t); setTask("");
     setIsLoading(false);
 
     const userMessage: {role: "user"; content: string} = {role: "user", content: t};
     setMessages(prev => [...prev, userMessage]);
 
+    // Versuche zuerst den Agent Loop mit Streaming
     try {
-      const streamR = await fetch(`${API_URL}/models/complete/stream`, {
+      const response = await fetch(`${API_URL}/agent/execute/stream`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: t }),
+        body: JSON.stringify({
+          task: t,
+          messages: [...messages, userMessage].map(m => ({role: m.role, content: m.content})),
+        }),
       });
-      if (!streamR.ok || !streamR.body) { setChatResponseLoading(false); return; }
-      const reader = streamR.body.getReader();
+      if (!response.ok || !response.body) { setChatResponseLoading(false); return; }
+
+      const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullText = "";
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
         for (const line of chunk.split("\n")) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.done) {
-                setChatResponse(fullText);
-                setMessages(prev => [...prev, {role: "assistant", content: fullText}]);
-                setChatResponseLoading(false);
-                break;
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            if (event.type === "text" && event.content) {
+              fullText += event.content;
+              setChatResponse(fullText);
+            } else if (event.type === "tool_call") {
+              setToolCalls(prev => [...prev, {name: event.name, status: "running"}]);
+            } else if (event.type === "tool_result" && event.name) {
+              setToolCalls(prev => prev.map(tc =>
+                tc.name === event.name && tc.status === "running"
+                  ? {...tc, status: "done"} : tc
+              ));
+            } else if (event.type === "error" && event.message) {
+              setChatResponse(fullText || event.message);
+            } else if (event.type === "done") {
+              setMessages(prev => [...prev, {role: "assistant", content: fullText || "Fertig."}]);
+              setChatResponseLoading(false);
+              setToolCalls([]);
+              // Automatisch Antwort ins Gedächtnis
+              if (fullText.length > 20) {
+                try { await fetch(`${API_URL}/memory/store`, {
+                  method: "POST", headers: {"Content-Type": "application/json"},
+                  body: JSON.stringify({text: fullText.slice(0, 2000), metadata: {category: "chat-response", type: "agent"}}),
+                }); } catch {}
               }
-              if (data.content) {
-                fullText += data.content;
-                setChatResponse(fullText);
-              }
-              if (data.error) {
-                setChatResponse(data.error);
-                setChatResponseLoading(false);
-              }
-            } catch {}
-          }
+            }
+          } catch {}
         }
       }
       if (fullText && !chatResponse) {
-        setChatResponse(fullText);
         setMessages(prev => [...prev, {role: "assistant", content: fullText}]);
         setChatResponseLoading(false);
+        setToolCalls([]);
       }
     } catch {
-      setChatResponse("Verbindung zur API fehlgeschlagen.");
-      setChatResponseLoading(false);
+      // Fallback: direktes Model-Streaming ohne Agent Loop
+      try {
+        const streamR = await fetch(`${API_URL}/models/complete/stream`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: t }),
+        });
+        if (!streamR.ok || !streamR.body) { setChatResponseLoading(false); return; }
+        const reader = streamR.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          for (const line of chunk.split("\n")) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.done) {
+                  setChatResponse(fullText);
+                  setMessages(prev => [...prev, {role: "assistant", content: fullText}]);
+                  setChatResponseLoading(false);
+                  break;
+                }
+                if (data.content) {
+                  fullText += data.content;
+                  setChatResponse(fullText);
+                }
+                if (data.error) {
+                  setChatResponse(data.error);
+                  setChatResponseLoading(false);
+                }
+              } catch {}
+            }
+          }
+        }
+        if (fullText && !chatResponse) {
+          setChatResponse(fullText);
+          setMessages(prev => [...prev, {role: "assistant", content: fullText}]);
+          setChatResponseLoading(false);
+        }
+      } catch {
+        setChatResponse("Verbindung zur API fehlgeschlagen.");
+        setChatResponseLoading(false);
+      }
     }
   }
 
@@ -499,7 +559,7 @@ export function SagentShell() {
       <aside className="sidebar" aria-label="Conversations">
         <div className="sidebar-header">
           <span className="sidebar-brand">Sagent</span>
-<button type="button" className="new-chat-btn" onClick={() => { setSubmittedTask(""); setResult(null); setError(""); setTask(""); setChatResponse(null); setChatResponseLoading(false); }}>
+<button type="button" className="new-chat-btn" onClick={() => { setSubmittedTask(""); setResult(null); setError(""); setTask(""); setChatResponse(null); setChatResponseLoading(false); setMessages([]); setToolCalls([]); }}>
               <Plus weight="bold" />Neu
           </button>
         </div>
@@ -604,6 +664,15 @@ export function SagentShell() {
                 <span className="pulse" style={{ animationDelay: "0.2s" }} />
                 <span className="pulse" style={{ animationDelay: "0.4s" }} />
                 <span>Lokales Modell antwortet …</span>
+                {toolCalls.length > 0 && (
+                  <div className="tool-calls-inline">
+                    {toolCalls.map((tc, i) => (
+                      <span key={i} className="tool-call-chip">
+                        🔧 {tc.name} {tc.status === "done" ? "✓" : "⋯"}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

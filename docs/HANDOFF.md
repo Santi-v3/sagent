@@ -5,7 +5,7 @@
 - **Phase:** MVP 1, MVP 2.A, MVP 2.B, MVP 2.C und MVP 2.D (Code Edit Preview) abgeschlossen; Code-Edit UI Hardening + History abgeschlossen; Capability Policy Offline-Vertrag abgeschlossen; Capability Policy Preview API + UI abgeschlossen; Approval-Gated Test Runner abgeschlossen
 - **Stand:** 2026-07-03
 - **Repository:** `Santi-v3/sagent`
-- **Aktueller Fokus:** Agent Loop MVP 4 abgeschlossen. Sagent hat jetzt alle Kern-Funktionen wie opencode: `bash`, `write_file`, `edit_file`, `glob`, `grep` — plus bestehende Tools (read_file, list_files, git, memory, test runner, code edit).
+- **Aktueller Fokus:** Agent Loop MVP 4 abgeschlossen. Agent Loop Streaming (`/agent/execute/stream`) mit Live-Tool-Call-Events. Tool-Calls werden im Chat-UI als Chips angezeigt. Automatische Memory-Injektion in Agent Loop. Model Fallback (wenn kein `TOOL_CALL:`, wird plain text zurückgegeben).
 
 ## Fertiggestellt
 

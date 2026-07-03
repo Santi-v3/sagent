@@ -278,6 +278,8 @@ button { color: inherit; }
 
 .loading-state { display: flex; align-items: center; gap: 8px; padding: 20px 0 28px; color: var(--text-muted); font-size: 14px; }
 .loading-state .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--info); animation: pulse 1.2s ease-in-out infinite; }
+.tool-calls-inline { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.tool-call-chip { font-size: 12px; font-family: var(--font-mono, monospace); background: var(--surface-2, #1e1e2e); border: 1px solid var(--border, #333); border-radius: 6px; padding: 2px 8px; color: var(--accent, #89b4fa); }
 @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
 
 .approval-status {
@@ -704,6 +706,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .inline-success svg { width: 15px; height: 15px; }
 .model-badge { font-size: 10px; color: var(--text-faint); font-weight: 500; margin-left: 6px; }
 .model-chat-text { white-space: pre-wrap; font-size: 15px; line-height: 1.7; margin: 0; }
+.tool-call-badge { display: inline-block; font-size: 12px; font-family: var(--font-mono, monospace); background: var(--surface-2, #1e1e2e); border: 1px solid var(--border, #333); border-radius: 6px; padding: 2px 8px; margin: 2px 4px 2px 0; color: var(--accent, #89b4fa); }
 
 /* ── Responsive ── */
 @media (max-width: 1024px) {

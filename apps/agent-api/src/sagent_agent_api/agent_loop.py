@@ -4,7 +4,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Generator
 
 from sagent_agent_core import ModelCapability, ModelInputPart, ModelInputSource, ModelRequest, ModelRouter
 from sagent_agent_core.tool_registry import ToolDef, ToolRegistry
@@ -33,10 +33,13 @@ def _build_request(
     user_task: str,
     conversation: list[dict[str, str]] | None = None,
     tool_result: str | None = None,
+    memory_context: str | None = None,
 ) -> ModelRequest:
     parts: list[ModelInputPart] = [
         ModelInputPart(source=ModelInputSource.POLICY, content=system_prompt),
     ]
+    if memory_context:
+        parts.append(ModelInputPart(source=ModelInputSource.MEMORY, content=memory_context))
     if conversation:
         for msg in conversation:
             source = ModelInputSource.USER if msg.get("role") == "user" else ModelInputSource.POLICY
@@ -423,6 +426,65 @@ def build_agent_registry(
     return reg
 
 
+def _get_memory_context(memory: Any, task: str, max_results: int = 5) -> str:
+    """Suche relevante Memories und formatiere als Kontext-Block."""
+    try:
+        results = memory.search(task, max_results)
+        if not results:
+            return ""
+        lines = ["Relevante Informationen aus dem Gedächtnis:"]
+        for entry, score in results:
+            cat = entry.metadata.get("category", "")
+            tag = f"[{cat}]" if cat else ""
+            lines.append(f"- {tag} (Ähnlichkeit: {score:.2f}) {entry.text[:300]}")
+        return "\n".join(lines)
+    except Exception:
+        return ""
+
+
+def _agent_loop_iteration(
+    task: str,
+    router: ModelRouter,
+    registry: ToolRegistry,
+    conversation: list[dict[str, str]] | None,
+    memory: Any,
+    kwargs: dict,
+    tool_result_buffer: str | None,
+    last_tool_name: str | None,
+    repeat_count: int,
+    system_prompt: str,
+    iteration: int,
+) -> tuple[str | None, str | None, list, str | None, int, str | None]:
+    """Eine einzelne Agent-Loop-Iteration. Gibt (error, final_response, calls, next_tool_result_buffer, next_repeat_count, next_last_tool_name)."""
+    memory_context = _get_memory_context(memory, task) if memory else ""
+    req = _build_request(system_prompt, task, conversation, tool_result_buffer, memory_context)
+    try:
+        response = router.complete(req, **kwargs)
+    except Exception as e:
+        return f"Model call failed: {e}", None, [], None, repeat_count, last_tool_name
+
+    text = response.content.strip()
+    calls = _parse_tool_calls(text)
+
+    # Repeat detection
+    if last_tool_name and any(c[0] == last_tool_name for c in calls):
+        repeat_count += 1
+    else:
+        repeat_count = 0
+    if repeat_count >= 3:
+        return f"Agent loop aborted: repeated tool '{last_tool_name}' 3 times", text, [], None, repeat_count, last_tool_name
+
+    if not calls:
+        return None, text, [], None, repeat_count, last_tool_name
+
+    next_result = ""
+    new_last = calls[0][0] if calls else last_tool_name
+    for name, args_str in calls:
+        tool_output = registry.dispatch(name, args_str)
+        next_result += f"TOOL_RESULT für {name}:\n{tool_output}\n\n"
+    return None, None, [(name, args) for name, args in calls], next_result, repeat_count, new_last
+
+
 def run_agent_loop(
     task: str,
     router: ModelRouter,
@@ -430,56 +492,42 @@ def run_agent_loop(
     conversation: list[dict[str, str]] | None = None,
     max_iterations: int = 10,
     adapter_id: str | None = None,
+    memory: Any = None,
 ) -> AgentLoopResult:
     result = AgentLoopResult()
     start = time.time()
 
     system_prompt = registry.system_prompt_block()
-    history: list[str] = []
     tool_result_buffer: str | None = None
     iteration = 0
     kwargs = {}
     if adapter_id:
         kwargs["adapter_id"] = adapter_id
-
     last_tool_name: str | None = None
     repeat_count = 0
+
     while iteration < max_iterations:
         iteration += 1
-        req = _build_request(system_prompt, task, conversation, tool_result_buffer)
-        try:
-            response = router.complete(req, **kwargs)
-        except Exception as e:
-            result.error = f"Model call failed: {e}"
-            break
-
-        text = response.content.strip()
-        step = AgentLoopStep(text=text)
+        err, final_text, calls, next_buffer, repeat_count, last_tool_name = _agent_loop_iteration(
+            task, router, registry, conversation, memory, kwargs,
+            tool_result_buffer, last_tool_name, repeat_count, system_prompt, iteration,
+        )
+        step_text = final_text or (f"TOOL_CALL: {calls[0][0]}" if calls else "")
+        step = AgentLoopStep(text=step_text)
+        if calls:
+            step.tool_calls = [{"name": name, "args": args} for name, args in calls]
         result.steps.append(step)
         result.total_model_calls += 1
 
-        calls = _parse_tool_calls(text)
-
-        # Detect infinite loop: same tool called repeatedly
-        if last_tool_name and any(c[0] == last_tool_name for c in calls):
-            repeat_count += 1
-        else:
-            repeat_count = 0
-        if repeat_count >= 3:
-            result.error = f"Agent loop aborted: repeated tool '{last_tool_name}' 3 times"
-            result.final_response = text
+        if err:
+            result.error = err
+            if final_text:
+                result.final_response = final_text
             break
-
-        if not calls:
-            result.final_response = text
+        if final_text:
+            result.final_response = final_text
             break
-
-        step.tool_calls = [{"name": name, "args": args} for name, args in calls]
-        last_tool_name = calls[0][0]
-        tool_result_buffer = ""
-        for name, args_str in calls:
-            tool_output = registry.dispatch(name, args_str)
-            tool_result_buffer += f"TOOL_RESULT für {name}:\n{tool_output}\n\n"
+        tool_result_buffer = next_buffer
     else:
         result.error = f"Max iterations ({max_iterations}) reached without final answer."
 
@@ -487,3 +535,74 @@ def run_agent_loop(
     if not result.final_response:
         result.final_response = result.steps[-1].text if result.steps else "Keine Antwort."
     return result
+
+
+def run_agent_loop_stream(
+    task: str,
+    router: ModelRouter,
+    registry: ToolRegistry,
+    conversation: list[dict[str, str]] | None = None,
+    max_iterations: int = 10,
+    adapter_id: str | None = None,
+    memory: Any = None,
+) -> Generator[dict[str, Any], None, None]:
+    """Generator-Version des Agent Loop für SSE-Streaming.
+    
+    Yields dicts mit Typen: model_text, tool_call, tool_result, done, error.
+    """
+    yield {"type": "status", "message": "Starte Agent-Loop..."}
+    system_prompt = registry.system_prompt_block()
+    tool_result_buffer: str | None = None
+    iteration = 0
+    kwargs = {}
+    if adapter_id:
+        kwargs["adapter_id"] = adapter_id
+    last_tool_name: str | None = None
+    repeat_count = 0
+    start = time.time()
+    total_calls = 0
+    full_text = ""
+
+    while iteration < max_iterations:
+        iteration += 1
+        yield {"type": "status", "message": f"Iteration {iteration}/{max_iterations}"}
+
+        memory_context = _get_memory_context(memory, task) if memory else ""
+        req = _build_request(system_prompt, task, conversation, tool_result_buffer, memory_context)
+        try:
+            response = router.complete(req, **kwargs)
+        except Exception as e:
+            yield {"type": "error", "message": f"Model call failed: {e}"}
+            break
+
+        total_calls += 1
+        text = response.content.strip()
+        calls = _parse_tool_calls(text)
+
+        # Repeat detection
+        if last_tool_name and any(c[0] == last_tool_name for c in calls):
+            repeat_count += 1
+        else:
+            repeat_count = 0
+        if repeat_count >= 3:
+            yield {"type": "error", "message": f"Agent loop aborted: repeated tool '{last_tool_name}' 3 times (zuletzt: {text[:200]})"}
+            break
+
+        if not calls:
+            yield {"type": "text", "content": text}
+            full_text += text + "\n"
+            break
+
+        # Nur die Tool-Calls senden, nicht den rohen TOOL_CALL:-Text
+        last_tool_name = calls[0][0]
+        tool_result_buffer = ""
+        for name, args_str in calls:
+            yield {"type": "tool_call", "name": name, "args": args_str, "iteration": iteration}
+            tool_output = registry.dispatch(name, args_str)
+            tool_result_buffer += f"TOOL_RESULT für {name}:\n{tool_output}\n\n"
+            yield {"type": "tool_result", "name": name, "result": tool_output, "iteration": iteration}
+    else:
+        yield {"type": "error", "message": f"Max iterations ({max_iterations}) reached without final answer."}
+
+    duration = (time.time() - start) * 1000
+    yield {"type": "done", "full_text": full_text, "total_model_calls": total_calls, "duration_ms": round(duration, 1)}
