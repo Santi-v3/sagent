@@ -2,16 +2,17 @@
 
 import {
   ArrowUp, ArrowsClockwise, CheckCircle, CircleNotch,
-  FileCode, Folder, GitBranch, GitDiff as GitDiffIcon,
-  HourglassMedium, Lightbulb, Play, Pencil, ShieldCheck,
+  Folder, GitBranch, GitDiff as GitDiffIcon,
+  Lightbulb, Play, Pencil, ShieldCheck,
   TerminalWindow, Warning, WarningCircle, XCircle,
-  Plus, Code, ChatCircleDots, DotsThreeVertical, Gear,
-  Brain, Wrench, ChartBar, BookOpen,
-  Trash,
+  Plus, Code, DotsThreeVertical, Gear,
+  Brain, Wrench, BookOpen,
+  Trash, List, MagnifyingGlass, ImageSquare, Camera,
 } from "@phosphor-icons/react";
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { CapabilityPolicyPreview } from "@/components/capability-policy-preview";
+import { CloudApprovalPreview } from "@/components/cloud-approval-preview";
 import { CodeEditPreviewPanel } from "@/components/code-edit-preview-panel";
 
 type ApprovalState = "pending" | "approved" | "rejected" | "needs_changes";
@@ -29,9 +30,6 @@ type GitDiffState = { patch: string; diff_hash: string; file_count: number; trun
 type GitBranchResponse = { message: string; status: GitStatus };
 
 type TrCommand = { command_id: string; display_name: string; timeout_seconds: number };
-type TrPreview = { test_run_id: string; command_id: string; display_name: string; command_args: string[]; capability: string; decision: string; requires_approval: boolean; approval_hash: string; shell_used: boolean; git_used: boolean; network_used: boolean; cloud_used: boolean; model_called: boolean };
-type TrApprove = { status: string; test_run_id: string };
-type TrExecute = { test_run_id: string; command_id: string; exit_code: number | null; stdout: string; stderr: string; timed_out: boolean; output_truncated: boolean; error: string | null; shell_used: boolean; git_used: boolean; network_used: boolean; cloud_used: boolean; model_called: boolean };
 
 type SafetyLevel = "watchful" | "balanced" | "fullaccess";
 
@@ -79,27 +77,68 @@ const featureTabs = [
   { id: "tests", icon: Play, label: "Tests", desc: "Test-Runner" },
   { id: "model", icon: Brain, label: "Model", desc: "Lokale Modelle & Jobs" },
   { id: "memory", icon: BookOpen, label: "Memory", desc: "Vektor-Gedächtnis (MVP 3)" },
+  { id: "cloud", icon: ShieldCheck, label: "Cloud", desc: "Cloud-Provider & Konfiguration" },
 ];
 
-const approvalCopy: Record<ApprovalState, { label: string; message: string }> = {
-  pending: { label: "Freigabe ausstehend", message: "Prüfe Plan, Risiken und Änderungsvorschlag, bevor du entscheidest." },
-  approved: { label: "Freigegeben", message: "Der Plan ist freigegeben. Sichere Prüfungen sind jetzt möglich." },
-  rejected: { label: "Abgelehnt", message: "Der Vorschlag wurde verworfen." },
-  needs_changes: { label: "Überarbeitung nötig", message: "Der Vorschlag benötigt Änderungen." },
-};
 
-function ApprovalIcon({ state }: { state: ApprovalState }) {
-  if (state === "approved") return <CheckCircle weight="regular" aria-hidden="true" />;
-  if (state === "rejected") return <XCircle weight="regular" aria-hidden="true" />;
-  if (state === "needs_changes") return <ArrowsClockwise weight="regular" aria-hidden="true" />;
-  return <HourglassMedium weight="regular" aria-hidden="true" />;
+
+function renderInlineMarkdown(text: string) {
+  return text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g).filter(Boolean).map((part, index) => {
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return <code key={`${part}-${index}`}>{part.slice(1, -1)}</code>;
+    }
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={`${part}-${index}`}>{part}</span>;
+  });
+}
+
+function ChatMessageContent({ content }: { content: string }) {
+  const lines = content.replace(/\r\n/g, "\n").split("\n");
+  const blocks: React.ReactNode[] = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index].trimEnd();
+    if (!line.trim()) continue;
+
+    if (line.trim() === "---") {
+      blocks.push(<hr key={`rule-${index}`} />);
+      continue;
+    }
+
+    if (line.trimStart().startsWith("🔧")) {
+      const toolLines = [line];
+      while (index + 1 < lines.length) {
+        const nextLine = lines[index + 1];
+        if (!nextLine.trim() && toolLines.at(-1)?.trim() === "}") break;
+        index += 1;
+        if (nextLine.trim()) toolLines.push(nextLine);
+        if (nextLine.trim() === "}") break;
+      }
+      blocks.push(
+        <div className="tool-output-block" key={`tool-${index}`}>
+          <div className="tool-output-title">
+            <Wrench weight="regular" aria-hidden="true" />
+            {renderInlineMarkdown(toolLines[0].replace(/^\s*🔧\s*/, ""))}
+          </div>
+          {toolLines.length > 1 ? <pre>{toolLines.slice(1).join("\n")}</pre> : null}
+        </div>,
+      );
+      continue;
+    }
+
+    blocks.push(<p key={`line-${index}`}>{renderInlineMarkdown(line)}</p>);
+  }
+
+  return <div className="model-chat-text">{blocks}</div>;
 }
 
 export function SagentShell() {
   const [task, setTask] = useState("");
   const [submittedTask, setSubmittedTask] = useState("");
   const [result, setResult] = useState<PlannedTask | null>(null);
-  const [approvalMessage, setApprovalMessage] = useState("");
+  const [, setApprovalMessage] = useState("");
   const [error, setError] = useState("");
   const [retryDecision, setRetryDecision] = useState<ApprovalDecision | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -118,6 +157,7 @@ export function SagentShell() {
   const [projects, setProjects] = useState<Project[]>(loadProjects);
   const [ctxMenuProject, setCtxMenuProject] = useState<{x: number; y: number; projectId: string} | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>("system");
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
   const [showProjects, setShowProjects] = useState(true);
@@ -137,14 +177,7 @@ export function SagentShell() {
   const [isBranchLoading, setIsBranchLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const [trCommands, setTrCommands] = useState<TrCommand[]>([]);
-  const [trSelectedId, setTrSelectedId] = useState("");
-  const [trPreview, setTrPreview] = useState<TrPreview | null>(null);
-  const [trApprove, setTrApprove] = useState<TrApprove | null>(null);
-  const [trResult, setTrResult] = useState<TrExecute | null>(null);
-  const [trError, setTrError] = useState("");
-  const [trLoading, setTrLoading] = useState(false);
-  const trStep: "idle" | "previewed" | "approved" | "done" | "error" = !trPreview ? "idle" : trResult ? "done" : trApprove ? "approved" : "previewed";
+  const [, setTrCommands] = useState<TrCommand[]>([]);
 
   const [safetyLevel, setSafetyLevel] = useState<SafetyLevel>("balanced");
   const [showSafetyMenu, setShowSafetyMenu] = useState(false);
@@ -190,6 +223,7 @@ export function SagentShell() {
     setSubmittedTask(""); setResult(null); setError(""); setTask("");
     setChatResponse(null); setChatResponseLoading(false); setMessages([]);
     setToolCalls([]); setActiveConvId(null);
+    setSidebarOpen(false);
   }
 
   function switchConversation(id: string) {
@@ -198,6 +232,7 @@ export function SagentShell() {
     setActiveConvId(id);
     setMessages(conv.messages);
     setChatResponse(null); setChatResponseLoading(false); setSubmittedTask(""); setResult(null); setError("");
+    setSidebarOpen(false);
   }
 
   function createProject(name: string) {
@@ -320,14 +355,19 @@ export function SagentShell() {
   useEffect(() => {
     fetch(`${API_URL}/agent/test-runs/commands`)
       .then(r => r.json())
-      .then((cmds: TrCommand[]) => { setTrCommands(cmds); if (cmds.length) setTrSelectedId(cmds[0].command_id); })
+      .then((cmds: TrCommand[]) => { setTrCommands(cmds); })
       .catch((e: unknown) => { console.warn("Fehler beim Laden der Test-Kommandos:", e); });
   }, []);
 
   useEffect(() => {
     fetch(`${API_URL}/models`)
       .then(r => r.json())
-      .then((models: typeof modelAdapters) => { setModelAdapters(models); if (models.length && !selectedAdapter) setSelectedAdapter(models[0].adapter_id); })
+      .then((models: typeof modelAdapters) => {
+        setModelAdapters(models);
+        if (models.length) {
+          setSelectedAdapter(prev => prev || models[0].adapter_id);
+        }
+      })
       .catch((e: unknown) => { console.warn("Fehler beim Laden der Modelle:", e); });
   }, []);
 
@@ -602,39 +642,6 @@ export function SagentShell() {
   function retryLastAction() { if (retryTest) { void runTests(); return; } if (retryDecision) { void decide(retryDecision); return; } void submitTask(); }
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void submitTask(); } }
 
-  async function trPreview_() {
-    if (!trSelectedId || trLoading) return;
-    setTrLoading(true); setTrError(""); setTrPreview(null); setTrApprove(null); setTrResult(null);
-    try {
-      const r = await fetch(`${API_URL}/agent/test-runs/preview`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ command_id: trSelectedId }) });
-      if (!r.ok) throw new Error("Preview fehlgeschlagen");
-      setTrPreview(await r.json() as TrPreview);
-    } catch (e) { setTrError(e instanceof Error ? e.message : "Preview fehlgeschlagen"); }
-    finally { setTrLoading(false); }
-  }
-
-  async function trApprove_() {
-    if (!trPreview || trLoading) return;
-    setTrLoading(true); setTrError("");
-    try {
-      const r = await fetch(`${API_URL}/agent/test-runs/approve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ test_run_id: trPreview.test_run_id, approval_hash: trPreview.approval_hash, approved: true }) });
-      if (!r.ok) throw new Error("Approve fehlgeschlagen");
-      setTrApprove(await r.json() as TrApprove);
-    } catch (e) { setTrError(e instanceof Error ? e.message : "Approve fehlgeschlagen"); }
-    finally { setTrLoading(false); }
-  }
-
-  async function trRun_() {
-    if (!trPreview || trLoading) return;
-    setTrLoading(true); setTrError("");
-    try {
-      const r = await fetch(`${API_URL}/agent/test-runs/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ test_run_id: trPreview.test_run_id, approval_hash: trPreview.approval_hash, confirmed: true }) });
-      if (!r.ok) throw new Error("Run fehlgeschlagen");
-      setTrResult(await r.json() as TrExecute);
-    } catch (e) { setTrError(e instanceof Error ? e.message : "Run fehlgeschlagen"); }
-    finally { setTrLoading(false); }
-  }
-
   function handleFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
     if (files.length) {
@@ -648,18 +655,6 @@ export function SagentShell() {
     setAttachedFiles(prev => prev.filter((_, i) => i !== index));
   }
 
-  function getFileIcon(file: File) {
-    if (file.type.startsWith("image/")) return "🖼️";
-    if (file.type.includes("pdf")) return "📄";
-    if (file.type.includes("zip") || file.type.includes("tar") || file.type.includes("rar")) return "📦";
-    return "📎";
-  }
-
-  function getFilePreviewUrl(file: File) {
-    if (file.type.startsWith("image/")) return URL.createObjectURL(file);
-    return null;
-  }
-
   function handleExampleClick(label: string) {
     setTask(label);
     textareaRef.current?.focus();
@@ -668,17 +663,36 @@ export function SagentShell() {
   return (
     <main className="app-shell">
       {/* ── Sidebar ── */}
-      <aside className="sidebar" aria-label="Conversations">
-        <div className="sidebar-header">
-          <button type="button" className="new-chat-btn" onClick={startNewConversation}>
-            <Plus weight="bold" /> Neuer Chat
+      {sidebarOpen ? (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Navigation schließen"
+          onClick={() => setSidebarOpen(false)}
+        />
+      ) : null}
+      <aside className={`sidebar${sidebarOpen ? " mobile-open" : ""}`} aria-label="Konversationen">
+        <div className="sidebar-nav">
+          <button type="button" className="sidebar-nav-btn" onClick={startNewConversation} title="Neuer Chat">
+            <Plus weight="bold" />
+          </button>
+          <button type="button" className="sidebar-nav-btn" onClick={() => setSearchQuery("")} title="Suche">
+            <MagnifyingGlass weight="bold" />
+          </button>
+          <button type="button" className="sidebar-nav-btn" title="Geplant">
+            <List weight="bold" />
+          </button>
+          <button type="button" className="sidebar-nav-btn" title="Plugins">
+            <Wrench weight="bold" />
           </button>
         </div>
+
         <div className="sidebar-search">
-          <span className="sidebar-search-icon">🔍</span>
+          <MagnifyingGlass className="sidebar-search-icon" weight="regular" aria-hidden="true" />
           <input type="search" className="sidebar-search-input" placeholder="Chats durchsuchen …"
             value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
         </div>
+
         <div className="sidebar-conversations">
           {projects.length > 0 && (
             <div className="sidebar-projects-toggle">
@@ -843,8 +857,15 @@ export function SagentShell() {
           </>
         )}
 
-        <div className="sidebar-footer">
-          <button type="button" className="sidebar-footer-btn" onClick={() => setShowSettings(true)}><Gear weight="regular" />Einstellungen</button>
+        <div className="sidebar-user">
+          <div className="sidebar-user-avatar">S</div>
+          <div className="sidebar-user-info">
+            <span className="sidebar-user-name">Santi</span>
+            <span className="sidebar-user-role">Pilot</span>
+          </div>
+          <button type="button" className="sidebar-user-settings" onClick={() => setShowSettings(true)} title="Einstellungen">
+            <Gear weight="regular" />
+          </button>
         </div>
       </aside>
 
@@ -854,8 +875,26 @@ export function SagentShell() {
           {/* ── Top Bar ── */}
           <header className="topbar">
           <div className="topbar-center">
+            <button
+              type="button"
+              className="mobile-nav-toggle"
+              aria-label="Navigation öffnen"
+              aria-expanded={sidebarOpen}
+              onClick={() => setSidebarOpen(true)}
+            >
+              <List weight="regular" aria-hidden="true" />
+            </button>
             <span className="topbar-brand">Sagent</span>
-            <button type="button" className="model-selector" title="Modell wählen (Demo)">
+            <button
+              type="button"
+              className="model-selector"
+              title="Lokale Modelle öffnen"
+              aria-expanded={showFeaturePanel === "model"}
+              onClick={() => {
+                setShowSettings(false);
+                setShowFeaturePanel(showFeaturePanel === "model" ? null : "model");
+              }}
+            >
               <Brain weight="regular" />
               <span>Lokales Modell</span>
             </button>
@@ -866,7 +905,7 @@ export function SagentShell() {
               <span>{isApiOnline ? "Online" : "Offline"}</span>
             </div>
             <div className="safety-wrap">
-              <button type="button" className="safety-btn" onClick={() => setShowSafetyMenu(s => !s)}>
+              <button type="button" className="safety-btn" aria-expanded={showSafetyMenu} onClick={() => setShowSafetyMenu(s => !s)}>
                 <ShieldCheck weight="regular" aria-hidden="true" />
                 {safetyLevels.find(s => s.id === safetyLevel)?.label}
               </button>
@@ -883,11 +922,21 @@ export function SagentShell() {
                 </div>
               )}
             </div>
-            <button type="button" className="safety-btn" title="Einstellungen (Demo)">
+            <button
+              type="button"
+              className="safety-btn icon-button"
+              title="Einstellungen öffnen"
+              aria-label="Einstellungen öffnen"
+              aria-expanded={showSettings}
+              onClick={() => {
+                setShowFeaturePanel(null);
+                setShowSettings(true);
+              }}
+            >
               <Gear weight="regular" aria-hidden="true" />
             </button>
             <button type="button" className={`safety-btn tool-toggle${toolPanelOpen ? " active" : ""}`}
-              onClick={toggleToolPanel} title="Werkzeuge anzeigen">
+              onClick={toggleToolPanel} title="Werkzeuge anzeigen" aria-label="Werkzeuge anzeigen" aria-expanded={toolPanelOpen}>
               <Code weight="regular" aria-hidden="true" />
             </button>
           </div>
@@ -918,7 +967,7 @@ export function SagentShell() {
                     {msg.role === "user" ? "Du" : "Sagent"}
                     {msg.role === "assistant" && <span className="model-badge">qwen2.5-coder:7b</span>}
                   </p>
-                  <p className="model-chat-text">{msg.content}</p>
+                  <ChatMessageContent content={msg.content} />
                 </article>
               ))
             )}
@@ -953,6 +1002,7 @@ export function SagentShell() {
               {attachedFiles.map((f, i) => (
                 <span key={i} className="chip">
                   {f.type.startsWith("image/")
+                    // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={URL.createObjectURL(f)} alt="" className="chip-thumb" />
                     : <Code weight="regular" aria-hidden="true" />}
                   {f.name}
@@ -965,15 +1015,15 @@ export function SagentShell() {
           {showAttachMenu && (
             <div className="attach-menu">
               <button type="button" className="attach-menu-item" onClick={() => fileInputRef.current?.click()}>
-                <span className="attach-menu-icon">📁</span>
+                <Folder className="attach-menu-icon" weight="regular" aria-hidden="true" />
                 <div><strong>Datei</strong><span>Ordner oder Datei auswählen</span></div>
               </button>
               <button type="button" className="attach-menu-item" onClick={() => imageInputRef.current?.click()}>
-                <span className="attach-menu-icon">🖼️</span>
+                <ImageSquare className="attach-menu-icon" weight="regular" aria-hidden="true" />
                 <div><strong>Bilder</strong><span>Fotos aus der Galerie auswählen</span></div>
               </button>
               <button type="button" className="attach-menu-item" onClick={() => cameraInputRef.current?.click()}>
-                <span className="attach-menu-icon">📷</span>
+                <Camera className="attach-menu-icon" weight="regular" aria-hidden="true" />
                 <div><strong>Kamera</strong><span>Foto aufnehmen (Handy)</span></div>
               </button>
             </div>
@@ -1027,7 +1077,10 @@ export function SagentShell() {
                   {featureTabs.map(f => (
                     <button key={f.id} type="button"
                       className={`settings-tool-btn${showFeaturePanel === f.id ? " active" : ""}`}
-                      onClick={() => setShowFeaturePanel(showFeaturePanel === f.id ? null : f.id)}
+                      onClick={() => {
+                        setShowSettings(false);
+                        setShowFeaturePanel(f.id);
+                      }}
                       title={f.desc}>
                       <f.icon weight="regular" />
                       <div className="settings-tool-info">
@@ -1055,6 +1108,7 @@ export function SagentShell() {
               <div className="feature-panel-body">
                 {showFeaturePanel === "policy" && <CapabilityPolicyPreview apiUrl={API_URL} />}
                 {showFeaturePanel === "code" && <CodeEditPreviewPanel apiUrl={API_URL} />}
+                {showFeaturePanel === "cloud" && <CloudApprovalPreview apiUrl={API_URL} />}
 
                 {showFeaturePanel === "git" && (
                   <>
@@ -1445,4 +1499,3 @@ export function SagentShell() {
     </main>
   );
 }
-

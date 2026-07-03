@@ -7,15 +7,18 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from fastapi.middleware.cors import CORSMiddleware
 
 from sagent_agent_api.agent_loop import build_agent_registry, run_agent_loop, run_agent_loop_stream
 from sagent_agent_api.code_edits import CodeEditPolicyError, CodeEditService, get_code_edit_service
 from sagent_agent_api.git_integration import get_git_tool
+from sagent_agent_api.memory_api import (
+    MemoryServiceDependency,
+    get_memory_service,
+)
 from sagent_agent_api.model_integration import get_model_router
-from sagent_agent_api.memory_api import MemoryServiceDependency, close_memory_service, get_memory_service
 from sagent_agent_api.model_jobs import close_model_job_service, get_model_job_service
 from sagent_agent_api.models import (
     ApprovalRequest,
@@ -276,24 +279,32 @@ def agent_execute(
     """Führe eine Aufgabe mit dem Agent Loop aus (mehrere Modell-Aufrufe + Werkzeuge)."""
     workspace_root = str(Path(__file__).resolve().parents[4])
     file_tool = FileTool(WorkspaceGuard(Path(workspace_root)))
-    registry = build_agent_registry(file_tool, git_tool, code_edit, test_runner, memory, workspace_root)
+    registry = build_agent_registry(
+        file_tool, git_tool, code_edit, test_runner, memory, workspace_root,
+    )
 
     # Automatisch User-Eingabe speichern
     try:
         memory.store(request.task, {"category": "user-input", "type": "chat"})
-    except Exception:
+    except Exception:  # noqa: S110
         pass
 
     try:
-        loop_result = run_agent_loop(request.task, router, registry, request.messages, adapter_id="local-ollama", memory=memory)
+        loop_result = run_agent_loop(
+            request.task, router, registry, request.messages,
+            adapter_id="local-ollama", memory=memory,
+        )
     except Exception as e:
         return AgentExecuteResponse(final_response="", error=str(e))
 
     # Automatisch Agent-Antwort speichern
     if loop_result.final_response and len(loop_result.final_response) > 20:
         try:
-            memory.store(loop_result.final_response[:2000], {"category": "chat-response", "type": "agent"})
-        except Exception:
+            memory.store(
+                loop_result.final_response[:2000],
+                {"category": "chat-response", "type": "agent"},
+            )
+        except Exception:  # noqa: S110
             pass
 
     tool_calls = [
@@ -336,15 +347,20 @@ def agent_execute_stream(
     """SSE-Streaming: Agent Loop mit Live-Tool-Call-Events."""
     workspace_root = str(Path(__file__).resolve().parents[4])
     file_tool = FileTool(WorkspaceGuard(Path(workspace_root)))
-    registry = build_agent_registry(file_tool, git_tool, code_edit, test_runner, memory, workspace_root)
+    registry = build_agent_registry(
+        file_tool, git_tool, code_edit, test_runner, memory, workspace_root,
+    )
 
     try:
         memory.store(request.task, {"category": "user-input", "type": "chat"})
-    except Exception:
+    except Exception:  # noqa: S110
         pass
 
     def event_stream() -> Generator[str, None, None]:
-        for event in run_agent_loop_stream(request.task, router, registry, request.messages, adapter_id="local-ollama", memory=memory):
+        for event in run_agent_loop_stream(
+            request.task, router, registry, request.messages,
+            adapter_id="local-ollama", memory=memory,
+        ):
             se = StreamEvent(**event)
             yield f"data: {se.model_dump_json()}\n\n"
 
@@ -692,11 +708,17 @@ def complete_local_model(
     try:
         relevant = memory.search(prompt, n_results=5)
         if relevant:
-            lines = ["Relevante Erinnerungen aus dem Gedächtnis (semantische Relevanz in Klammern):"]
+            lines = [
+                "Relevante Erinnerungen aus dem Gedächtnis "
+                "(semantische Relevanz in Klammern):"
+            ]
             for entry, score in relevant:
-                lines.append(f"- [{entry.metadata.get('category', 'allgemein')}] {entry.text} (Relevanz: {score:.0%})")
+                cat = entry.metadata.get("category", "allgemein")
+                lines.append(
+                    f"- [{cat}] {entry.text} (Relevanz: {score:.0%})",
+                )
             memory_context = "\n".join(lines)
-    except Exception:
+    except Exception:  # noqa: S110
         pass
 
     runtime_request = _local_model_request(
@@ -741,6 +763,7 @@ class StreamRequest(BaseModel):
 def stream_model_complete(request: StreamRequest) -> StreamingResponse:
     """SSE-Streaming: ruft Ollama mit stream=true auf, gibt Token für Token weiter."""
     import json as _json
+
     import httpx2 as _httpx
 
     # Input speichern
@@ -750,14 +773,19 @@ def stream_model_complete(request: StreamRequest) -> StreamingResponse:
         payload = {
             "model": "qwen2.5-coder:7b",
             "messages": [
-                {"role": "system", "content": request.system_prompt or "Du bist ein hilfreicher Assistent."},
+                {
+                    "role": "system",
+                    "content": request.system_prompt or "Du bist ein hilfreicher Assistent.",
+                },
                 {"role": "user", "content": request.prompt},
             ],
             "stream": True,
         }
         try:
-            with _httpx.Client(timeout=_httpx.Timeout(connect=5, read=300, write=10, pool=5)) as client:
-                with client.stream("POST", "http://127.0.0.1:11434/v1/chat/completions", json=payload) as resp:
+            timeout = _httpx.Timeout(connect=5, read=300, write=10, pool=5)
+            with _httpx.Client(timeout=timeout) as client:
+                url = "http://127.0.0.1:11434/v1/chat/completions"
+                with client.stream("POST", url, json=payload) as resp:
                     if resp.status_code != 200:
                         yield f"data: {_json.dumps({'error': f'HTTP {resp.status_code}'})}\n\n"
                         return
@@ -768,7 +796,7 @@ def stream_model_complete(request: StreamRequest) -> StreamingResponse:
                             if data_str == "[DONE]":
                                 if len(full_text) > 20:
                                     _auto_memory_store(full_text[:2000], "chat-response")
-                                yield f"data: {_json.dumps({'done': True, 'full_text': full_text})}\n\n"
+                                yield f"data: {_json.dumps({'done': True, 'full_text': full_text})}\n\n"  # noqa: E501
                                 return
                             try:
                                 chunk = _json.loads(data_str)
@@ -789,7 +817,7 @@ def _auto_memory_store(text: str, category: str) -> None:
     try:
         svc = get_memory_service()
         svc.store(text, {"category": category, "type": "auto"})
-    except Exception:
+    except Exception:  # noqa: S110
         pass
 
 
@@ -1010,11 +1038,17 @@ def start_model_job(
     try:
         relevant = memory.search(prompt, n_results=5)
         if relevant:
-            lines = ["Relevante Erinnerungen aus dem Gedächtnis (semantische Relevanz in Klammern):"]
+            lines = [
+                "Relevante Erinnerungen aus dem Gedächtnis "
+                "(semantische Relevanz in Klammern):"
+            ]
             for entry, score in relevant:
-                lines.append(f"- [{entry.metadata.get('category', 'allgemein')}] {entry.text} (Relevanz: {score:.0%})")
+                cat = entry.metadata.get("category", "allgemein")
+                lines.append(
+                    f"- [{cat}] {entry.text} (Relevanz: {score:.0%})",
+                )
             memory_context = "\n".join(lines)
-    except Exception:
+    except Exception:  # noqa: S110
         pass
 
     runtime_request = _local_model_request(
@@ -1139,18 +1173,28 @@ class MemorySearchRequest(BaseModel):
 
 
 @app.post("/memory/store")
-def memory_store(request: MemoryStoreRequest, memory: MemoryServiceDependency) -> MemoryEntryResponse:
+def memory_store(
+    request: MemoryStoreRequest,
+    memory: MemoryServiceDependency,
+) -> MemoryEntryResponse:
     entry = memory.store(request.text, request.metadata)
     return MemoryEntryResponse(
-        id=entry.id, text=entry.text, metadata=entry.metadata, created_at=entry.created_at
+        id=entry.id, text=entry.text, metadata=entry.metadata,
+        created_at=entry.created_at,
     )
 
 
 @app.post("/memory/search")
-def memory_search(request: MemorySearchRequest, memory: MemoryServiceDependency) -> list[MemoryEntryResponse]:
+def memory_search(
+    request: MemorySearchRequest,
+    memory: MemoryServiceDependency,
+) -> list[MemoryEntryResponse]:
     results = memory.search(request.query, request.n_results)
     return [
-        MemoryEntryResponse(id=e.id, text=e.text, metadata=e.metadata, created_at=e.created_at, score=round(s, 4))
+        MemoryEntryResponse(
+            id=e.id, text=e.text, metadata=e.metadata,
+            created_at=e.created_at, score=round(s, 4),
+        )
         for e, s in results
     ]
 

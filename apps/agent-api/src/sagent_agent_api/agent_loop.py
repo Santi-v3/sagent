@@ -2,11 +2,18 @@ import json
 import os
 import re
 import time
+from collections.abc import Callable, Generator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Generator
+from typing import Any
 
-from sagent_agent_core import ModelCapability, ModelInputPart, ModelInputSource, ModelRequest, ModelRouter
+from sagent_agent_core import (
+    ModelCapability,
+    ModelInputPart,
+    ModelInputSource,
+    ModelRequest,
+    ModelRouter,
+)
 from sagent_agent_core.tool_registry import ToolDef, ToolRegistry
 
 
@@ -42,7 +49,11 @@ def _build_request(
         parts.append(ModelInputPart(source=ModelInputSource.MEMORY, content=memory_context))
     if conversation:
         for msg in conversation:
-            source = ModelInputSource.USER if msg.get("role") == "user" else ModelInputSource.ASSISTANT
+            source = (
+                ModelInputSource.USER
+                if msg.get("role") == "user"
+                else ModelInputSource.ASSISTANT
+            )
             parts.append(ModelInputPart(source=source, content=msg.get("content", "")))
     parts.append(ModelInputPart(source=ModelInputSource.USER, content=user_task))
     if tool_result:
@@ -95,7 +106,7 @@ def _make_bash(workspace_root: str) -> Callable[..., str]:
     def bash(command: str, timeout: int = 30) -> str:
         import subprocess
         try:
-            result = subprocess.run(
+            result = subprocess.run(  # noqa: S602
                 command,
                 shell=True,
                 cwd=workspace_root,
@@ -124,7 +135,10 @@ def _make_write_file(workspace_root: str) -> Callable[..., str]:
         with open(tmp, "w") as f:
             f.write(content)
         os.replace(tmp, full_path)
-        return json.dumps({"path": path, "status": "written", "size_bytes": len(content.encode("utf-8"))}, ensure_ascii=False)
+        return json.dumps({
+            "path": path, "status": "written",
+            "size_bytes": len(content.encode("utf-8")),
+        }, ensure_ascii=False)
     return write_file
 
 
@@ -141,7 +155,9 @@ def _make_edit_file(workspace_root: str) -> Callable[..., str]:
         new_content = content.replace(old_string, new_string)
         with open(full_path, "w") as f:
             f.write(new_content)
-        return json.dumps({"path": path, "status": "edited", "occurrences": count}, ensure_ascii=False)
+        return json.dumps({
+            "path": path, "status": "edited", "occurrences": count,
+        }, ensure_ascii=False)
     return edit_file
 
 
@@ -167,7 +183,7 @@ def _make_grep(workspace_root: str) -> Callable[..., str]:
             cmd += f" -g '{include}'"
         cmd += f" {workspace_root}"
         import subprocess
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=15)
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=15)  # noqa: S602
         lines = result.stdout.splitlines()[:200]
         return json.dumps({"pattern": pattern, "matches": lines}, ensure_ascii=False)
     return grep
@@ -185,7 +201,11 @@ def _make_git_status(git_tool: Any) -> Callable[..., str]:
         s = git_tool.status()
         return json.dumps({
             "branch": s.branch, "clean": s.clean, "ahead": s.ahead,
-            "behind": s.behind, "files": [f.to_dict() if hasattr(f, 'to_dict') else str(f) for f in s.files],
+            "behind": s.behind,
+            "files": [
+                f.to_dict() if hasattr(f, 'to_dict') else str(f)
+                for f in s.files
+            ],
         }, ensure_ascii=False, default=str)
     return git_status
 
@@ -193,7 +213,9 @@ def _make_git_status(git_tool: Any) -> Callable[..., str]:
 def _make_git_diff(git_tool: Any) -> Callable[..., str]:
     def git_diff() -> str:
         d = git_tool.diff()
-        return json.dumps({"staged": d.staged, "unstaged": d.unstaged, "untracked": d.untracked}, ensure_ascii=False)
+        return json.dumps({
+            "staged": d.staged, "unstaged": d.unstaged, "untracked": d.untracked,
+        }, ensure_ascii=False)
     return git_diff
 
 
@@ -285,11 +307,18 @@ def build_agent_registry(
 
     reg.register(ToolDef(
         name="bash",
-        description="Führe einen Shell-Befehl aus. Output ist auf 10000 Zeichen stdout, 5000 stderr begrenzt.",
+        description=(
+            "Führe einen Shell-Befehl aus. "
+            "Output ist auf 10000 Zeichen stdout, 5000 stderr begrenzt."
+        ),
         parameters={
             "type": "object", "properties": {
                 "command": {"type": "string", "description": "Der Shell-Befehl"},
-                "timeout": {"type": "integer", "description": "Timeout in Sekunden (max 60)", "default": 30},
+                "timeout": {
+                    "type": "integer",
+                    "description": "Timeout in Sekunden (max 60)",
+                    "default": 30,
+                },
             },
             "required": ["command"],
         },
@@ -297,7 +326,10 @@ def build_agent_registry(
     ))
     reg.register(ToolDef(
         name="write_file",
-        description="Schreibe Inhalt in eine Datei (überschreibt). Pfad ist relativ zum Workspace-Root.",
+        description=(
+            "Schreibe Inhalt in eine Datei (überschreibt). "
+            "Pfad ist relativ zum Workspace-Root."
+        ),
         parameters={
             "type": "object", "properties": {
                 "path": {"type": "string", "description": "Dateipfad relativ zum Workspace-Root"},
@@ -309,7 +341,10 @@ def build_agent_registry(
     ))
     reg.register(ToolDef(
         name="edit_file",
-        description="Ersetze einen Text-String in einer Datei. Pfad ist relativ zum Workspace-Root.",
+        description=(
+            "Ersetze einen Text-String in einer Datei. "
+            "Pfad ist relativ zum Workspace-Root."
+        ),
         parameters={
             "type": "object", "properties": {
                 "path": {"type": "string", "description": "Dateipfad relativ zum Workspace-Root"},
@@ -322,14 +357,28 @@ def build_agent_registry(
     ))
     reg.register(ToolDef(
         name="read_file",
-        description="Lese den Inhalt einer Datei. Path ist relativ zum Workspace-Root.",
-        parameters={"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
+        description=(
+            "Lese den Inhalt einer Datei. "
+            "Path ist relativ zum Workspace-Root."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {"path": {"type": "string"}},
+            "required": ["path"],
+        },
         handler=_make_read_file(file_tool, workspace_root),
     ))
     reg.register(ToolDef(
         name="glob",
-        description="Suche Dateien mit einem Glob-Pattern (z.B. **/*.py, src/**/*.tsx).",
-        parameters={"type": "object", "properties": {"pattern": {"type": "string"}}, "required": ["pattern"]},
+        description=(
+            "Suche Dateien mit einem Glob-Pattern "
+            "(z.B. **/*.py, src/**/*.tsx)."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {"pattern": {"type": "string"}},
+            "required": ["pattern"],
+        },
         handler=_make_glob(workspace_root),
     ))
     reg.register(ToolDef(
@@ -340,11 +389,17 @@ def build_agent_registry(
     ))
     reg.register(ToolDef(
         name="grep",
-        description="Durchsuche Dateiinhalte mit einem Regex-Pattern. include ist optional (z.B. *.py).",
+        description=(
+            "Durchsuche Dateiinhalte mit einem Regex-Pattern. "
+            "include ist optional (z.B. *.py)."
+        ),
         parameters={
             "type": "object", "properties": {
                 "pattern": {"type": "string", "description": "Regex-Pattern"},
-                "include": {"type": "string", "description": "Datei-Glob-Filter (z.B. *.py, *.{ts,tsx})"},
+                "include": {
+                    "type": "string",
+                    "description": "Datei-Glob-Filter (z.B. *.py, *.{ts,tsx})",
+                },
             },
             "required": ["pattern"],
         },
@@ -368,7 +423,10 @@ def build_agent_registry(
         parameters={
             "type": "object", "properties": {
                 "name": {"type": "string", "description": "Branch-Name, z.B. feature/mein-feature"},
-                "expected_current_branch": {"type": "string", "description": "Aktueller Branch (für Sicherheitscheck)"},
+                "expected_current_branch": {
+                    "type": "string",
+                    "description": "Aktueller Branch (für Sicherheitscheck)",
+                },
             },
             "required": ["name"],
         },
@@ -380,7 +438,10 @@ def build_agent_registry(
         parameters={
             "type": "object", "properties": {
                 "path": {"type": "string", "description": "Dateipfad relativ zum Workspace"},
-                "new_content": {"type": "string", "description": "Der vollständige neue Inhalt der Datei"},
+                "new_content": {
+                    "type": "string",
+                    "description": "Der vollständige neue Inhalt der Datei",
+                },
             },
             "required": ["path", "new_content"],
         },
@@ -391,8 +452,14 @@ def build_agent_registry(
         description="Wende eine zuvor mit code_edit_preview geprüfte Änderung an.",
         parameters={
             "type": "object", "properties": {
-                "change_set_id": {"type": "string", "description": "Die change_set_id aus der Vorschau"},
-                "proposal_hash": {"type": "string", "description": "Der proposal_hash aus der Vorschau"},
+                "change_set_id": {
+                    "type": "string",
+                    "description": "Die change_set_id aus der Vorschau",
+                },
+                "proposal_hash": {
+                    "type": "string",
+                    "description": "Der proposal_hash aus der Vorschau",
+                },
             },
             "required": ["change_set_id", "proposal_hash"],
         },
@@ -410,7 +477,10 @@ def build_agent_registry(
         parameters={
             "type": "object", "properties": {
                 "profile_id": {"type": "string", "description": "Profil-ID aus test_run_list"},
-                "expected_command": {"type": "string", "description": "Erwarteter Befehl zur Bestätigung"},
+                "expected_command": {
+                    "type": "string",
+                    "description": "Erwarteter Befehl zur Bestätigung",
+                },
             },
             "required": ["profile_id"],
         },
@@ -434,7 +504,10 @@ def build_agent_registry(
         parameters={
             "type": "object", "properties": {
                 "text": {"type": "string", "description": "Der zu merkende Text"},
-                "category": {"type": "string", "description": "Kategorie, z.B. tech, plan, decision"},
+                "category": {
+                    "type": "string",
+                    "description": "Kategorie, z.B. tech, plan, decision",
+                },
             },
             "required": ["text"],
         },
@@ -472,7 +545,11 @@ def _agent_loop_iteration(
     system_prompt: str,
     iteration: int,
 ) -> tuple[str | None, str | None, list, str | None, int, str | None]:
-    """Eine einzelne Agent-Loop-Iteration. Gibt (error, final_response, calls, next_tool_result_buffer, next_repeat_count, next_last_tool_name)."""
+    """Eine einzelne Agent-Loop-Iteration.
+
+    Returns (error, final_response, calls, next_tool_result_buffer,
+             next_repeat_count, next_last_tool_name).
+    """
     memory_context = _get_memory_context(memory, task) if memory else ""
     req = _build_request(system_prompt, task, conversation, tool_result_buffer, memory_context)
     try:
@@ -489,7 +566,11 @@ def _agent_loop_iteration(
     else:
         repeat_count = 0
     if repeat_count >= 3:
-        return f"Agent loop aborted: repeated tool '{last_tool_name}' 3 times", text, [], None, repeat_count, last_tool_name
+        return (
+            f"Agent loop aborted: repeated tool "
+            f"'{last_tool_name}' 3 times",
+            text, [], None, repeat_count, last_tool_name,
+        )
 
     if not calls:
         return None, text, [], None, repeat_count, last_tool_name
@@ -602,7 +683,13 @@ def run_agent_loop_stream(
         else:
             repeat_count = 0
         if repeat_count >= 3:
-            yield {"type": "error", "message": f"Agent loop aborted: repeated tool '{last_tool_name}' 3 times (zuletzt: {text[:200]})"}
+            yield {
+                "type": "error",
+                "message": (
+                    f"Agent loop aborted: repeated tool "
+                    f"'{last_tool_name}' 3 times (zuletzt: {text[:200]})"
+                ),
+            }
             break
 
         if not calls:
@@ -617,9 +704,19 @@ def run_agent_loop_stream(
             yield {"type": "tool_call", "name": name, "args": args_str, "iteration": iteration}
             tool_output = registry.dispatch(name, args_str)
             tool_result_buffer += f"TOOL_RESULT für {name}:\n{tool_output}\n\n"
-            yield {"type": "tool_result", "name": name, "result": tool_output, "iteration": iteration}
+            yield {
+                "type": "tool_result", "name": name,
+                "result": tool_output, "iteration": iteration,
+            }
     else:
-        yield {"type": "error", "message": f"Max iterations ({max_iterations}) reached without final answer."}
+        yield {
+            "type": "error",
+            "message": f"Max iterations ({max_iterations}) reached without final answer.",
+        }
 
     duration = (time.time() - start) * 1000
-    yield {"type": "done", "full_text": full_text, "total_model_calls": total_calls, "duration_ms": round(duration, 1)}
+    yield {
+        "type": "done", "full_text": full_text,
+        "total_model_calls": total_calls,
+        "duration_ms": round(duration, 1),
+    }

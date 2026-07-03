@@ -1,11 +1,8 @@
-from collections.abc import Generator
-from contextlib import contextmanager
 
-from fastapi import Depends
 from typing import Annotated
 
+from fastapi import Depends
 from sagent_memory import MemoryService
-
 
 _service: MemoryService | None = None
 
