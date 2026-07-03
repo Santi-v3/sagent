@@ -678,6 +678,7 @@ button { color: inherit; }
   background: transparent; cursor: pointer;
   font-size: 11px; color: var(--text-muted);
 }
+.feature-btn.active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .feature-btn:hover { border-color: var(--border-strong); color: var(--text); background: var(--bg-muted); }
 .feature-btn svg { width: 13px; height: 13px; }
 
