@@ -98,6 +98,7 @@ from sagent_agent_core.models import (
     ChangeSetStatus,
     FileChange,
 )
+from sagent_agent_core.tool_registry import ToolDef, ToolRegistry
 from sagent_tools import FileAccessError, FileTool, WorkspaceGuard, WorkspaceSecurityError
 
 __all__ = [

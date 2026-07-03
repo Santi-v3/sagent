@@ -1,32 +1,38 @@
-# Memory V1
+# Memory
 
-## Zweck
+## Memory V1 (Markdown-Dateien) – geplant
 
-Memory hilft Sagent, stabile Projektkonventionen, Entscheidungen und offene Arbeit über Sitzungen hinweg zu verstehen. Es ist kein versteckter Prompt und keine Autoritätsquelle.
+Ursprüngliches Konzept: Markdown-Dateien mit Frontmatter für stabile Entscheidungen, Projektkonventionen und Session-Zusammenfassungen. Noch nicht implementiert.
 
-## Format
+## Memory V2 (Vektor-Gedächtnis) – implementiert
 
-Version 1 verwendet Markdown-Dateien mit kleinem Frontmatter-Block:
+Seit 2026-07-02 läuft das Vektor-Gedächtnis über `packages/memory/`.
 
-```markdown
----
-id: decision-001
-type: decision
-created_at: 2026-06-29
-updated_at: 2026-06-29
-source: user-approved
-status: active
----
+### Architektur
 
-Inhalt mit klarer Herkunft und Gültigkeit.
-```
+- **Embedding-Modell:** `nomic-embed-text` via Ollama (`POST /api/embeddings`)
+- **Speicher:** In-Memory-Liste von `MemoryEntry`-Objekten (flüchtig, API-Neustart löscht Einträge)
+- **Suche:** Cosine Similarity in reinem Python (kein numpy, keine Vektor-DB)
+- **API:** `apps/agent-api/src/sagent_agent_api/memory_api.py`
 
-## Geplante Bereiche
+### API-Endpunkte
 
-- `memory/profile/`: stabile Nutzerpräferenzen, nur nach ausdrücklicher Zustimmung
-- `memory/projects/<project>/`: Projektkontext und Konventionen
-- `memory/sessions/`: kompakte, redigierte Session-Zusammenfassungen
-- `memory/decisions/`: bestätigte langfristige Entscheidungen
+| Methode | Pfad | Beschreibung |
+|---------|------|-------------|
+| `POST` | `/memory/store` | Text + optionales Metadata speichern |
+| `POST` | `/memory/search` | Semantische Suche mit Query-Text |
+| `GET` | `/memory` | Alle Einträge listen |
+| `DELETE` | `/memory/{entry_id}` | Eintrag löschen |
+
+### Metadata
+
+Jeder Eintrag kann beliebiges Metadata enthalten (z.B. `category`, `type`, `source`). Wird bei der Suche mit zurückgegeben.
+### Noch nicht implementiert (für später)
+
+- Markdown-Frontmatter-Import (Memory V1)
+- Automatisches Speichern von Entscheidungen aus dem Agent-Workflow
+- Qdrant oder Chroma als skalierbare Vektor-DB
+- Cloud-Synchronisierung
 
 ## Regeln
 
@@ -36,11 +42,3 @@ Inhalt mit klarer Herkunft und Gültigkeit.
 - Aktuelle Nutzeranweisungen und Sicherheitsregeln haben Vorrang.
 - Veraltete oder widersprüchliche Einträge werden markiert, nicht still überschrieben.
 - Nutzer können Inhalte lesen, bearbeiten und löschen.
-
-## Noch nicht in V1
-
-- Embeddings oder Vektordatenbank
-- Automatisches Profiling
-- Cloud-Synchronisierung
-- Implizites Lernen aus jeder Aktion
-- Unbegrenzte Aufbewahrung
