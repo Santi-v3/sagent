@@ -1016,16 +1016,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   min-height: 36px; padding: 0 6px; margin: 28px 6px 10px;
   border-radius: 10px;
 }
-.sidebar-section-heading:hover { background: rgba(0,0,0,0.055); }
 .sidebar-section-title {
-  display: flex; align-items: center; gap: 6px;
-  flex: 1; height: 36px; padding: 0 12px; border: 0; border-radius: 8px;
-  background: transparent; cursor: pointer;
+  flex: 1; padding: 0 12px; border: 0; background: transparent;
   color: #666666; font-size: 17px; font-weight: 500; text-align: left;
 }
-.sidebar-section-title:hover { background: rgba(0,0,0,0.04); color: #222222; }
-.sidebar-section-caret { width: 16px; height: 16px; color: #777777; flex-shrink: 0; transition: transform 0.15s; }
-.sidebar-section-caret.collapsed { transform: rotate(-90deg); }
 
 /* ── Project create inline form ── */
 .sidebar-project-create { padding: 4px 12px 8px; }

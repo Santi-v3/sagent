@@ -1,6 +1,6 @@
 "use client";
 
-import { CaretDown, CaretRight, DotsThreeVertical, Folder, Plus } from "@phosphor-icons/react";
+import { CaretRight, DotsThreeVertical, Folder, Plus } from "@phosphor-icons/react";
 import { useState } from "react";
 import { ChatRow } from "./chat-row";
 import type { SidebarConversation, SidebarProject } from "./types";
@@ -9,10 +9,8 @@ export type ProjectsSectionProps = {
   projects: SidebarProject[];
   conversations: SidebarConversation[];
   activeConvId: string | null;
-  expanded: boolean;
   collapsedProjectIds: Set<string>;
   searchQuery: string;
-  onToggleExpanded: () => void;
   onCreateProject: (name: string) => void;
   onToggleCollapsed: (id: string) => void;
   onSelectConversation: (id: string) => void;
@@ -26,8 +24,8 @@ export type ProjectsSectionProps = {
 
 export function ProjectsSection(props: ProjectsSectionProps) {
   const {
-    projects, conversations, activeConvId, expanded, collapsedProjectIds, searchQuery,
-    onToggleExpanded, onCreateProject, onToggleCollapsed,
+    projects, conversations, activeConvId, collapsedProjectIds, searchQuery,
+    onCreateProject, onToggleCollapsed,
     onSelectConversation, onConversationContextMenu, onRequestConversationContextMenu,
     onProjectContextMenu, onRequestProjectContextMenu, onRenameProjectRequest,
     onRenameConversationSubmit,
@@ -49,15 +47,7 @@ export function ProjectsSection(props: ProjectsSectionProps) {
     return (
       <section className="sidebar-section sidebar-project-section" aria-label="Projekte">
         <div className="sidebar-section-heading">
-          <button
-            type="button"
-            className="sidebar-section-title"
-            onClick={onToggleExpanded}
-            aria-expanded={expanded}
-          >
-            <CaretDown className={`sidebar-section-caret${expanded ? "" : " collapsed"}`} weight="bold" aria-hidden="true" />
-            Projekte
-          </button>
+          <span className="sidebar-section-title">Projekte</span>
           <button
             type="button"
             className="sidebar-projects-add"
@@ -92,15 +82,8 @@ export function ProjectsSection(props: ProjectsSectionProps) {
 
   return (
     <section className="sidebar-section sidebar-project-section" aria-label="Projekte">
-      <div className="sidebar-section-heading">
-        <button
-          type="button"
-          className="sidebar-section-title"
-          onClick={onToggleExpanded}
-          aria-expanded={expanded}
-        >
-          Projekte
-        </button>
+        <div className="sidebar-section-heading">
+        <span className="sidebar-section-title">Projekte</span>
         <button
           type="button"
           className="sidebar-projects-add"
@@ -129,7 +112,7 @@ export function ProjectsSection(props: ProjectsSectionProps) {
           />
         </form>
       )}
-      {expanded && projects.map((project) => {
+      {projects.map((project) => {
         const projectConvs = conversations.filter(
           (c) => c.projectId === project.id
             && (!searchQuery || c.label.toLowerCase().includes(searchQuery.toLowerCase()))

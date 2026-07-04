@@ -18,7 +18,6 @@ export function formatRelativeTime(input: string | number | Date): string {
 }
 
 const STORAGE_COLLAPSED = "sagent-sidebar-collapsed";
-const STORAGE_PROJECTS_EXPANDED = "sagent-sidebar-projects-expanded";
 
 function safeGet(key: string): string | null {
   if (typeof window === "undefined") return null;
@@ -41,13 +40,4 @@ export function persistCollapsed(value: boolean) {
   safeSet(STORAGE_COLLAPSED, value ? "1" : "0");
 }
 
-export function loadProjectsExpanded(fallback: boolean): boolean {
-  const raw = safeGet(STORAGE_PROJECTS_EXPANDED);
-  if (raw === "1") return true;
-  if (raw === "0") return false;
-  return fallback;
-}
 
-export function persistProjectsExpanded(value: boolean) {
-  safeSet(STORAGE_PROJECTS_EXPANDED, value ? "1" : "0");
-}

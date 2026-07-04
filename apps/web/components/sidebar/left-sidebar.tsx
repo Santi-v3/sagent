@@ -14,9 +14,7 @@ import { ConfirmDialog } from "./confirm-dialog";
 import { AccountFooter } from "./account-footer";
 import {
   loadCollapsed,
-  loadProjectsExpanded,
   persistCollapsed,
-  persistProjectsExpanded,
 } from "./utils";
 import type { LeftSidebarProps, SidebarConversation, SidebarProject } from "./types";
 
@@ -43,13 +41,12 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
     onCreateProject, onDeleteProject, onRenameProject,
     onOpenSettings, onOpenSearch,
     onSelectProject,
-    account, initialCollapsed = false, initialProjectsExpanded = true,
+    account, initialCollapsed = false,
     className = "",
   } = props;
 
   const [hydrated, setHydrated] = useState(false);
   const [collapsed, setCollapsed] = useState<boolean>(initialCollapsed);
-  const [projectsExpanded, setProjectsExpanded] = useState<boolean>(initialProjectsExpanded);
   const [collapsedProjectIds, setCollapsedProjectIds] = useState<Set<string>>(new Set());
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [view, setView] = useState<View>("chats");
@@ -64,12 +61,10 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration from localStorage
     setCollapsed(loadCollapsed(initialCollapsed));
-    setProjectsExpanded(loadProjectsExpanded(initialProjectsExpanded));
     setHydrated(true);
-  }, [initialCollapsed, initialProjectsExpanded]);
+  }, [initialCollapsed]);
 
   useEffect(() => { if (hydrated) persistCollapsed(collapsed); }, [collapsed, hydrated]);
-  useEffect(() => { if (hydrated) persistProjectsExpanded(projectsExpanded); }, [projectsExpanded, hydrated]);
 
   const filteredConversations = useMemo(() => conversations, [conversations]);
 
@@ -144,10 +139,8 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
                 projects={projects}
                 conversations={filteredConversations}
                 activeConvId={activeConvId}
-                expanded={projectsExpanded}
                 collapsedProjectIds={collapsedProjectIds}
                 searchQuery=""
-                onToggleExpanded={() => setProjectsExpanded((v) => !v)}
                 onCreateProject={onCreateProject}
                 onToggleCollapsed={toggleProjectCollapsed}
                 onSelectConversation={onSelectConversation}

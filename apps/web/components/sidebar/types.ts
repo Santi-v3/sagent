@@ -45,5 +45,4 @@ export type LeftSidebarProps = {
   onSelectProject?: (id: string) => void;
   account: SidebarAccount;
   initialCollapsed?: boolean;
-  initialProjectsExpanded?: boolean;
 };
