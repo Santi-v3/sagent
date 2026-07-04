@@ -55,9 +55,7 @@ button { color: inherit; }
   background: var(--sidebar-bg);
   border-right: 1px solid var(--sidebar-border);
   flex-shrink: 0;
-  transition: width 0.18s ease;
 }
-.sidebar--resizing { transition: none !important; }
 
 .sidebar-conversations {
   flex: 1;

@@ -129,7 +129,7 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
 
   return (
     <aside
-      className={`sidebar${collapsed ? " sidebar--collapsed" : ""}${isResizing ? " sidebar--resizing" : ""}${className ? ` ${className}` : ""}`}
+      className={`sidebar${collapsed ? " sidebar--collapsed" : ""}${className ? ` ${className}` : ""}`}
       aria-label="App-Navigation"
       style={collapsed ? undefined : { width: sidebarWidth }}
     >
