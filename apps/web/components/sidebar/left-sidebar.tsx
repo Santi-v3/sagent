@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SidebarTop } from "./sidebar-top";
 import { PrimaryNav } from "./primary-nav";
 import { ProjectsSection } from "./projects-section";
@@ -60,6 +60,8 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
   const [pendingRename, setPendingRename] = useState<PendingRename>(null);
   const [renameDraft, setRenameDraft] = useState("");
 
+  const sidebarRef = useRef<HTMLElement>(null);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration from localStorage
     setCollapsed(loadCollapsed(initialCollapsed));
@@ -78,14 +80,17 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
   function handleResizeStart(e: React.MouseEvent) {
     e.preventDefault();
     setIsResizing(true);
+    const el = sidebarRef.current;
+    if (!el) return;
     const startX = e.clientX;
-    const startWidth = sidebarWidth;
+    const startWidth = el.offsetWidth;
     function onMove(ev: MouseEvent) {
       const w = Math.max(MIN_SIDEBAR, Math.min(MAX_SIDEBAR, startWidth + ev.clientX - startX));
-      setSidebarWidth(w);
+      el!.style.width = w + "px";
     }
     function onUp() {
       setIsResizing(false);
+      setSidebarWidth(el!.offsetWidth);
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
     }
@@ -129,6 +134,7 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
 
   return (
     <aside
+      ref={sidebarRef}
       className={`sidebar${collapsed ? " sidebar--collapsed" : ""}${className ? ` ${className}` : ""}`}
       aria-label="App-Navigation"
       style={collapsed ? undefined : { width: sidebarWidth }}
