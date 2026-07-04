@@ -950,17 +950,27 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 /* ── Sidebar resize handle ── */
 .sidebar-resize-handle {
-  position: absolute;
-  inset-inline-end: 0;
-  inset-block: 0;
-  width: 4px;
-  cursor: col-resize;
-  z-index: 20;
-  transition: background 0.15s;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  cursor: ew-resize;
+  z-index: 9999;
+  touch-action: none;
 }
-.sidebar-resize-handle:hover,
-.sidebar--resizing .sidebar-resize-handle {
-  background: rgba(0,0,0,0.08);
+.sidebar-resize-handle::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 4px;
+  inset-block: 4px;
+  width: 2px;
+  background: transparent;
+  border-radius: 2px;
+  transition: background 0.12s;
+}
+.sidebar-resize-handle:hover::after,
+.sidebar-resize-handle.active::after {
+  background: rgba(0,0,0,0.12);
 }
 
 /* ── Sidebar top bar ── */
