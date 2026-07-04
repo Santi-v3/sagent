@@ -25,7 +25,7 @@ type ProjectContextState = { position: { x: number; y: number } | null; projectI
 
 type PendingDelete =
   | { kind: "conversation"; conv: SidebarConversation }
-  | { kind: "project"; project: SidebarProject; convCount: number };
+  | { kind: "project"; project: SidebarProject };
 
 type PendingRename =
   | { kind: "conversation"; convId: string; current: string }
@@ -69,9 +69,6 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
   useEffect(() => { if (hydrated) persistCollapsed(collapsed); }, [collapsed, hydrated]);
   useEffect(() => { if (hydrated) persistSidebarWidth(sidebarWidth); }, [sidebarWidth, hydrated]);
 
-  const MIN_SIDEBAR = 200;
-  const MAX_SIDEBAR = 280;
-
   function handleResizeStart(e: React.MouseEvent) {
     e.preventDefault();
     setIsResizing(true);
@@ -80,7 +77,7 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
     const startX = e.clientX;
     const startWidth = el.offsetWidth;
     function onMove(ev: MouseEvent) {
-      const w = Math.max(MIN_SIDEBAR, Math.min(MAX_SIDEBAR, startWidth + ev.clientX - startX));
+      const w = Math.max(200, Math.min(280, startWidth + ev.clientX - startX));
       el!.style.width = w + "px";
     }
     function onUp() {
@@ -228,7 +225,7 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
           const p = projects.find((x) => x.id === id);
           if (p) startRenameProject(p);
         }}
-        onRequestDelete={(project) => setPendingDelete({ kind: "project", project, convCount: 0 })}
+        onRequestDelete={(project) => setPendingDelete({ kind: "project", project })}
       />
 
       <SearchModal

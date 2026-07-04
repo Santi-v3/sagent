@@ -116,7 +116,6 @@ export function ProjectsSection(props: ProjectsSectionProps) {
           (c) => c.projectId === project.id
         );
         const isCollapsed = collapsedProjectIds.has(project.id);
-        const hasAnyConv = conversations.some((c) => c.projectId === project.id);
         return (
           <div key={project.id} className="project-section">
             <button
@@ -169,7 +168,7 @@ export function ProjectsSection(props: ProjectsSectionProps) {
               />
             ))}
             {!isCollapsed && projectConvs.length === 0 && (
-              <div className="project-empty">{hasAnyConv ? "Keine Treffer" : "Keine Chats"}</div>
+              <div className="project-empty">Keine Chats</div>
             )}
           </div>
         );
