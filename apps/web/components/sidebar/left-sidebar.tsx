@@ -49,7 +49,7 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
 
   const [hydrated, setHydrated] = useState(false);
   const [collapsed, setCollapsed] = useState<boolean>(initialCollapsed);
-  const [sidebarWidth, setSidebarWidth] = useState<number>(320);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(280);
   const [isResizing, setIsResizing] = useState(false);
   const [collapsedProjectIds, setCollapsedProjectIds] = useState<Set<string>>(new Set());
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -63,7 +63,7 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration from localStorage
     setCollapsed(loadCollapsed(initialCollapsed));
-    setSidebarWidth(loadSidebarWidth(320));
+    setSidebarWidth(loadSidebarWidth(280));
     setHydrated(true);
   }, [initialCollapsed]);
 
@@ -73,7 +73,7 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
   const filteredConversations = useMemo(() => conversations, [conversations]);
 
   const MIN_SIDEBAR = 240;
-  const MAX_SIDEBAR = 320;
+  const MAX_SIDEBAR = 280;
 
   function handleResizeStart(e: React.MouseEvent) {
     e.preventDefault();
