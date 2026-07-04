@@ -268,6 +268,27 @@ class AgentExecuteResponse(BaseModel):
     error: str = ""
 
 
+class StreamEvent(BaseModel):
+    type: str
+    name: str | None = None
+    args: str | None = None
+    result: str | None = None
+    content: str | None = None
+    message: str | None = None
+    iteration: int | None = None
+    full_text: str | None = None
+    total_model_calls: int | None = None
+    duration_ms: float | None = None
+
+
+def _resolve_adapter(router: ModelRouter) -> str | None:
+    """Return 'local-ollama' if registered, else None (router default)."""
+    for a in router.list_adapters():
+        if a.adapter_id == "local-ollama":
+            return "local-ollama"
+    return None
+
+
 @app.post("/agent/execute", response_model=AgentExecuteResponse)
 def agent_execute(
     request: AgentExecuteRequest,
@@ -284,7 +305,6 @@ def agent_execute(
         file_tool, git_tool, code_edit, test_runner, memory, workspace_root,
     )
 
-    # Automatisch User-Eingabe speichern
     try:
         memory.store(request.task, {"category": "user-input", "type": "chat"})
     except Exception:  # noqa: S110
@@ -293,12 +313,11 @@ def agent_execute(
     try:
         loop_result = run_agent_loop(
             request.task, router, registry, request.messages,
-            adapter_id="local-ollama", memory=memory,
+            adapter_id=_resolve_adapter(router), memory=memory,
         )
     except Exception as e:
         return AgentExecuteResponse(final_response="", error=str(e))
 
-    # Automatisch Agent-Antwort speichern
     if loop_result.final_response and len(loop_result.final_response) > 20:
         try:
             memory.store(
@@ -323,19 +342,6 @@ def agent_execute(
     )
 
 
-class StreamEvent(BaseModel):
-    type: str
-    name: str | None = None
-    args: str | None = None
-    result: str | None = None
-    content: str | None = None
-    message: str | None = None
-    iteration: int | None = None
-    full_text: str | None = None
-    total_model_calls: int | None = None
-    duration_ms: float | None = None
-
-
 @app.post("/agent/execute/stream")
 def agent_execute_stream(
     request: AgentExecuteRequest,
@@ -357,10 +363,12 @@ def agent_execute_stream(
     except Exception:  # noqa: S110
         pass
 
+    adapter_id = _resolve_adapter(router)
+
     def event_stream() -> Generator[str, None, None]:
         for event in run_agent_loop_stream(
             request.task, router, registry, request.messages,
-            adapter_id="local-ollama", memory=memory,
+            adapter_id=adapter_id, memory=memory,
         ):
             se = StreamEvent(**event)
             yield f"data: {se.model_dump_json()}\n\n"
