@@ -18,6 +18,7 @@ export function formatRelativeTime(input: string | number | Date): string {
 }
 
 const STORAGE_COLLAPSED = "sagent-sidebar-collapsed";
+const STORAGE_SIDEBAR_WIDTH = "sagent-sidebar-width";
 
 function safeGet(key: string): string | null {
   if (typeof window === "undefined") return null;
@@ -38,6 +39,19 @@ export function loadCollapsed(fallback: boolean): boolean {
 
 export function persistCollapsed(value: boolean) {
   safeSet(STORAGE_COLLAPSED, value ? "1" : "0");
+}
+
+export function loadSidebarWidth(fallback: number): number {
+  const raw = safeGet(STORAGE_SIDEBAR_WIDTH);
+  if (raw) {
+    const n = parseInt(raw, 10);
+    if (!Number.isNaN(n) && n >= 200 && n <= 400) return n;
+  }
+  return fallback;
+}
+
+export function persistSidebarWidth(value: number) {
+  safeSet(STORAGE_SIDEBAR_WIDTH, String(value));
 }
 
 

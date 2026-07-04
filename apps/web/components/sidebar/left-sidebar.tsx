@@ -14,7 +14,9 @@ import { ConfirmDialog } from "./confirm-dialog";
 import { AccountFooter } from "./account-footer";
 import {
   loadCollapsed,
+  loadSidebarWidth,
   persistCollapsed,
+  persistSidebarWidth,
 } from "./utils";
 import type { LeftSidebarProps, SidebarConversation, SidebarProject } from "./types";
 
@@ -47,6 +49,8 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
 
   const [hydrated, setHydrated] = useState(false);
   const [collapsed, setCollapsed] = useState<boolean>(initialCollapsed);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(320);
+  const [isResizing, setIsResizing] = useState(false);
   const [collapsedProjectIds, setCollapsedProjectIds] = useState<Set<string>>(new Set());
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [view, setView] = useState<View>("chats");
@@ -55,18 +59,39 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [pendingRename, setPendingRename] = useState<PendingRename>(null);
   const [renameDraft, setRenameDraft] = useState("");
-  const [historyIndex, setHistoryIndex] = useState<number>(0);
-  const [historyLength] = useState<number>(1);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration from localStorage
     setCollapsed(loadCollapsed(initialCollapsed));
+    setSidebarWidth(loadSidebarWidth(320));
     setHydrated(true);
   }, [initialCollapsed]);
 
   useEffect(() => { if (hydrated) persistCollapsed(collapsed); }, [collapsed, hydrated]);
+  useEffect(() => { if (hydrated) persistSidebarWidth(sidebarWidth); }, [sidebarWidth, hydrated]);
 
   const filteredConversations = useMemo(() => conversations, [conversations]);
+
+  const MIN_SIDEBAR = 240;
+  const MAX_SIDEBAR = 320;
+
+  function handleResizeStart(e: React.MouseEvent) {
+    e.preventDefault();
+    setIsResizing(true);
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+    function onMove(ev: MouseEvent) {
+      const w = Math.max(MIN_SIDEBAR, Math.min(MAX_SIDEBAR, startWidth + ev.clientX - startX));
+      setSidebarWidth(w);
+    }
+    function onUp() {
+      setIsResizing(false);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    }
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }
 
   function toggleProjectCollapsed(id: string) {
     setCollapsedProjectIds((prev) => {
@@ -104,16 +129,13 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
 
   return (
     <aside
-      className={`sidebar${collapsed ? " sidebar--collapsed" : ""}${className ? ` ${className}` : ""}`}
+      className={`sidebar${collapsed ? " sidebar--collapsed" : ""}${isResizing ? " sidebar--resizing" : ""}${className ? ` ${className}` : ""}`}
       aria-label="App-Navigation"
+      style={collapsed ? undefined : { width: sidebarWidth }}
     >
       <SidebarTop
         collapsed={collapsed}
         onToggleCollapsed={() => setCollapsed((v) => !v)}
-        onBack={() => setHistoryIndex((i) => Math.max(0, i - 1))}
-        onForward={() => setHistoryIndex((i) => Math.min(historyLength - 1, i + 1))}
-        canGoBack={historyIndex > 0}
-        canGoForward={historyIndex < historyLength - 1}
       />
 
       <PrimaryNav
@@ -296,6 +318,8 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
           </div>
         </div>
       )}
+
+      {!collapsed && <div className="sidebar-resize-handle" onMouseDown={handleResizeStart} />}
     </aside>
   );
 }
