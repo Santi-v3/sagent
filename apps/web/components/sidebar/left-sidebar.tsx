@@ -72,7 +72,7 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
 
   const filteredConversations = useMemo(() => conversations, [conversations]);
 
-  const MIN_SIDEBAR = 240;
+  const MIN_SIDEBAR = 200;
   const MAX_SIDEBAR = 280;
 
   function handleResizeStart(e: React.MouseEvent) {
