@@ -11,6 +11,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "desktop": "pnpm --filter @sagent/desktop dev",
     "lint": "turbo run lint",
     "format": "turbo run format",
     "test": "turbo run test",

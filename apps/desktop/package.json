@@ -1,0 +1,28 @@
+{
+  "name": "@sagent/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "dev": "electron .",
+    "build": "electron-builder",
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^43.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.sagent.desktop",
+    "productName": "Sagent",
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.developer-tools"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "../web/out/**/*"
+    ]
+  }
+}
