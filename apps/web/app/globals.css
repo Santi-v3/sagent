@@ -1204,11 +1204,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .rename-prompt .conv-rename-input { width: 100%; margin-bottom: 12px; }
 .rename-prompt-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
-/* ── Sidebar collapse/expand transition ── */
-.sidebar {
-  transition: width 0.18s ease;
-}
-
 /* ── Tool Panel ── */
 .tool-panel {
   width: clamp(280px, 28vw, 400px);
