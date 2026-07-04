@@ -6,8 +6,6 @@ export type PrimaryNavProps = {
   collapsed: boolean;
   onNewChat: () => void;
   onOpenSearch: () => void;
-  onOpenPlanned: () => void;
-  onOpenPlugins: () => void;
   activeView: "chats" | "planned" | "plugins";
 };
 
@@ -19,12 +17,12 @@ type NavEntry = {
   active: boolean;
 };
 
-export function PrimaryNav({ collapsed, onNewChat, onOpenSearch, onOpenPlanned, onOpenPlugins, activeView }: PrimaryNavProps) {
+export function PrimaryNav({ collapsed, onNewChat, onOpenSearch, activeView }: PrimaryNavProps) {
   const entries: NavEntry[] = [
     { id: "new-chat", label: "Neuer Chat", icon: NotePencil, onClick: onNewChat, active: false },
     { id: "search", label: "Suche", icon: MagnifyingGlass, onClick: onOpenSearch, active: false },
-    { id: "planned", label: "Geplant", icon: ClockCounterClockwise, onClick: onOpenPlanned, active: activeView === "planned" },
-    { id: "plugins", label: "Plugins", icon: PuzzlePiece, onClick: onOpenPlugins, active: activeView === "plugins" },
+    { id: "planned", label: "Geplant", icon: ClockCounterClockwise, onClick: () => {}, active: activeView === "planned" },
+    { id: "plugins", label: "Plugins", icon: PuzzlePiece, onClick: () => {}, active: activeView === "plugins" },
   ];
 
   return (

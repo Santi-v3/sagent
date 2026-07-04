@@ -1,6 +1,6 @@
 "use client";
 
-import { CaretRight, DotsThreeVertical, Folder, Plus } from "@phosphor-icons/react";
+import { CaretDown, CaretRight, DotsThreeVertical, Folder, Plus } from "@phosphor-icons/react";
 import { useState } from "react";
 import { ChatRow } from "./chat-row";
 import type { SidebarConversation, SidebarProject } from "./types";
@@ -55,6 +55,7 @@ export function ProjectsSection(props: ProjectsSectionProps) {
             onClick={onToggleExpanded}
             aria-expanded={expanded}
           >
+            <CaretDown className={`sidebar-section-caret${expanded ? "" : " collapsed"}`} weight="bold" aria-hidden="true" />
             Projekte
           </button>
           <button

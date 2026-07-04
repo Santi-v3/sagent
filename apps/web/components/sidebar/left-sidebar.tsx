@@ -41,7 +41,7 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
     onDeleteConversation, onRenameConversation, onTogglePinConversation,
     onAssignConversationToProject,
     onCreateProject, onDeleteProject, onRenameProject,
-    onOpenSettings, onOpenPlugins, onOpenPlanned, onOpenSearch,
+    onOpenSettings, onOpenSearch,
     onSelectProject,
     account, initialCollapsed = false, initialProjectsExpanded = true,
     className = "",
@@ -128,14 +128,6 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
           if (view !== "chats") setView("chats");
           setSearchModalOpen(true);
           onOpenSearch();
-        }}
-        onOpenPlanned={() => {
-          setView((v) => v === "planned" ? "chats" : "planned");
-          onOpenPlanned();
-        }}
-        onOpenPlugins={() => {
-          setView((v) => v === "plugins" ? "chats" : "plugins");
-          onOpenPlugins();
         }}
         activeView={view}
       />
