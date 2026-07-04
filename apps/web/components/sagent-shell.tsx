@@ -3,17 +3,18 @@
 import {
   ArrowUp, ArrowsClockwise, CheckCircle, CircleNotch,
   Folder, GitBranch, GitDiff as GitDiffIcon,
-  Lightbulb, Play, Pencil, ShieldCheck,
+  Lightbulb, Play, ShieldCheck,
   TerminalWindow, Warning, WarningCircle, XCircle,
-  Plus, Code, DotsThreeVertical, Gear,
+  Plus, Code, Gear,
   Brain, Wrench, BookOpen,
-  Trash, List, MagnifyingGlass, ImageSquare, Camera,
+  List, ImageSquare, Camera,
 } from "@phosphor-icons/react";
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { CapabilityPolicyPreview } from "@/components/capability-policy-preview";
 import { CloudApprovalPreview } from "@/components/cloud-approval-preview";
 import { CodeEditPreviewPanel } from "@/components/code-edit-preview-panel";
+import { LeftSidebar } from "@/components/sidebar/left-sidebar";
 
 type ApprovalState = "pending" | "approved" | "rejected" | "needs_changes";
 type ApprovalDecision = Exclude<ApprovalState, "pending">;
@@ -44,6 +45,8 @@ const safetyLevels: { id: SafetyLevel; label: string; desc: string }[] = [
 type Conversation = { id: string; label: string; messages: {role: "user" | "assistant"; content: string}[]; updatedAt: number; pinned?: boolean; projectId?: string | null };
 type Project = { id: string; name: string; createdAt: number };
 
+const DEFAULT_PROJECT: Project = { id: "workspace-sagent-pr26", name: "sagent-pr26", createdAt: 0 };
+
 function generateId(): string { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
 function loadConversations(): Conversation[] {
@@ -67,6 +70,8 @@ function loadProjects(): Project[] {
 function saveProjects(ps: Project[]) {
   try { localStorage.setItem("sagent-projects", JSON.stringify(ps)); } catch {}
 }
+
+
 
 type ThemeMode = "system" | "light" | "dark";
 
@@ -148,19 +153,16 @@ export function SagentShell() {
   const [chatResponseLoading, setChatResponseLoading] = useState(false);
   const [messages, setMessages] = useState<{role: "user" | "assistant"; content: string}[]>([]);
   const [toolCalls, setToolCalls] = useState<{name: string; status: "running" | "done"}[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
-  const [ctxMenu, setCtxMenu] = useState<{x: number; y: number; convId: string} | null>(null);
-  const [editingConvId, setEditingConvId] = useState<string | null>(null);
-  const [editLabel, setEditLabel] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [projects, setProjects] = useState<Project[]>(loadProjects);
-  const [ctxMenuProject, setCtxMenuProject] = useState<{x: number; y: number; projectId: string} | null>(null);
+
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [sidebarHydrated, setSidebarHydrated] = useState(false);
+
   const [showSettings, setShowSettings] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>("system");
-  const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
-  const [showProjects, setShowProjects] = useState(true);
+
   const [testProfiles, setTestProfiles] = useState<TestProfile[]>([]);
   const [selectedTestProfileId, setSelectedTestProfileId] = useState("");
   const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -199,9 +201,18 @@ export function SagentShell() {
   const [modelJobResult, setModelJobResult] = useState<{job_id: string; state: string; created_at: string; completed_at: string | null; result: {content: string; input_tokens: number; output_tokens: number} | null; error: string | null} | null>(null);
   const modelJobPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Save conversations & projects to localStorage
-  useEffect(() => { saveConversations(conversations); }, [conversations]);
-  useEffect(() => { saveProjects(projects); }, [projects]);
+  useEffect(() => {
+    const savedConversations = loadConversations();
+    const savedProjects = loadProjects();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration from localStorage
+    setConversations(savedConversations);
+    setProjects(savedProjects.length > 0 ? savedProjects : [DEFAULT_PROJECT]);
+    setSidebarHydrated(true);
+  }, []);
+
+  // Save conversations & projects only after client-side hydration.
+  useEffect(() => { if (sidebarHydrated) saveConversations(conversations); }, [conversations, sidebarHydrated]);
+  useEffect(() => { if (sidebarHydrated) saveProjects(projects); }, [projects, sidebarHydrated]);
   useEffect(() => { document.documentElement.setAttribute("data-theme", theme); }, [theme]);
 
   function saveCurrentConversation(msgs: {role: "user" | "assistant"; content: string}[], firstMsg: string) {
@@ -233,25 +244,6 @@ export function SagentShell() {
     setMessages(conv.messages);
     setChatResponse(null); setChatResponseLoading(false); setSubmittedTask(""); setResult(null); setError("");
     setSidebarOpen(false);
-  }
-
-  function createProject(name: string) {
-    const n = name.trim();
-    if (!n) return;
-    setProjects(prev => [...prev, { id: generateId(), name: n, createdAt: Date.now() }]);
-  }
-
-  function deleteProject(id: string) {
-    setProjects(prev => prev.filter(p => p.id !== id));
-    setConversations(prev => prev.map(c => c.projectId === id ? {...c, projectId: null} : c));
-  }
-
-  function renameProject(id: string, name: string) {
-    setProjects(prev => prev.map(p => p.id === id ? {...p, name: name.trim() || p.name} : p));
-  }
-
-  function assignChatToProject(convId: string, projectId: string | null) {
-    setConversations(prev => prev.map(c => c.id === convId ? {...c, projectId} : c));
   }
 
   const [memoryInput, setMemoryInput] = useState("");
@@ -671,203 +663,42 @@ export function SagentShell() {
           onClick={() => setSidebarOpen(false)}
         />
       ) : null}
-      <aside className={`sidebar${sidebarOpen ? " mobile-open" : ""}`} aria-label="Konversationen">
-        <div className="sidebar-nav">
-          <button type="button" className="sidebar-nav-btn" onClick={startNewConversation} title="Neuer Chat">
-            <Plus weight="bold" />
-          </button>
-          <button type="button" className="sidebar-nav-btn" onClick={() => setSearchQuery("")} title="Suche">
-            <MagnifyingGlass weight="bold" />
-          </button>
-          <button type="button" className="sidebar-nav-btn" title="Geplant">
-            <List weight="bold" />
-          </button>
-          <button type="button" className="sidebar-nav-btn" title="Plugins">
-            <Wrench weight="bold" />
-          </button>
-        </div>
-
-        <div className="sidebar-search">
-          <MagnifyingGlass className="sidebar-search-icon" weight="regular" aria-hidden="true" />
-          <input type="search" className="sidebar-search-input" placeholder="Chats durchsuchen …"
-            value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-        </div>
-
-        <div className="sidebar-conversations">
-          {projects.length > 0 && (
-            <div className="sidebar-projects-toggle">
-              <button type="button" className="sidebar-projects-toggle-btn" onClick={() => setShowProjects(p => !p)}>
-                <span className={`sidebar-toggle-arrow${showProjects ? " open" : ""}`}>&#9662;</span>
-                Projekte
-              </button>
-              <button type="button" className="sidebar-projects-add" onClick={() => {
-                const name = prompt("Projektname:");
-                if (name) createProject(name);
-              }} title="Projekt erstellen"><Plus weight="bold" /></button>
-            </div>
-          )}
-          {showProjects && projects.map(project => {
-            const projectConvs = conversations.filter(c => c.projectId === project.id && (!searchQuery || c.label.toLowerCase().includes(searchQuery.toLowerCase())));
-            if (projectConvs.length === 0 && !searchQuery) {
-              return (
-                <div key={project.id} className="project-item"
-                  onContextMenu={e => { e.preventDefault(); setCtxMenuProject({x: e.clientX, y: e.clientY, projectId: project.id}); }}>
-                  <span className="sidebar-toggle-arrow">&#9662;</span>
-                  <span className="project-name">{project.name}</span>
-                </div>
-              );
-            }
-            if (projectConvs.length === 0) return null;
-            const isCollapsed = collapsedProjects.has(project.id);
-            return (
-              <div key={project.id} className="project-section">
-                <button type="button" className="project-toggle"
-                  onClick={() => setCollapsedProjects(prev => { const n = new Set(prev); if (n.has(project.id)) n.delete(project.id); else n.add(project.id); return n; })}
-                  onContextMenu={e => { e.preventDefault(); setCtxMenuProject({x: e.clientX, y: e.clientY, projectId: project.id}); }}>
-                  <span className={`sidebar-toggle-arrow${isCollapsed ? "" : " open"}`}>&#9662;</span>
-                  <span className="project-folder-icon">📁</span>
-                  <span className="project-name">{project.name}</span>
-                </button>
-                {!isCollapsed && projectConvs.map(c => (
-                  <div key={c.id} className="conversation-item-wrap"
-                    onContextMenu={e => { e.preventDefault(); setCtxMenu({x: e.clientX, y: e.clientY, convId: c.id}); }}>
-                    {editingConvId === c.id ? (
-                      <form onSubmit={ev => { ev.preventDefault(); if (editLabel.trim()) {
-                        setConversations(prev => prev.map(cc => cc.id === c.id ? {...cc, label: editLabel.trim()} : cc));
-                        setEditingConvId(null);
-                      }}} className="conv-rename-form">
-                        <input type="text" className="conv-rename-input" value={editLabel}
-                          onChange={e => setEditLabel(e.target.value)} autoFocus
-                          onBlur={() => setEditingConvId(null)}
-                          onKeyDown={e => e.key === "Escape" && setEditingConvId(null)} />
-                      </form>
-                    ) : (
-                      <div className="conversation-item-row">
-                        <button type="button" className={`conversation-item${c.id === activeConvId ? " active" : ""}`}
-                          onClick={() => switchConversation(c.id)}>
-                          <span className="conv-label">{c.label}</span>
-                        </button>
-                        <button type="button" className="conv-burger" onClick={e => { e.stopPropagation(); setCtxMenu({x: e.currentTarget.getBoundingClientRect().right - 160, y: e.currentTarget.getBoundingClientRect().bottom, convId: c.id}); }}>
-                          <DotsThreeVertical weight="bold" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-          {[...conversations]
-            .filter(c => !c.projectId && (!searchQuery || c.label.toLowerCase().includes(searchQuery.toLowerCase())))
-            .sort((a, b) => b.updatedAt - a.updatedAt)
-            .map(c => (
-              <div key={c.id} className="conversation-item-wrap"
-                onContextMenu={e => { e.preventDefault(); setCtxMenu({x: e.clientX, y: e.clientY, convId: c.id}); }}>
-                {editingConvId === c.id ? (
-                  <form onSubmit={ev => { ev.preventDefault(); if (editLabel.trim()) {
-                    setConversations(prev => prev.map(cc => cc.id === c.id ? {...cc, label: editLabel.trim()} : cc));
-                    setEditingConvId(null);
-                  }}} className="conv-rename-form">
-                    <input type="text" className="conv-rename-input" value={editLabel}
-                      onChange={e => setEditLabel(e.target.value)} autoFocus
-                      onBlur={() => setEditingConvId(null)}
-                      onKeyDown={e => e.key === "Escape" && setEditingConvId(null)} />
-                  </form>
-                ) : (
-                  <div className="conversation-item-row">
-                    <button type="button" className={`conversation-item${c.id === activeConvId ? " active" : ""}`}
-                      onClick={() => switchConversation(c.id)}>
-                      {c.pinned && <span className="conv-pin-icon" title="Angeheftet">📌</span>}
-                      <span className="conv-label">{c.label}</span>
-                    </button>
-                    <button type="button" className="conv-burger" onClick={e => { e.stopPropagation(); setCtxMenu({x: e.currentTarget.getBoundingClientRect().right - 160, y: e.currentTarget.getBoundingClientRect().bottom, convId: c.id}); }}>
-                      <DotsThreeVertical weight="bold" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          {conversations.filter(c => !searchQuery || c.label.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
-            <div className="sidebar-empty">{searchQuery ? "Keine Treffer" : "Noch keine Konversationen"}</div>
-          )}
-        </div>
-
-        {/* Project Context Menu */}
-        {ctxMenuProject && (
-          <>
-            <div className="ctx-menu-overlay" onClick={() => setCtxMenuProject(null)} />
-            <div className="ctx-menu" style={{left: ctxMenuProject.x, top: ctxMenuProject.y}}>
-              <button type="button" className="ctx-menu-item" onClick={() => {
-                const name = prompt("Projekt umbenennen in:", projects.find(p => p.id === ctxMenuProject.projectId)?.name);
-                if (name) renameProject(ctxMenuProject.projectId, name);
-                setCtxMenuProject(null);
-              }}><Pencil weight="regular" /> Umbenennen</button>
-              <button type="button" className="ctx-menu-item danger" onClick={() => {
-                deleteProject(ctxMenuProject.projectId);
-                setCtxMenuProject(null);
-              }}><Trash weight="regular" /> Löschen</button>
-            </div>
-          </>
-        )}
-
-        {/* Conversation Context Menu */}
-        {ctxMenu && (
-          <>
-            <div className="ctx-menu-overlay" onClick={() => setCtxMenu(null)} />
-            <div className="ctx-menu" style={{left: ctxMenu.x, top: ctxMenu.y}}>
-              {(() => {
-                const conv = conversations.find(c => c.id === ctxMenu.convId);
-                if (!conv) return null;
-                const isPinned = conv.pinned;
-                return (
-                  <>
-                    <button type="button" className="ctx-menu-item" onClick={() => {
-                      setConversations(prev => prev.map(c => c.id === ctxMenu.convId ? {...c, pinned: !c.pinned} : c));
-                      setCtxMenu(null);
-                    }}>{isPinned ? "📌" : "📌"} {isPinned ? "Loslösen" : "Anheften"}</button>
-                    <button type="button" className="ctx-menu-item" onClick={() => {
-                      setEditLabel(conv.label); setEditingConvId(conv.id);
-                      setCtxMenu(null);
-                    }}><Pencil weight="regular" /> Umbenennen</button>
-                    {conv.projectId ? (
-                      <button type="button" className="ctx-menu-item" onClick={() => {
-                        assignChatToProject(ctxMenu.convId, null);
-                        setCtxMenu(null);
-                      }}><Folder weight="regular" /> Aus Projekt entfernen</button>
-                    ) : projects.length > 0 && (
-                      <>
-                        {projects.map(p => (
-                          <button key={p.id} type="button" className="ctx-menu-item" onClick={() => {
-                            assignChatToProject(ctxMenu.convId, p.id);
-                            setCtxMenu(null);
-                          }}><Folder weight="regular" /> In Projekt »{p.name}«</button>
-                        ))}
-                      </>
-                    )}
-                    <div className="ctx-menu-divider" />
-                    <button type="button" className="ctx-menu-item danger" onClick={() => {
-                      setConversations(prev => prev.filter(c => c.id !== ctxMenu.convId));
-                      if (activeConvId === ctxMenu.convId) startNewConversation();
-                      setCtxMenu(null);
-                    }}><Trash weight="regular" /> Löschen</button>
-                  </>
-                );
-              })()}
-            </div>
-          </>
-        )}
-
-        <div className="sidebar-user">
-          <div className="sidebar-user-avatar">S</div>
-          <div className="sidebar-user-info">
-            <span className="sidebar-user-name">Santi</span>
-            <span className="sidebar-user-role">Pilot</span>
-          </div>
-          <button type="button" className="sidebar-user-settings" onClick={() => setShowSettings(true)} title="Einstellungen">
-            <Gear weight="regular" />
-          </button>
-        </div>
-      </aside>
+      <LeftSidebar
+        className={sidebarOpen ? "mobile-open" : ""}
+        conversations={conversations}
+        projects={projects}
+        activeConvId={activeConvId}
+        onSelectConversation={switchConversation}
+        onNewChat={startNewConversation}
+        onDeleteConversation={(id) => {
+          setConversations((prev) => prev.filter((c) => c.id !== id));
+          if (activeConvId === id) startNewConversation();
+        }}
+        onRenameConversation={(id, label) => {
+          setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, label } : c)));
+        }}
+        onTogglePinConversation={(id) => {
+          setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, pinned: !c.pinned } : c)));
+        }}
+        onAssignConversationToProject={(convId, projectId) => {
+          setConversations((prev) => prev.map((c) => (c.id === convId ? { ...c, projectId } : c)));
+        }}
+        onCreateProject={(name) => {
+          setProjects((prev) => [...prev, { id: generateId(), name, createdAt: Date.now() }]);
+        }}
+        onDeleteProject={(id) => {
+          setProjects((prev) => prev.filter((p) => p.id !== id));
+          setConversations((prev) => prev.map((c) => (c.projectId === id ? { ...c, projectId: null } : c)));
+        }}
+        onRenameProject={(id, name) => {
+          setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, name: name.trim() || p.name } : p)));
+        }}
+        onOpenSettings={() => setShowSettings(true)}
+        onOpenPlugins={() => setShowFeaturePanel((panel) => (panel === "policy" ? null : "policy"))}
+        onOpenPlanned={() => {}}
+        onOpenSearch={() => {}}
+        account={{ name: "Santi", plan: "Pilot" }}
+      />
 
       {/* ── Main Wrap (Area + Tool Panel) ── */}
       <div className="main-wrap">
