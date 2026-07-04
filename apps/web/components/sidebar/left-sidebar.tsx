@@ -109,7 +109,7 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
 
   return (
     <aside
-      className={`sidebar sidebar--dark${collapsed ? " sidebar--collapsed" : ""}${className ? ` ${className}` : ""}`}
+      className={`sidebar${collapsed ? " sidebar--collapsed" : ""}${className ? ` ${className}` : ""}`}
       aria-label="App-Navigation"
     >
       <SidebarTop
@@ -201,7 +201,6 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
       {!collapsed && (
         <AccountFooter
           account={account}
-          onOpenSettings={onOpenSettings}
           onSelectMenuItem={(id) => {
             if (id === "settings") onOpenSettings();
           }}

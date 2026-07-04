@@ -1,16 +1,15 @@
 "use client";
 
-import { Gear, UserCircle, SignOut, GearSix } from "@phosphor-icons/react";
+import { UserCircle, SignOut, DotsThreeVertical } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import type { SidebarAccount, SidebarAccountMenuItem } from "./types";
 
 export type AccountFooterProps = {
   account: SidebarAccount;
-  onOpenSettings: () => void;
   onSelectMenuItem?: (id: string) => void;
 };
 
-export function AccountFooter({ account, onOpenSettings, onSelectMenuItem }: AccountFooterProps) {
+export function AccountFooter({ account, onSelectMenuItem }: AccountFooterProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -42,21 +41,12 @@ export function AccountFooter({ account, onOpenSettings, onSelectMenuItem }: Acc
       <button
         type="button"
         className="sidebar-user-settings"
-        aria-label="Einstellungen"
-        title="Einstellungen"
-        onClick={onOpenSettings}
-      >
-        <Gear weight="regular" aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        className="sidebar-user-settings"
         aria-label="Account-Menü"
         title="Account-Menü"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <GearSix weight="regular" aria-hidden="true" />
+        <DotsThreeVertical weight="bold" aria-hidden="true" />
       </button>
       {open && (
         <div className="ctx-menu sidebar-account-menu" role="menu">
