@@ -948,9 +948,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 /* ── Sidebar resize handle ── */
 .sidebar-resize-handle {
-  position: fixed;
+  position: absolute;
   top: 0;
   bottom: 0;
+  right: -5px;
   width: 10px;
   cursor: ew-resize;
   z-index: 9999;

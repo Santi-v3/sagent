@@ -319,7 +319,7 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
         </div>
       )}
 
-      {!collapsed && <div className={`sidebar-resize-handle${isResizing ? " active" : ""}`} style={{ left: sidebarWidth - 5 }} onMouseDown={handleResizeStart} />}
+      {!collapsed && <div className={`sidebar-resize-handle${isResizing ? " active" : ""}`} onMouseDown={handleResizeStart} />}
     </aside>
   );
 }
