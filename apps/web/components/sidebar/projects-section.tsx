@@ -10,7 +10,6 @@ export type ProjectsSectionProps = {
   conversations: SidebarConversation[];
   activeConvId: string | null;
   collapsedProjectIds: Set<string>;
-  searchQuery: string;
   onCreateProject: (name: string) => void;
   onToggleCollapsed: (id: string) => void;
   onSelectConversation: (id: string) => void;
@@ -24,7 +23,7 @@ export type ProjectsSectionProps = {
 
 export function ProjectsSection(props: ProjectsSectionProps) {
   const {
-    projects, conversations, activeConvId, collapsedProjectIds, searchQuery,
+    projects, conversations, activeConvId, collapsedProjectIds,
     onCreateProject, onToggleCollapsed,
     onSelectConversation, onConversationContextMenu, onRequestConversationContextMenu,
     onProjectContextMenu, onRequestProjectContextMenu, onRenameProjectRequest,
@@ -43,7 +42,7 @@ export function ProjectsSection(props: ProjectsSectionProps) {
     setCreateOpen(false);
   }
 
-  if (projects.length === 0 && !searchQuery) {
+  if (projects.length === 0) {
     return (
       <section className="sidebar-section sidebar-project-section" aria-label="Projekte">
         <div className="sidebar-section-heading">
@@ -115,7 +114,6 @@ export function ProjectsSection(props: ProjectsSectionProps) {
       {projects.map((project) => {
         const projectConvs = conversations.filter(
           (c) => c.projectId === project.id
-            && (!searchQuery || c.label.toLowerCase().includes(searchQuery.toLowerCase()))
         );
         const isCollapsed = collapsedProjectIds.has(project.id);
         const hasAnyConv = conversations.some((c) => c.projectId === project.id);

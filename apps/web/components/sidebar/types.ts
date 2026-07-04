@@ -39,8 +39,6 @@ export type LeftSidebarProps = {
   onDeleteProject: (id: string) => void;
   onRenameProject: (id: string, name: string) => void;
   onOpenSettings: () => void;
-  onOpenPlugins: () => void;
-  onOpenPlanned: () => void;
   onOpenSearch: () => void;
   onSelectProject?: (id: string) => void;
   account: SidebarAccount;

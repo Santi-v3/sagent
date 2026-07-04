@@ -6,7 +6,6 @@ import type { SidebarConversation } from "./types";
 export type ChatsSectionProps = {
   conversations: SidebarConversation[];
   activeConvId: string | null;
-  searchQuery: string;
   onSelectConversation: (id: string) => void;
   onConversationContextMenu: (e: React.MouseEvent, convId: string) => void;
   onRequestConversationContextMenu: (rect: DOMRect, convId: string) => void;
@@ -14,13 +13,12 @@ export type ChatsSectionProps = {
 };
 
 export function ChatsSection({
-  conversations, activeConvId, searchQuery,
+  conversations, activeConvId,
   onSelectConversation, onConversationContextMenu,
   onRequestConversationContextMenu, onRenameConversationSubmit,
 }: ChatsSectionProps) {
   const filtered = conversations
     .filter((c) => !c.projectId)
-    .filter((c) => !searchQuery || c.label.toLowerCase().includes(searchQuery.toLowerCase()))
     .sort((a, b) => b.updatedAt - a.updatedAt);
 
   return (
@@ -40,7 +38,7 @@ export function ChatsSection({
         />
       ))}
       {filtered.length === 0 && (
-        <div className="sidebar-empty">{searchQuery ? "Keine Treffer" : "Keine Chats"}</div>
+        <div className="sidebar-empty">Keine Chats</div>
       )}
     </section>
   );

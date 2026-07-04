@@ -129,10 +129,9 @@ export function ConversationContextMenu({
 export type ProjectContextMenuProps = {
   position: { x: number; y: number } | null;
   project: SidebarProject | null;
-  convCount: number;
   onClose: () => void;
   onRenameProject: (id: string) => void;
-  onRequestDelete: (project: SidebarProject, convCount: number) => void;
+  onRequestDelete: (project: SidebarProject) => void;
 };
 
 export function ProjectContextMenu({
@@ -201,7 +200,7 @@ export function ProjectContextMenu({
           type="button"
           className="ctx-menu-item danger"
           role="menuitem"
-          onClick={() => { onRequestDelete(project, 0); onClose(); }}
+          onClick={() => { onRequestDelete(project); onClose(); }}
         >
           <Trash weight="regular" aria-hidden="true" />
           Löschen

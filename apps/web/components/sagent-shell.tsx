@@ -694,8 +694,6 @@ export function SagentShell() {
           setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, name: name.trim() || p.name } : p)));
         }}
         onOpenSettings={() => setShowSettings(true)}
-        onOpenPlugins={() => setShowFeaturePanel((panel) => (panel === "policy" ? null : "policy"))}
-        onOpenPlanned={() => {}}
         onOpenSearch={() => {}}
         account={{ name: "Santi", plan: "Pilot" }}
       />

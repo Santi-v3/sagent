@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SidebarTop } from "./sidebar-top";
 import { PrimaryNav } from "./primary-nav";
 import { ProjectsSection } from "./projects-section";
@@ -19,8 +19,6 @@ import {
   persistSidebarWidth,
 } from "./utils";
 import type { LeftSidebarProps, SidebarConversation, SidebarProject } from "./types";
-
-type View = "chats" | "planned" | "plugins";
 
 type ConvContextState = { position: { x: number; y: number } | null; convId: string | null };
 type ProjectContextState = { position: { x: number; y: number } | null; projectId: string | null };
@@ -53,7 +51,6 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
   const [isResizing, setIsResizing] = useState(false);
   const [collapsedProjectIds, setCollapsedProjectIds] = useState<Set<string>>(new Set());
   const [searchModalOpen, setSearchModalOpen] = useState(false);
-  const [view, setView] = useState<View>("chats");
   const [convCtx, setConvCtx] = useState<ConvContextState>({ position: null, convId: null });
   const [projectCtx, setProjectCtx] = useState<ProjectContextState>({ position: null, projectId: null });
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
@@ -71,8 +68,6 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
 
   useEffect(() => { if (hydrated) persistCollapsed(collapsed); }, [collapsed, hydrated]);
   useEffect(() => { if (hydrated) persistSidebarWidth(sidebarWidth); }, [sidebarWidth, hydrated]);
-
-  const filteredConversations = useMemo(() => conversations, [conversations]);
 
   const MIN_SIDEBAR = 200;
   const MAX_SIDEBAR = 280;
@@ -130,7 +125,6 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
 
   const convForCtx = convCtx.convId ? conversations.find((c) => c.id === convCtx.convId) ?? null : null;
   const projectForCtx = projectCtx.projectId ? projects.find((p) => p.id === projectCtx.projectId) ?? null : null;
-  const convCountForProject = (id: string) => conversations.filter((c) => c.projectId === id).length;
 
   return (
     <aside
@@ -147,67 +141,52 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
       <PrimaryNav
         collapsed={collapsed}
         onNewChat={onNewChat}
-        onOpenSearch={() => {
-          if (view !== "chats") setView("chats");
-          setSearchModalOpen(true);
-          onOpenSearch();
-        }}
-        activeView={view}
+        onOpenSearch={() => { setSearchModalOpen(true); onOpenSearch(); }}
       />
 
       {!collapsed && (
         <div className="sidebar-conversations">
-          {view === "planned" ? (
-            <div className="sidebar-view-empty">Noch nichts geplant</div>
-          ) : view === "plugins" ? (
-            <div className="sidebar-view-empty">Keine Plugins installiert</div>
-          ) : (
-            <>
-              <ProjectsSection
-                projects={projects}
-                conversations={filteredConversations}
-                activeConvId={activeConvId}
-                collapsedProjectIds={collapsedProjectIds}
-                searchQuery=""
-                onCreateProject={onCreateProject}
-                onToggleCollapsed={toggleProjectCollapsed}
-                onSelectConversation={onSelectConversation}
-                onConversationContextMenu={(e, id) => {
-                  e.preventDefault();
-                  setConvCtx({ position: { x: e.clientX, y: e.clientY }, convId: id });
-                }}
-                onRequestConversationContextMenu={(rect, id) => {
-                  setConvCtx({ position: { x: rect.right - 180, y: rect.bottom + 4 }, convId: id });
-                }}
-                onProjectContextMenu={(e, id) => {
-                  e.preventDefault();
-                  setProjectCtx({ position: { x: e.clientX, y: e.clientY }, projectId: id });
-                }}
-                onRequestProjectContextMenu={(rect, id) => {
-                  setProjectCtx({ position: { x: rect.right - 180, y: rect.bottom + 4 }, projectId: id });
-                }}
-                onRenameProjectRequest={(id) => {
-                  const p = projects.find((x) => x.id === id);
-                  if (p) startRenameProject(p);
-                }}
-                onRenameConversationSubmit={(id, label) => onRenameConversation(id, label)}
-              />
-              <ChatsSection
-                conversations={filteredConversations}
-                activeConvId={activeConvId}
-                searchQuery=""
-                onSelectConversation={onSelectConversation}
-                onConversationContextMenu={(e, id) => {
-                  e.preventDefault();
-                  setConvCtx({ position: { x: e.clientX, y: e.clientY }, convId: id });
-                }}
-                onRequestConversationContextMenu={(rect, id) => {
-                  setConvCtx({ position: { x: rect.right - 180, y: rect.bottom + 4 }, convId: id });
-                }}
-                onRenameConversationSubmit={(id, label) => onRenameConversation(id, label)}
-              />
-            </>
-          )}
+          <ProjectsSection
+            projects={projects}
+            conversations={conversations}
+            activeConvId={activeConvId}
+            collapsedProjectIds={collapsedProjectIds}
+            onCreateProject={onCreateProject}
+            onToggleCollapsed={toggleProjectCollapsed}
+            onSelectConversation={onSelectConversation}
+            onConversationContextMenu={(e, id) => {
+              e.preventDefault();
+              setConvCtx({ position: { x: e.clientX, y: e.clientY }, convId: id });
+            }}
+            onRequestConversationContextMenu={(rect, id) => {
+              setConvCtx({ position: { x: rect.right - 180, y: rect.bottom + 4 }, convId: id });
+            }}
+            onProjectContextMenu={(e, id) => {
+              e.preventDefault();
+              setProjectCtx({ position: { x: e.clientX, y: e.clientY }, projectId: id });
+            }}
+            onRequestProjectContextMenu={(rect, id) => {
+              setProjectCtx({ position: { x: rect.right - 180, y: rect.bottom + 4 }, projectId: id });
+            }}
+            onRenameProjectRequest={(id) => {
+              const p = projects.find((x) => x.id === id);
+              if (p) startRenameProject(p);
+            }}
+            onRenameConversationSubmit={(id, label) => onRenameConversation(id, label)}
+          />
+          <ChatsSection
+            conversations={conversations}
+            activeConvId={activeConvId}
+            onSelectConversation={onSelectConversation}
+            onConversationContextMenu={(e, id) => {
+              e.preventDefault();
+              setConvCtx({ position: { x: e.clientX, y: e.clientY }, convId: id });
+            }}
+            onRequestConversationContextMenu={(rect, id) => {
+              setConvCtx({ position: { x: rect.right - 180, y: rect.bottom + 4 }, convId: id });
+            }}
+            onRenameConversationSubmit={(id, label) => onRenameConversation(id, label)}
+          />
         </div>
       )}
 
@@ -244,13 +223,12 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
       <ProjectContextMenu
         position={projectCtx.position}
         project={projectForCtx}
-        convCount={projectForCtx ? convCountForProject(projectForCtx.id) : 0}
         onClose={() => setProjectCtx({ position: null, projectId: null })}
         onRenameProject={(id) => {
           const p = projects.find((x) => x.id === id);
           if (p) startRenameProject(p);
         }}
-        onRequestDelete={(project, count) => setPendingDelete({ kind: "project", project, convCount: count })}
+        onRequestDelete={(project) => setPendingDelete({ kind: "project", project, convCount: 0 })}
       />
 
       <SearchModal

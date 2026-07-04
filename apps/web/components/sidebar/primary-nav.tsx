@@ -6,7 +6,6 @@ export type PrimaryNavProps = {
   collapsed: boolean;
   onNewChat: () => void;
   onOpenSearch: () => void;
-  activeView: "chats" | "planned" | "plugins";
 };
 
 type NavEntry = {
@@ -14,15 +13,14 @@ type NavEntry = {
   label: string;
   icon: typeof NotePencil;
   onClick: () => void;
-  active: boolean;
 };
 
-export function PrimaryNav({ collapsed, onNewChat, onOpenSearch, activeView }: PrimaryNavProps) {
+export function PrimaryNav({ collapsed, onNewChat, onOpenSearch }: PrimaryNavProps) {
   const entries: NavEntry[] = [
-    { id: "new-chat", label: "Neuer Chat", icon: NotePencil, onClick: onNewChat, active: false },
-    { id: "search", label: "Suche", icon: MagnifyingGlass, onClick: onOpenSearch, active: false },
-    { id: "planned", label: "Geplant", icon: ClockCounterClockwise, onClick: () => {}, active: activeView === "planned" },
-    { id: "plugins", label: "Plugins", icon: PuzzlePiece, onClick: () => {}, active: activeView === "plugins" },
+    { id: "new-chat", label: "Neuer Chat", icon: NotePencil, onClick: onNewChat },
+    { id: "search", label: "Suche", icon: MagnifyingGlass, onClick: onOpenSearch },
+    { id: "planned", label: "Geplant", icon: ClockCounterClockwise, onClick: () => {} },
+    { id: "plugins", label: "Plugins", icon: PuzzlePiece, onClick: () => {} },
   ];
 
   return (
@@ -33,7 +31,7 @@ export function PrimaryNav({ collapsed, onNewChat, onOpenSearch, activeView }: P
           <button
             key={entry.id}
             type="button"
-            className={`sidebar-action${entry.active ? " active" : ""}${collapsed ? " sidebar-action--collapsed" : ""}`}
+            className="sidebar-action"
             onClick={entry.onClick}
             aria-label={collapsed ? entry.label : undefined}
             title={collapsed ? entry.label : undefined}
