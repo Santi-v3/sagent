@@ -15,6 +15,8 @@ import { CapabilityPolicyPreview } from "@/components/capability-policy-preview"
 import { CloudApprovalPreview } from "@/components/cloud-approval-preview";
 import { CodeEditPreviewPanel } from "@/components/code-edit-preview-panel";
 import { LeftSidebar } from "@/components/sidebar/left-sidebar";
+import { api } from "@/lib/api-client";
+import type { SidebarConversation } from "@/lib/api-client";
 
 type ApprovalState = "pending" | "approved" | "rejected" | "needs_changes";
 type ApprovalDecision = Exclude<ApprovalState, "pending">;
@@ -42,34 +44,9 @@ const safetyLevels: { id: SafetyLevel; label: string; desc: string }[] = [
   { id: "fullaccess", label: "Vollzugriff", desc: "Keine Nachfragen, voller Zugriff" },
 ];
 
-type Conversation = { id: string; label: string; messages: {role: "user" | "assistant"; content: string}[]; updatedAt: number; pinned?: boolean; projectId?: string | null };
 type Project = { id: string; name: string; createdAt: number };
 
-const DEFAULT_PROJECT: Project = { id: "workspace-sagent-pr26", name: "sagent-pr26", createdAt: 0 };
-
-function generateId(): string { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
-
-function loadConversations(): Conversation[] {
-  try {
-    const raw = localStorage.getItem("sagent-conversations");
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
-
-function saveConversations(convs: Conversation[]) {
-  try { localStorage.setItem("sagent-conversations", JSON.stringify(convs)); } catch {}
-}
-
-function loadProjects(): Project[] {
-  try {
-    const raw = localStorage.getItem("sagent-projects");
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
-
-function saveProjects(ps: Project[]) {
-  try { localStorage.setItem("sagent-projects", JSON.stringify(ps)); } catch {}
-}
+type Conversation = SidebarConversation;
 
 
 
@@ -157,7 +134,7 @@ export function SagentShell() {
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
 
   const [projects, setProjects] = useState<Project[]>([]);
-  const [sidebarHydrated, setSidebarHydrated] = useState(false);
+  const [accountData, setAccountData] = useState<{ name: string; plan: string }>({ name: "User", plan: "Pilot" });
 
   const [showSettings, setShowSettings] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -202,32 +179,40 @@ export function SagentShell() {
   const modelJobPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    const savedConversations = loadConversations();
-    const savedProjects = loadProjects();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration from localStorage
-    setConversations(savedConversations);
-    setProjects(savedProjects.length > 0 ? savedProjects : [DEFAULT_PROJECT]);
-    setSidebarHydrated(true);
+    api.getSidebarData().then((data) => {
+      setConversations(data.conversations);
+      setProjects(data.projects);
+      setAccountData(data.account);
+    }).catch(() => {
+      // API unreachable — start with empty data
+    });
   }, []);
 
-  // Save conversations & projects only after client-side hydration.
-  useEffect(() => { if (sidebarHydrated) saveConversations(conversations); }, [conversations, sidebarHydrated]);
-  useEffect(() => { if (sidebarHydrated) saveProjects(projects); }, [projects, sidebarHydrated]);
   useEffect(() => { document.documentElement.setAttribute("data-theme", theme); }, [theme]);
 
-  function saveCurrentConversation(msgs: {role: "user" | "assistant"; content: string}[], firstMsg: string) {
-    setConversations(prev => {
-      if (activeConvId) {
-        const existing = prev.find(c => c.id === activeConvId);
-        if (existing) {
-          const label = existing.label === "Neue Konversation" ? firstMsg.slice(0, 40) : existing.label;
-          return prev.map(c => c.id === activeConvId ? {...c, label, messages: msgs, updatedAt: Date.now()} : c);
-        }
+  async function saveCurrentConversation(msgs: {role: "user" | "assistant"; content: string}[], firstMsg: string) {
+    if (activeConvId) {
+      const existing = conversations.find(c => c.id === activeConvId);
+      if (existing) {
+        const label = existing.label === "Neue Konversation" ? firstMsg.slice(0, 40) : existing.label;
+        api.updateConversation(activeConvId, { label, messages: msgs }).catch(() => {});
+        setConversations(prev => prev.map(c => c.id === activeConvId ? {...c, label, messages: msgs, updatedAt: Date.now()} : c));
+        return;
       }
-      const id = generateId();
-      setTimeout(() => setActiveConvId(id), 0);
-      return [...prev, { id, label: firstMsg.slice(0, 40), messages: msgs, updatedAt: Date.now(), pinned: false, projectId: null }];
-    });
+    }
+    try {
+      const conv = await api.createConversation({
+        label: firstMsg.slice(0, 40),
+        messages: msgs.map(m => ({ role: m.role, content: m.content })),
+      });
+      setActiveConvId(conv.id);
+      setConversations(prev => [conv, ...prev]);
+    } catch {
+      const localId = Date.now().toString(36);
+      const conv: Conversation = { id: localId, label: firstMsg.slice(0, 40), messages: msgs, updatedAt: Date.now(), pinned: false, projectId: null };
+      setActiveConvId(localId);
+      setConversations(prev => [conv, ...prev]);
+    }
   }
 
   function startNewConversation() {
@@ -673,29 +658,42 @@ export function SagentShell() {
         onDeleteConversation={(id) => {
           setConversations((prev) => prev.filter((c) => c.id !== id));
           if (activeConvId === id) startNewConversation();
+          api.deleteConversation(id).catch(() => {});
         }}
         onRenameConversation={(id, label) => {
           setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, label } : c)));
+          api.updateConversation(id, { label }).catch(() => {});
         }}
         onTogglePinConversation={(id) => {
           setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, pinned: !c.pinned } : c)));
+          const conv = conversations.find(c => c.id === id);
+          if (conv) api.updateConversation(id, { pinned: !conv.pinned }).catch(() => {});
         }}
         onAssignConversationToProject={(convId, projectId) => {
           setConversations((prev) => prev.map((c) => (c.id === convId ? { ...c, projectId } : c)));
+          api.updateConversation(convId, { projectId }).catch(() => {});
         }}
-        onCreateProject={(name) => {
-          setProjects((prev) => [...prev, { id: generateId(), name, createdAt: Date.now() }]);
+        onCreateProject={async (name) => {
+          try {
+            const p = await api.createProject(name);
+            setProjects((prev) => [...prev, p]);
+          } catch {
+            const localId = Date.now().toString(36);
+            setProjects((prev) => [...prev, { id: localId, name, createdAt: Date.now() }]);
+          }
         }}
         onDeleteProject={(id) => {
           setProjects((prev) => prev.filter((p) => p.id !== id));
           setConversations((prev) => prev.map((c) => (c.projectId === id ? { ...c, projectId: null } : c)));
+          api.deleteProject(id).catch(() => {});
         }}
         onRenameProject={(id, name) => {
           setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, name: name.trim() || p.name } : p)));
+          api.updateProject(id, { name: name.trim() }).catch(() => {});
         }}
         onOpenSettings={() => setShowSettings(true)}
         onOpenSearch={() => {}}
-        account={{ name: "Santi", plan: "Pilot" }}
+        account={accountData}
       />
 
       {/* ── Main Wrap (Area + Tool Panel) ── */}

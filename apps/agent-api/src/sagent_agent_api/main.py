@@ -59,6 +59,7 @@ from sagent_agent_api.models import (
     TestRunPreviewResponse,
     TestRunRequest,
 )
+from sagent_agent_api.sidebar_api import router as sidebar_router
 from sagent_agent_api.test_execution import get_test_runner
 from sagent_agent_api.test_runner import (
     RunnerExecutionError,
@@ -157,7 +158,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=False,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type"],
 )
 
@@ -1213,3 +1214,7 @@ def memory_delete(entry_id: str, memory: MemoryServiceDependency) -> dict[str, b
     if not memory.delete(entry_id):
         raise HTTPException(status_code=404, detail="Entry not found.")
     return {"deleted": True}
+
+
+# ── Sidebar router ──
+app.include_router(sidebar_router)

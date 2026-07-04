@@ -478,3 +478,85 @@ class TestRunExecuteResponse(BaseModel):
     network_used: Literal[False]
     cloud_used: Literal[False]
     model_called: Literal[False]
+
+
+# ── Sidebar (Conversations, Projects, Account) ──
+
+
+class SidebarMessage(BaseModel):
+    """One message in a conversation."""
+
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class SidebarConversationResponse(BaseModel):
+    """A conversation with its messages."""
+
+    id: str
+    label: str
+    messages: list[SidebarMessage] = []
+    updatedAt: float
+    pinned: bool = False
+    projectId: str | None = None
+
+
+class SidebarConversationCreate(BaseModel):
+    """Payload to create a conversation."""
+
+    label: str = ""
+    messages: list[SidebarMessage] = []
+    projectId: str | None = None
+
+
+class SidebarConversationUpdate(BaseModel):
+    """Fields that can be updated on a conversation."""
+
+    label: str | None = None
+    pinned: bool | None = None
+    projectId: str | None = None
+    messages: list[SidebarMessage] | None = None
+
+
+class SidebarProjectResponse(BaseModel):
+    """A project grouping conversations."""
+
+    id: str
+    name: str
+    createdAt: float
+
+
+class SidebarProjectCreate(BaseModel):
+    """Payload to create a project."""
+
+    name: str = Field(min_length=1, max_length=200)
+
+
+class SidebarProjectUpdate(BaseModel):
+    """Fields that can be updated on a project."""
+
+    name: str | None = None
+
+
+class SidebarAccountMenuItem(BaseModel):
+    """One menu item in the account footer."""
+
+    id: str
+    label: str
+    danger: bool = False
+
+
+class SidebarAccountResponse(BaseModel):
+    """Account info displayed in the sidebar footer."""
+
+    name: str
+    plan: str
+    menuItems: list[SidebarAccountMenuItem] = []
+
+
+class SidebarDataResponse(BaseModel):
+    """Aggregated sidebar state — one HTTP round-trip."""
+
+    conversations: list[SidebarConversationResponse]
+    projects: list[SidebarProjectResponse]
+    account: SidebarAccountResponse
