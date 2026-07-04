@@ -799,7 +799,18 @@ export function SagentShell() {
               ))
             )}
 
-            {chatResponseLoading && (
+            {chatResponse && (
+              <article className="message agent-message">
+                <p className="message-label">
+                  <span className="avatar agent">S</span>
+                  Sagent
+                  <span className="model-badge">offline</span>
+                </p>
+                <ChatMessageContent content={chatResponse} />
+              </article>
+            )}
+
+            {chatResponseLoading && !chatResponse && (
               <div className="loading-state" role="status">
                 <span className="pulse" />
                 <span className="pulse" style={{ animationDelay: "0.2s" }} />
