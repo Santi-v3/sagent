@@ -1,5 +1,7 @@
 # Ollama Live-Benchmark Runbook
 
+> **Runbook und Ergebnisprotokoll.** Der erste Lauf ist bereits dokumentiert. Jeder weitere Lauf benötigt erneut eine ausdrückliche Bestätigung.
+
 ## Status und Zweck
 
 Dieses Runbook bereitet den ersten kontrollierten Live-Benchmark von Sagent vor. Für

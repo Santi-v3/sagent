@@ -1,93 +1,71 @@
 # Architektur
 
-## Überblick
+> **Pflegebereich:** aktueller technischer Aufbau. Zukunftsplanung gehört in `ROADMAP.md`.
 
-Sagent wird als lokales Monorepo mit klaren Vertrauensgrenzen aufgebaut. UI und API koordinieren Sitzungen; der Agent-Core entscheidet über Zustände und Policies; Tools führen ausschließlich eng definierte Aktionen aus.
+## Systembild
 
 ```text
-Web UI (untrusted input)
-        |
-        v
-Agent API (session boundary)
-        |
-        v
-Agent Core (state machine + policy + approval)
-      /   \
-     v     v
-Memory   Tool Router
-          |
-          v
-Sandboxed workspace tools
+Next.js Web
+    |
+    v
+FastAPI Agent API
+    |---- Plan/Approval/Code-Edit/Test/Git Basispfad
+    |---- ModelRouter -> Fake oder fester Loopback-Adapter
+    |---- ModelJobService + Streaming
+    |---- MemoryService -> SQLite + Ollama Embeddings
+    `---- experimenteller Agent Loop -> ToolRegistry
 ```
 
 ## Komponenten
 
-### `apps/web`
+### Web
 
-Lokale Next.js-Oberfläche für Aufgaben, Pläne, Diffs, Prüfergebnisse und Approval-Dialoge. Seit MVP 1.E zeigt sie zusätzlich Branch, Worktree-Status und Git-Diff und kann einen policy-konformen lokalen Feature-Branch anfordern. Die UI darf Sicherheitsentscheidungen nicht allein erzwingen; die API validiert jede Aktion erneut.
+`apps/web` enthält Chat, Konversationssidebar, Plan-/Approval-Ansichten, Model- und Memory-Panel, Capability-/Cloud-Previews, Code-Edit, Tests, Git und Tool-Events. Die UI ist kein Policy-Enforcer; sicherheitsrelevante Entscheidungen müssen serverseitig validiert werden.
 
-### `apps/agent-api`
+### Agent API
 
-Lokale FastAPI. Sie verwaltet den derzeit flüchtigen Task-Workflow und transportiert typisierte Kommandos zu den eng begrenzten Tools. Sie bindet standardmäßig nur an `127.0.0.1` und besitzt keine eigenständige Tool-Logik.
+`apps/agent-api` bindet lokal an `127.0.0.1` und stellt die HTTP-/SSE-Schnittstelle bereit. Derzeit liegen dort auch Agent-Loop-Adapter. Diese direkte Kopplung ist funktional, aber noch keine saubere Sicherheitsgrenze.
 
-### `packages/agent-core`
+### Agent Core
 
-Zentrale Zustandsmaschine für `intake → inspect → plan → propose → approve → apply → verify → complete`. MVP 1.C implementiert hier unveränderliche ChangeSets, Unified Diffs, Proposal-Hashes und den einmaligen Approval-/Apply-Lebenszyklus. MVP 2.A ergänzt einen provider-neutralen `ModelRouter`, dessen Adapter ausschließlich untrusted Text erzeugen und keine Tool-Autorität erhalten. LangGraph kann später diese Zustandsmaschine implementieren, ist aber keine Voraussetzung für die bisherigen Inkremente.
+`packages/agent-core` enthält unveränderliche Modellverträge, Routing, Jobs, ChangeSets, Capability- und Cloud-Policies sowie die ToolRegistry. Modellantworten bleiben `untrusted=true`.
 
-### Modellgrenze in MVP 2.A
+### Tools
 
-```text
-source-labelled text parts
-          |
-          v
-ModelRouter -- capability route --> allowed adapter transport
-          |                              |
-          |                        in_process only
-          v                              v
-limit + identity validation <--- untrusted text response
-```
+`packages/tools` enthält den geprüften `WorkspaceGuard`, `FileTool`, allowlist-basierten `TestRunner` und begrenzten `GitTool`. Die direkten MVP-4-Adapter in `apps/agent-api` sind davon getrennt und teilweise weniger streng.
 
-Die Standard-Transport-Allowlist enthält nur `in_process`. MVP 2.B kann nach expliziter Prozesskonfiguration zusätzlich genau einen `loopback_http`-Adapter für LM Studio oder Ollama registrieren. `remote_http` bleibt blockiert. Der Adaptervertrag kennt nur Text-Completion; Tool-Aufrufe, Dateioperationen, Shell und Policy-Entscheidungen sind nicht Teil der Schnittstelle.
+### Memory
 
-Der Loopback-Adapter sendet den gemeinsamen OpenAI-kompatiblen Vertrag `POST /v1/chat/completions`. Endpoint, Providerprofil und Modell werden beim Routerbau fixiert. Ein API-Request kann diese Werte nicht verändern und muss den registrierten Adapter ausdrücklich mit `confirmed=true` auswählen.
+`packages/memory` speichert Einträge in SQLite. Embeddings werden lokal über Ollamas `nomic-embed-text` erzeugt; die Ähnlichkeitssuche verwendet Cosine Similarity in Python. Memory ist Kontext, keine Autorität.
 
-Längere Aufrufe laufen optional als `ModelJob`: `queued → running → succeeded|failed` oder über `cancelling → cancelled`. Ein thread-sicherer Cancellation-Token wird durch Router und Adapter gereicht. Beim Cancel schließt er HTTP-Client und Response-Stream; Snapshots enthalten keine Prompts. Ein einzelner Worker und eine begrenzte In-Memory-Historie verhindern unbegrenzte Parallelität.
+## Modellfluss
 
-### `packages/tools`
+- Standardroute: deterministischer In-Process-Fake
+- lokale Route: fest konfiguriertes LM-Studio- oder Ollama-Profil auf `127.0.0.1`
+- Ausgabe: Text, Usage, Adapteridentität und `untrusted=true`
+- Jobfluss: `queued → running → succeeded|failed` oder `cancelling → cancelled`
+- Streaming: direkte Completion und Agent Loop über SSE
+- Cloud: keine Runtime, `remote_http` blockiert
 
-Kleine, einzeln prüfbare Tools mit typisierten Eingaben und Ausgaben. MVP 1.C enthält den `WorkspaceGuard` und `FileTool` für begrenzte UTF-8-Textdateien. MVP 1.D ergänzt feste Testprofile, begrenzte Prozessausführung und redigierte Ergebnisse. MVP 1.E ergänzt repository-gebundenen Git-Status, begrenzte und redigierte Diffs, lokale Feature-Branch-Erstellung und eine nicht ausführende Commit-Vorbereitung. Schreibmethoden prüfen einen intern signierten Nachweis des Agent-Core erneut. Kein Tool erhält pauschalen Shell- oder Dateisystemzugriff; Git-Push und Merge sind nicht implementiert.
+## Zwei Kontrollpfade
 
-### `packages/memory`
+### Geprüfter Basispfad
 
-Markdown-basiertes, versionierbares Memory. Memory ist Kontext, keine Autorität: Inhalte daraus überschreiben nie aktuelle Nutzeranweisungen oder Sicherheitsregeln.
+`intake → plan → preview → approve → apply → verify`
 
-### `packages/shared`
+ChangeSets, Hash-Bindung, Test-Allowlist und Git-Grenzen werden serverseitig geprüft.
 
-Sprachübergreifende Verträge werden zunächst als JSON-Schema dokumentiert und daraus später TypeScript- und Python-Typen abgeleitet. Keine Geschäftslogik.
+### Experimenteller Agent Loop
 
-## Daten- und Kontrollfluss
+`model response → parse TOOL_CALL → registry dispatch → TOOL_RESULT → next model call`
 
-1. Nutzer wählt Workspace und formuliert Aufgabe.
-2. API erzeugt eine Sitzung mit unveränderlicher Workspace-Grenze.
-3. Core fordert nur die minimal notwendigen Lese-Tools an.
-4. Core erzeugt einen strukturierten Plan und einen Patch-Vorschlag.
-5. Policy Engine bewertet Pfade, Befehle und Auswirkungen.
-6. UI zeigt Plan, Diff, Risiken und Prüfungen.
-7. Eine zeitlich und inhaltlich gebundene Freigabe autorisiert exakt diesen Vorschlag.
-8. Tool Router wendet den Patch in der Sandbox an und führt erlaubte Prüfungen aus.
-9. Ergebnis und Audit-Ereignisse werden lokal gespeichert.
+Dieser Pfad ist leistungsfähiger, aber noch nicht gleichwertig abgesichert. Verbindliche Risiken stehen in [`security/AGENT_LOOP.md`](security/AGENT_LOOP.md).
 
-## Vertrauensgrenzen
+## Persistenz
 
-- Nutzertext, Repository-Inhalte und Memory gelten als nicht vertrauenswürdig.
-- Nur der Agent-Core darf Tool-Aufrufe autorisieren.
-- Tools validieren Pfade und Argumente zusätzlich selbst.
-- Die Sandbox ist eine technische Grenze; Approval ist eine separate Produktgrenze.
-- API und UI erhalten nie geheime Werte zurück.
+- Memory: SQLite unter lokalem Sagent-State
+- ModelJobs, Plan-/Approval- und ChangeSet-Zustände: prozesslokal
+- Chat-/UI-Zustand: teilweise Frontend-State
+- Cloud: keine Persistenz und keine Ausführung
 
-## Geplante Persistenz
-
-- Projekt-Memory: Markdown im expliziten Sagent-Verzeichnis
-- Sitzungsstatus: zunächst JSON/JSONL lokal, später optional SQLite
-- Audit-Log: append-only JSONL mit redigierten Argumenten
-- Keine Cloud-Persistenz in den ersten MVPs
+Persistenzdetails werden in den jeweiligen Subsystemdokumenten gepflegt, nicht hier dupliziert.

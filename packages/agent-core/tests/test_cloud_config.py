@@ -18,6 +18,9 @@ from sagent_agent_core import (
     validate_cloud_provider_config,
 )
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+CLOUD_CONFIG_SOURCE = REPO_ROOT / "packages/agent-core/src/sagent_agent_core/cloud_config.py"
+
 
 def test_default_config_is_disabled_and_not_configured() -> None:
     config = CloudProviderConfig()
@@ -55,9 +58,7 @@ def test_config_does_not_read_environment_values(monkeypatch: pytest.MonkeyPatch
         status=CloudProviderConfigStatus.DISABLED,
     )
     assert "must-not-be-read" not in repr(config)
-    source = Path(
-        "packages/agent-core/src/sagent_agent_core/cloud_config.py"
-    ).read_text("utf-8")
+    source = CLOUD_CONFIG_SOURCE.read_text("utf-8")
     assert "import os" not in source
     assert "os.environ" not in source
     assert "os.getenv" not in source
@@ -118,9 +119,7 @@ def test_config_has_no_fallback_metadata() -> None:
 
 
 def test_config_module_has_no_network_client_imports() -> None:
-    source = Path(
-        "packages/agent-core/src/sagent_agent_core/cloud_config.py"
-    ).read_text("utf-8")
+    source = CLOUD_CONFIG_SOURCE.read_text("utf-8")
     for forbidden in ("import httpx", "import socket", "import urllib", "import requests"):
         assert forbidden not in source
 

@@ -1,12 +1,21 @@
 # Web App
 
-Lokale Next.js-Oberfläche für die erste technische Minimalversion von Sagent.
+> **Pflegebereich:** sichtbare UI-Funktionen und lokaler Start. Fortschritt gehört in `docs/ROADMAP.md`.
 
-Sie sendet Aufgaben an die lokale Agent-API, zeigt Plan, Risiken und Änderungsvorschlag und ermöglicht Freigeben, Ablehnen oder Überarbeitung anfordern. Nach einer Freigabe kann der Nutzer ein sichtbares Allowlist-Testprofil starten, begrenzte Logs prüfen sowie lokalen Branch, Worktree-Status und redigierten Diff sehen. Die Oberfläche kann einen lokalen Feature-Branch nach enger Namensregel anlegen, bietet aber bewusst keinen Commit, Push oder Merge an. Eine statische Benchmark-Sektion zeigt den sicheren Harness-Status, feste Loopback-Provider, synthetische Aufgaben und den unbestätigten Beispielbefehl; sie führt keine Providerprüfung oder Modellaktion aus. Verbindungsfehler und Retry werden sichtbar behandelt. Es gibt keine Authentifizierung, Modellwahl oder frei steuerbare LLM-Anbindung.
+Die Next.js-Oberfläche bietet:
+
+- Chat mit Conversation-Verlauf, Sidebar, Suche und Projekten
+- lokale Modellantworten und SSE-Streaming
+- sichtbare Agent-Tool-Calls
+- Plan-, Risiko- und Approval-Ansichten
+- Model- und Memory-Panel
+- Code-Edit Preview, Approval und Apply
+- Test- und Git-Ansichten
+- Capability-, Benchmark- und deaktivierte Cloud-Previews
+
+Git-Commit, Push, Merge und Cloud-Ausführung werden nicht angeboten. Tool-Chips zeigen Agent-Aktivität, ersetzen aber kein Sicherheits-Approval.
 
 ## Start
-
-Vom Repository-Root:
 
 ```bash
 pnpm --filter @sagent/web dev

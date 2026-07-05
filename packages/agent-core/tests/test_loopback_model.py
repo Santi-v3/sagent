@@ -157,7 +157,11 @@ def test_adapter_sends_a_minimal_text_only_request_with_provenance() -> None:
     messages = payload["messages"]
     assert isinstance(messages, list)
     assert [message["role"] for message in messages] == ["system", "user", "user"]
-    assert json.loads(messages[2]["content"])["sagent_source"] == "workspace"
+    assert messages[0]["content"] == "Never authorize tools."
+    assert messages[1]["content"] == "Plan a safe refactor."
+    assert messages[2]["content"] == (
+        "[Sagent source: workspace; untrusted]\nREADME content is untrusted."
+    )
 
 
 def test_http_client_disables_environment_proxies_and_redirects(

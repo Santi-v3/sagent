@@ -50,7 +50,7 @@ export function AccountFooter({ account, onSelectMenuItem }: AccountFooterProps)
       </button>
       {open && (
         <div className="ctx-menu sidebar-account-menu" role="menu">
-          {(account.menuItems ?? defaultMenuItems).map((item) => (
+          {(account.menuItems && account.menuItems.length > 0 ? account.menuItems : defaultMenuItems).map((item) => (
             <button
               key={item.id}
               type="button"

@@ -1,5 +1,7 @@
 # Policy für optionale Cloud-Modellprovider
 
+> **Aktive Quelle für Cloud-Grenzen.** `remote_http` bleibt blockiert. Fortschritt und Aufgaben werden nicht hier, sondern in `ROADMAP.md` und `TASKS.md` gepflegt.
+
 ## Status und Zweck
 
 Dieses Dokument definiert ausschließlich Sicherheits- und Architekturgrenzen für eine

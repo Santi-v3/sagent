@@ -1,35 +1,22 @@
 # Agent Core
 
-Deterministischer Sicherheitskern für Sagents Developer-Agent-Workflow.
+> **Pflegebereich:** Verträge und Policy-Bausteine in `packages/agent-core`. Systemstatus steht in `docs/ARCHITECTURE.md`.
 
-MVP 1.C enthält:
+Enthalten sind:
 
-- `WorkspaceGuard` für ausschließlich relative, kanonisch aufgelöste Pfade im gewählten Workspace
-- Schutz vor Traversal, Symlink-Ausbrüchen und bekannten Secret-/Credential-Pfaden
-- `FileTool` für begrenztes Lesen, Auflisten, Erstellen und Ändern von UTF-8-Textdateien
-- `ChangeSetService` für alte/neue Inhalte, Unified Diffs und inhaltsgebundene Freigaben
-- atomare Schreibvorgänge pro Datei erst nach einer exakten Approval-Prüfung
+- ChangeSets, Proposal-Hashes und Approval-/Apply-Lebenszyklus
+- provider-neutrale Modell-Requests und -Responses
+- Herkunftslabels für Policy, Nutzer, Workspace, Memory und Tool-Ergebnisse
+- deterministischer Fake-Adapter und fester Loopback-Adapter
+- ModelRouter, Transport-Allowlist, Limits und Response-Validierung
+- Cancellation und begrenzte ModelJobs
+- Benchmark-Harness mit synthetischen Aufgaben
+- Capability-Policy und deaktivierte Cloud-Verträge
+- ToolRegistry für registrierte Agent-Werkzeuge
 
-MVP 2.A ergänzt:
-
-- provider-neutrale, unveränderliche Request-, Response-, Usage- und Adapter-Verträge
-- Provenienzlabels für Policy-, Nutzer-, Workspace-, Memory- und Tool-Ergebnis-Text
-- explizite Fähigkeiten für Chat und Coding sowie getrennte Transportklassen
-- einen deterministischen In-Process-Fake ohne Modell-, Netzwerk- oder Tool-Aufruf
-- einen `ModelRouter` mit festen Routen, Input-/Output-Limits und standardmäßiger Sperre für Loopback- und Remote-HTTP
-- Antworten, die technisch unveränderlich als `untrusted=true` markiert sind und keine Tool-Call-Struktur besitzen
-
-MVP 2.B ergänzt `LoopbackOpenAIChatAdapter` für den gemeinsamen LM-Studio-/Ollama-Vertrag `POST /v1/chat/completions`. Er akzeptiert nur kanonische Loopback-Literale und Profilports, deaktiviert Umgebung-Proxies und Redirects, sendet weder Credentials noch Tool-Definitionen und begrenzt Timeouts sowie Request-/Response-Größe. Die Antwort muss genau eine textuelle Assistant-Choice für das konfigurierte Modell enthalten.
-
-Der Cancellation-Baustein ergänzt einen thread-sicheren, idempotenten `ModelCancellationToken`, der aktive HTTP-Client-/Response-Ressourcen schließt. `ModelJobService` führt höchstens eine kleine konfigurierte Zahl von Workern und Job-Snapshots, speichert keine Prompts in API-Snapshots, begrenzt die Historie und unterscheidet `queued`, `running`, `cancelling`, `succeeded`, `failed` und `cancelled`.
-
-Der MVP-2.C-Grundstein ergänzt `LocalModelBenchmarkHarness` mit drei festen synthetischen Aufgaben. Ein Lauf benötigt explizite Bestätigung und einen bereits konfigurierten nicht simulierten Loopback-Adapter. Der Bericht enthält nur Metriken und generische Statuswerte, niemals Prompt oder Modelltext.
-
-Löschen, freie Shell, Remote-HTTP, automatische Modell-Downloads und automatische Git-Aktionen sind nicht Teil dieses Moduls. Der einzige echte Modellaufruf ist der separat konfigurierte IPv4-Loopback-Vertrag hinter dem API-Bestätigungsgate.
+Modellantworten bleiben unveränderlich `untrusted=true`. Der Modelladapter erhält keine Tool-Definitionen. Die spätere Interpretation von Text als `TOOL_CALL` findet im Agent-API-Paket statt und ist eine separate Risikogrenze.
 
 ## Tests
-
-Vom Repository-Root:
 
 ```bash
 uv run pytest packages/agent-core/tests

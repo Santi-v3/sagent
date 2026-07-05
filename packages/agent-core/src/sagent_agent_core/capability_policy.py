@@ -130,3 +130,40 @@ DEFAULT_CAPABILITY_POLICY: Final[CapabilityPolicy] = CapabilityPolicy(
         CapabilityName.USE_CLOUD_MODEL: CapabilityMode.DISABLED,
     },
 )
+
+
+SAFETY_POLICIES: Final[dict[str, CapabilityPolicy]] = {
+    "watchful": CapabilityPolicy(modes={
+        CapabilityName.READ_WORKSPACE: CapabilityMode.PREVIEW_ONLY,
+        CapabilityName.PREVIEW_FILE_EDITS: CapabilityMode.ALLOWED,
+        CapabilityName.APPLY_SINGLE_FILE_EDIT: CapabilityMode.APPROVAL_REQUIRED,
+        CapabilityName.APPLY_MULTI_FILE_EDIT: CapabilityMode.DISABLED,
+        CapabilityName.RUN_TESTS: CapabilityMode.APPROVAL_REQUIRED,
+        CapabilityName.RUN_SHELL_COMMAND: CapabilityMode.DISABLED,
+        CapabilityName.GIT_STATUS: CapabilityMode.ALLOWED,
+        CapabilityName.GIT_COMMIT: CapabilityMode.DISABLED,
+        CapabilityName.GIT_PUSH: CapabilityMode.DISABLED,
+        CapabilityName.CHANGE_DEPENDENCIES: CapabilityMode.DISABLED,
+        CapabilityName.USE_LOCAL_MODEL: CapabilityMode.APPROVAL_REQUIRED,
+        CapabilityName.USE_CLOUD_MODEL: CapabilityMode.DISABLED,
+    }),
+    "balanced": DEFAULT_CAPABILITY_POLICY,
+    "fullaccess": CapabilityPolicy(modes={
+        CapabilityName.READ_WORKSPACE: CapabilityMode.ALLOWED,
+        CapabilityName.PREVIEW_FILE_EDITS: CapabilityMode.ALLOWED,
+        CapabilityName.APPLY_SINGLE_FILE_EDIT: CapabilityMode.ALLOWED,
+        CapabilityName.APPLY_MULTI_FILE_EDIT: CapabilityMode.APPROVAL_REQUIRED,
+        CapabilityName.RUN_TESTS: CapabilityMode.ALLOWED,
+        CapabilityName.RUN_SHELL_COMMAND: CapabilityMode.ALLOWED,
+        CapabilityName.GIT_STATUS: CapabilityMode.ALLOWED,
+        CapabilityName.GIT_COMMIT: CapabilityMode.ALLOWED,
+        CapabilityName.GIT_PUSH: CapabilityMode.APPROVAL_REQUIRED,
+        CapabilityName.CHANGE_DEPENDENCIES: CapabilityMode.APPROVAL_REQUIRED,
+        CapabilityName.USE_LOCAL_MODEL: CapabilityMode.ALLOWED,
+        CapabilityName.USE_CLOUD_MODEL: CapabilityMode.DISABLED,
+    }),
+}
+
+
+def policy_for_safety_level(level: str) -> CapabilityPolicy:
+    return SAFETY_POLICIES.get(level, DEFAULT_CAPABILITY_POLICY)

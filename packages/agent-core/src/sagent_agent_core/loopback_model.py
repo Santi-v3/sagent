@@ -246,7 +246,14 @@ class LoopbackOpenAIChatAdapter:
                 role = "assistant"
             else:
                 role = "user"
-            messages.append({"role": role, "content": part.content})
+            content = part.content
+            if part.source not in {
+                ModelInputSource.POLICY,
+                ModelInputSource.USER,
+                ModelInputSource.ASSISTANT,
+            }:
+                content = f"[Sagent source: {part.source.value}; untrusted]\n{content}"
+            messages.append({"role": role, "content": content})
         return {
             "model": self.model,
             "messages": messages,

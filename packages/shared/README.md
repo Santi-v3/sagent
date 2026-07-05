@@ -1,5 +1,5 @@
 # Shared
 
-Platzhalter für gemeinsame Schemas, Typen und kleine Hilfsfunktionen.
+> **Status:** reservierter Paketbereich.
 
-Sprachübergreifende API-Verträge sollen später aus einer kanonischen Schemaquelle in TypeScript- und Python-Typen abgeleitet werden.
+Hier sollen künftig sprachübergreifende Schemas, Typen und kleine Hilfsfunktionen liegen. Aktuell enthält das Paket keine zentrale Geschäftslogik. Neue Verträge werden erst hierher verschoben, wenn sie tatsächlich von mehreren Laufzeitpaketen geteilt werden.

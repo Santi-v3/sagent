@@ -51,6 +51,7 @@ from sagent_agent_core.local_provider_metadata import (
     LocalProviderProfile,
     get_local_provider_profile,
 )
+from sagent_agent_core.remote_model import RemoteOpenAIChatAdapter
 from sagent_agent_core.loopback_model import (
     LoopbackEndpoint,
     LoopbackModelConnectionError,
@@ -151,6 +152,7 @@ __all__ = [
     "LOCAL_PROVIDER_PROFILES",
     "LocalProviderProfile",
     "LocalModelBenchmarkHarness",
+    "RemoteOpenAIChatAdapter",
     "FakeModelAdapter",
     "ModelAdapter",
     "ModelAdapterBlockedError",

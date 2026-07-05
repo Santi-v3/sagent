@@ -14,6 +14,11 @@ from sagent_agent_core import (
     ModelRequest,
     ModelRouter,
 )
+from sagent_agent_core.capability_policy import (
+    CapabilityName,
+    evaluate_capability,
+    policy_for_safety_level,
+)
 from sagent_agent_core.tool_registry import ToolDef, ToolRegistry
 
 
@@ -33,6 +38,30 @@ class AgentLoopResult:
 
 
 TOOL_CALL_RE = re.compile(r"^TOOL_CALL:\s*(\w+)\s*$", re.MULTILINE)
+
+TOOL_CAPABILITY_MAP: dict[str, CapabilityName] = {
+    "bash": CapabilityName.RUN_SHELL_COMMAND,
+    "write_file": CapabilityName.APPLY_SINGLE_FILE_EDIT,
+    "edit_file": CapabilityName.APPLY_SINGLE_FILE_EDIT,
+    "read_file": CapabilityName.READ_WORKSPACE,
+    "git_status": CapabilityName.GIT_STATUS,
+    "git_commit": CapabilityName.GIT_COMMIT,
+    "git_push": CapabilityName.GIT_PUSH,
+    "run_tests": CapabilityName.RUN_TESTS,
+    "change_dependencies": CapabilityName.CHANGE_DEPENDENCIES,
+}
+
+
+def _check_tool_allowed(tool_name: str, safety_level: str) -> str | None:
+    """Return error message if tool is denied by policy, else None."""
+    cap = TOOL_CAPABILITY_MAP.get(tool_name)
+    if cap is None:
+        return None
+    policy = policy_for_safety_level(safety_level)
+    decision = evaluate_capability(policy, cap)
+    if decision.value in ("denied", "preview_only"):
+        return f"Tool '{tool_name}' ist bei dieser Sicherheitsstufe nicht erlaubt."
+    return None
 
 
 def _build_request(
@@ -544,6 +573,7 @@ def _agent_loop_iteration(
     repeat_count: int,
     system_prompt: str,
     iteration: int,
+    safety_level: str = "balanced",
 ) -> tuple[str | None, str | None, list, str | None, int, str | None]:
     """Eine einzelne Agent-Loop-Iteration.
 
@@ -578,7 +608,11 @@ def _agent_loop_iteration(
     next_result = ""
     new_last = calls[0][0] if calls else last_tool_name
     for name, args_str in calls:
-        tool_output = registry.dispatch(name, args_str)
+        denied = _check_tool_allowed(name, safety_level)
+        if denied:
+            tool_output = denied
+        else:
+            tool_output = registry.dispatch(name, args_str)
         next_result += f"TOOL_RESULT für {name}:\n{tool_output}\n\n"
     return None, None, [(name, args) for name, args in calls], next_result, repeat_count, new_last
 
@@ -591,6 +625,7 @@ def run_agent_loop(
     max_iterations: int = 10,
     adapter_id: str | None = None,
     memory: Any = None,
+    safety_level: str = "balanced",
 ) -> AgentLoopResult:
     result = AgentLoopResult()
     start = time.time()
@@ -609,6 +644,7 @@ def run_agent_loop(
         err, final_text, calls, next_buffer, repeat_count, last_tool_name = _agent_loop_iteration(
             task, router, registry, conversation, memory, kwargs,
             tool_result_buffer, last_tool_name, repeat_count, system_prompt, iteration,
+            safety_level=safety_level,
         )
         step_text = final_text or (f"TOOL_CALL: {calls[0][0]}" if calls else "")
         step = AgentLoopStep(text=step_text)
@@ -643,6 +679,7 @@ def run_agent_loop_stream(
     max_iterations: int = 10,
     adapter_id: str | None = None,
     memory: Any = None,
+    safety_level: str = "balanced",
 ) -> Generator[dict[str, Any], None, None]:
     """Generator-Version des Agent Loop für SSE-Streaming.
     
@@ -702,7 +739,11 @@ def run_agent_loop_stream(
         tool_result_buffer = ""
         for name, args_str in calls:
             yield {"type": "tool_call", "name": name, "args": args_str, "iteration": iteration}
-            tool_output = registry.dispatch(name, args_str)
+            denied = _check_tool_allowed(name, safety_level)
+            if denied:
+                tool_output = denied
+            else:
+                tool_output = registry.dispatch(name, args_str)
             tool_result_buffer += f"TOOL_RESULT für {name}:\n{tool_output}\n\n"
             yield {
                 "type": "tool_result", "name": name,

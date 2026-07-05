@@ -1,5 +1,7 @@
 # Cloud-Approval-UX-Runbook
 
+> **Aktive UX-Spezifikation, keine Runtime-Freigabe.** Der aktuelle Code zeigt nur Offline-Preview-Metadaten und aktiviert keinen Cloud-Provider.
+
 ## Zweck und aktueller Stand
 
 Dieses Runbook spezifiziert einen möglichen späteren UX-Ablauf für genau einen

@@ -62,8 +62,8 @@ class SidebarService:
         if "projects" not in self._data:
             self._data["projects"] = []
             changed = True
-        if "account" not in self._data:
-            self._data["account"] = {"name": "User", "plan": "Pilot", "menuItems": []}
+        if "account" not in self._data or not self._data["account"].get("menuItems"):
+            self._data["account"] = {"name": "User", "plan": "Pilot", "menuItems": [{"id": "tools", "label": "Werkzeuge"}, {"id": "settings", "label": "Einstellungen"}, {"id": "logout", "label": "Abmelden", "danger": True}]}
             changed = True
         if changed:
             self._save()

@@ -20,6 +20,13 @@ from sagent_agent_api.memory_api import (
 )
 from sagent_agent_api.model_integration import get_model_router
 from sagent_agent_api.model_jobs import close_model_job_service, get_model_job_service
+from sagent_agent_api.provider_tracker import get_provider_tracker
+from sagent_agent_core import (
+    ModelCapability,
+    ModelRouter,
+    ModelTransport,
+    RemoteOpenAIChatAdapter,
+)
 from sagent_agent_api.models import (
     ApprovalRequest,
     ApprovalResponse,
@@ -251,6 +258,9 @@ def get_planned_task(task_id: UUID) -> PlannedTask:
 class AgentExecuteRequest(BaseModel):
     task: str = Field(min_length=1, max_length=50_000)
     messages: list[dict[str, str]] | None = None
+    safety_level: str = Field(default="balanced", pattern=r"^(watchful|balanced|fullaccess)$")
+    adapter_id: str | None = None
+    cloud_config: dict | None = None
 
 
 class ToolCallRecord(BaseModel):
@@ -281,11 +291,13 @@ class StreamEvent(BaseModel):
     duration_ms: float | None = None
 
 
-def _resolve_adapter(router: ModelRouter) -> str | None:
-    """Return 'local-ollama' if registered, else None (router default)."""
+def _resolve_adapter(router: ModelRouter, adapter_id: str | None = None) -> str | None:
+    """Use the requested adapter_id, or the first non-simulated adapter, or None (router default)."""
+    if adapter_id:
+        return adapter_id
     for a in router.list_adapters():
-        if a.adapter_id == "local-ollama":
-            return "local-ollama"
+        if not a.simulated:
+            return a.adapter_id
     return None
 
 
@@ -313,7 +325,8 @@ def agent_execute(
     try:
         loop_result = run_agent_loop(
             request.task, router, registry, request.messages,
-            adapter_id=_resolve_adapter(router), memory=memory,
+            adapter_id=_resolve_adapter(router, request.adapter_id), memory=memory,
+            safety_level=request.safety_level,
         )
     except Exception as e:
         return AgentExecuteResponse(final_response="", error=str(e))
@@ -363,12 +376,35 @@ def agent_execute_stream(
     except Exception:  # noqa: S110
         pass
 
-    adapter_id = _resolve_adapter(router)
+    adapter_id = _resolve_adapter(router, request.adapter_id)
+
+    # Dynamic cloud model override
+    cloud_router = None
+    if request.cloud_config:
+        from sagent_agent_core import RemoteOpenAIChatAdapter
+        cc = request.cloud_config
+        dyn_adapter = RemoteOpenAIChatAdapter(
+            base_url=cc.get("endpoint", "https://api.openai.com"),
+            model=cc.get("model", "gpt-4o"),
+            api_key=cc.get("apiKey", ""),
+            adapter_id=request.adapter_id or "cloud-dynamic",
+            provider=cc.get("provider", "openai"),
+        )
+        cloud_router = ModelRouter(
+            [dyn_adapter],
+            {ModelCapability.CHAT: dyn_adapter.descriptor.adapter_id},
+            allowed_transports=frozenset({ModelTransport.REMOTE_HTTP}),
+            allow_non_simulated=True,
+            cloud_providers_enabled=True,
+        )
+        adapter_id = request.adapter_id or "cloud-dynamic"
 
     def event_stream() -> Generator[str, None, None]:
+        active_router = cloud_router or router
         for event in run_agent_loop_stream(
-            request.task, router, registry, request.messages,
+            request.task, active_router, registry, request.messages,
             adapter_id=adapter_id, memory=memory,
+            safety_level=request.safety_level,
         ):
             se = StreamEvent(**event)
             yield f"data: {se.model_dump_json()}\n\n"
@@ -633,6 +669,13 @@ def list_models(router: ModelRouterDependency) -> list[ModelAdapterResponse]:
     ]
 
 
+@app.get("/models/status")
+def model_status() -> dict:
+    """Return availability status for all tracked cloud providers."""
+    tracker = get_provider_tracker()
+    return {"providers": tracker.get_status()}
+
+
 @app.post("/models/preview", response_model=ModelPreviewResponse)
 def preview_model(
     request: ModelPreviewRequest,
@@ -766,21 +809,75 @@ def complete_local_model(
 class StreamRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=10_000)
     system_prompt: str = ""
+    adapter_id: str | None = None
+    cloud_config: dict | None = None
 
 
 @app.post("/models/complete/stream")
-def stream_model_complete(request: StreamRequest) -> StreamingResponse:
-    """SSE-Streaming: ruft Ollama mit stream=true auf, gibt Token für Token weiter."""
+def stream_model_complete(request: StreamRequest, router: ModelRouterDependency) -> StreamingResponse:
+    """SSE-Streaming: ruft das ausgewählte Modell (Ollama/LM Studio) mit stream=true auf."""
     import json as _json
 
     import httpx2 as _httpx
 
-    # Input speichern
+    # Dynamischer Cloud-Adapter
+    tracker = get_provider_tracker()
+    if request.cloud_config:
+        cc = request.cloud_config
+        dyn_adapter = RemoteOpenAIChatAdapter(
+            base_url=cc.get("endpoint", "https://api.openai.com"),
+            model=cc.get("model", "gpt-4o"),
+            api_key=cc.get("apiKey", ""),
+            adapter_id=request.adapter_id or "cloud-dynamic",
+            provider=cc.get("provider", "openai"),
+        )
+        dyn_router = ModelRouter(
+            [dyn_adapter],
+            {ModelCapability.CHAT: dyn_adapter.descriptor.adapter_id},
+            allowed_transports=frozenset({ModelTransport.REMOTE_HTTP}),
+            allow_non_simulated=True,
+            cloud_providers_enabled=True,
+        )
+        router = dyn_router
+        model_name = dyn_adapter.model
+        provider = cc.get("provider", "openai")
+        base = cc.get("endpoint", "https://api.openai.com").rstrip("/")
+        if provider == "google":
+            base_url = base + "/v1beta/openai/chat/completions"
+        else:
+            base_url = base + "/v1/chat/completions"
+        api_key = cc.get("apiKey", "")
+        adapter_id = request.adapter_id or "cloud-dynamic"
+        tracker.register(adapter_id)
+    else:
+        # Welches Modell?
+        adapter_id = request.adapter_id
+        if adapter_id:
+            for d in router.list_adapters():
+                if d.adapter_id == adapter_id:
+                    break
+            else:
+                adapter_id = None
+        if not adapter_id:
+            for d in router.list_adapters():
+                if not d.simulated:
+                    adapter_id = d.adapter_id
+                    break
+        model_name = ""
+        base_url = ""
+        api_key = ""
+        if adapter_id:
+            for d in router.list_adapters():
+                if d.adapter_id == adapter_id:
+                    model_name = d.model
+                    base_url = f"http://127.0.0.1:11434/v1/chat/completions"
+                    break
+
     _auto_memory_store(request.prompt, "user-input")
 
     def event_stream() -> Generator[str, None, None]:
         payload = {
-            "model": "qwen2.5-coder:7b",
+            "model": model_name or "qwen2.5-coder:7b",
             "messages": [
                 {
                     "role": "system",
@@ -793,11 +890,21 @@ def stream_model_complete(request: StreamRequest) -> StreamingResponse:
         try:
             timeout = _httpx.Timeout(connect=5, read=300, write=10, pool=5)
             with _httpx.Client(timeout=timeout) as client:
-                url = "http://127.0.0.1:11434/v1/chat/completions"
-                with client.stream("POST", url, json=payload) as resp:
+                headers = {}
+                if api_key:
+                    headers["Authorization"] = f"Bearer {api_key}"
+                url = base_url or "http://127.0.0.1:11434/v1/chat/completions"
+                with client.stream("POST", url, json=payload, headers=headers) as resp:
+                    if resp.status_code == 429:
+                        retry_after = float(resp.headers.get("retry-after", "60"))
+                        tracker.mark_rate_limited(adapter_id, retry_after)
+                        yield f"data: {_json.dumps({'error': f'Rate-Limited (429). Reset in {int(retry_after)}s.', 'rate_limited': True, 'adapter_id': adapter_id, 'retry_after': retry_after})}\n\n"
+                        return
                     if resp.status_code != 200:
+                        tracker.mark_error(adapter_id)
                         yield f"data: {_json.dumps({'error': f'HTTP {resp.status_code}'})}\n\n"
                         return
+                    tracker.mark_success(adapter_id)
                     full_text = ""
                     for line in resp.iter_lines():
                         if line.startswith("data: "):

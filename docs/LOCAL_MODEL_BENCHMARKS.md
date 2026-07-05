@@ -1,5 +1,7 @@
 # Lokale Modell-Benchmarks
 
+> **Aktive Quelle für Harness, Metriken und Benchmark-Ergebnisse.** Allgemeiner Modellbetrieb steht in `LOCAL_MODELS.md`; offene Arbeit ausschließlich in `TASKS.md`.
+
 ## Status und Ziel
 
 Diese Datei definiert den reproduzierbaren Benchmark-Grundstein für MVP 2.C. Ein erster
@@ -109,7 +111,7 @@ PYTHONPATH=apps/agent-api/src:packages/agent-core/src:packages/tools/src \
 
 ## Manueller Lauf mit Ollama
 
-Für den ersten späteren Ollama-Live-Lauf gilt zusätzlich das
+Für einen erneut ausdrücklich bestätigten Ollama-Live-Lauf gilt zusätzlich das
 [`OLLAMA_LIVE_BENCHMARK_RUNBOOK.md`](OLLAMA_LIVE_BENCHMARK_RUNBOOK.md). Es verlangt
 eine getrennte Bestandsprüfung, Modellauswahl und Laufbestätigung und schließt
 Cloud-Modelle sowie automatische Downloads aus.

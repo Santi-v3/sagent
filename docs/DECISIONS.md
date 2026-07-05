@@ -120,3 +120,17 @@ Dieses Dokument ist ein leichtgewichtiges Decision Log. Neue Entscheidungen erha
 - **Datum:** 2026-07-01
 - **Entscheidung:** Sagent bleibt local-first. Lokale Provider behalten ihre festen Loopback-Profile; ein späterer Cloud-Provider wird ausschließlich als eigener `remote_http`-Provider modelliert. DeepSeek Cloud ist als optionale Idee für große Coding- und Reasoning-Aufgaben vorgesehen, niemals als Ollama-Modell oder lokaler Fallback. Cloud-Provider bleiben standardmäßig deaktiviert und benötigen sowohl eine explizite lokale Konfiguration als auch eine an Provider, Modell, Zweck und Datenmanifest gebundene Nutzerfreigabe pro Lauf. Secrets sind immer ausgeschlossen; private oder vertrauliche Daten werden niemals automatisch weitergeleitet.
 - **Konsequenz:** Es gibt keinen automatischen Local-to-Cloud-Fallback. Cloud-Antworten bleiben untrusted und ohne Tool-Autorität; Coding-Vorschläge durchlaufen weiterhin den lokalen Diff-, Test- und Approval-Flow. Eine Implementierung benötigt vor Freigabe von `remote_http` ein separates Threat Model, eine feste Provider-/Endpoint-Allowlist, Secret- und Datenschutzprüfung, Datenminimierung, Kosten-/Ressourcenlimits sowie ausschließlich offline aufgebaute negative Tests. Dieses ADR implementiert weder Adapter, Endpoint, API-Route noch Zugangsdaten.
+
+## ADR-018: Der MVP-4-Agent-Loop ist ein experimenteller Kontrollpfad
+
+- **Status:** Angenommen mit Härtungsauflagen
+- **Datum:** 2026-07-04
+- **Entscheidung:** Der Agent Loop darf lokale Modellantworten iterativ mit einer ToolRegistry verbinden. Die aktuelle Implementierung mit direkter Shell, Datei-, Test-, Git- und Memory-Nutzung wird ausdrücklich als experimenteller Pfad behandelt und nicht als Erweiterung der Sicherheitsgarantien aus ADR-010 bis ADR-013 dargestellt.
+- **Konsequenz:** Arbeitsverzeichnis, PATH, Timeout und Ausgabelimits gelten nicht als Betriebssystem-Sandbox. Direkte Schreib- und Ausführungsaktionen benötigen vor produktiver Nutzung kanonische Workspace-Prüfung, externe Approval-Bindung und negative Sicherheitstests. Neue Rechte bleiben bis dahin blockiert.
+
+## ADR-019: Aktive Dokumentation hat genau eine Quelle pro Thema
+
+- **Status:** Angenommen
+- **Datum:** 2026-07-04
+- **Entscheidung:** Status, Aufgaben, Handoff, Architektur, Sicherheit und Subsystembetrieb werden jeweils in genau einer aktiven Datei gepflegt. Große frühere Pläne und Fortschrittsprotokolle werden unverändert unter `docs/history/` archiviert.
+- **Konsequenz:** README-Dateien enthalten keine langen Changelogs oder duplizierten Testzahlen. KI-Aktualisierungen beginnen bei `docs/INDEX.md` und ändern nur die dort benannte Quelle sowie technisch notwendige Querverweise.

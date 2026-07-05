@@ -1,18 +1,24 @@
 # Tools
 
-Kleine, typisierte und policy-geprüfte Agent-Tools.
+> **Pflegebereich:** geprüfte Basistools in `packages/tools`. Direkte MVP-4-Agent-Adapter liegen separat in `apps/agent-api`.
 
-MVP 1.C implementiert `WorkspaceGuard` und `FileTool` für begrenzte UTF-8-Textdateien. Jeder Pfad wird kanonisch aufgelöst, bleibt relativ zum fixierten Workspace und wird gegen sensible Credential-Namen geprüft. Schreibmethoden akzeptieren ausschließlich eine intern signierte, inhaltsgebundene Freigabe des `ChangeSetService`.
+## Workspace und Dateien
 
-MVP 1.D ergänzt den `TestRunner`. Er akzeptiert ausschließlich feste serverseitige Profile und gleicht vor jedem Start den angezeigten Befehl exakt ab. Prozesse laufen ohne `shell=True`, mit fixiertem Arbeitsverzeichnis, bereinigter Umgebung, Prozessgruppen-Timeout, CPU-/Dateideskriptorgrenzen und begrenzter, Secret-redigierter Ausgabe. Maximal 100 Ergebnisse bleiben im Prozessspeicher.
-
-MVP 1.E ergänzt den `GitTool`. Er bindet sich exakt an einen Repository-Root, führt nur intern festgelegte Git-Argumentlisten aus und liefert begrenzten Status sowie einen Secret-redigierten Diff für staged, unstaged und unversionierte Textdateien. Lokale Branches benötigen ein erlaubtes Präfix und einen unveränderten Ausgangsbranch. Die Commit-Vorbereitung erzeugt nur unveränderliche Metadaten zu einem exakten Diff-Hash; sie staged oder committet nicht. Push und Merge werfen immer einen Policy-Fehler.
-
-Allgemeiner Shell- oder unbeschränkter Dateisystemzugriff ist ausgeschlossen. Standard-Proxyvariablen werden auf einen lokalen Blackhole-Endpunkt gesetzt, ersetzen aber noch keine OS-Sandbox gegen absichtliche Raw-Socket- oder Dateisystemzugriffe aus Repository-Testcode. Bis zu dieser Sandbox dürfen nur bewusst geprüfte lokale Projekte ausgeführt werden. Löschen und das automatische Erstellen von Verzeichnissen werden weiterhin nicht unterstützt.
+`WorkspaceGuard` und `FileTool` erzwingen relative kanonische Pfade, sensible Pfadsperren, UTF-8-Grenzen und inhaltsgebundene Schreibnachweise.
 
 ## Tests
 
-Vom Repository-Root:
+`TestRunner` verwendet feste serverseitige Profile, `shell=False`, bereinigte Umgebung, Timeout, Ressourcenlimits und redigierte Ausgabe.
+
+## Git
+
+`GitTool` liefert begrenzten Status und Diff und kann policy-konforme lokale Feature-Branches erstellen. Commit, Push und Merge sind blockiert.
+
+## Abgrenzung zum Agent Loop
+
+Die direkten Handler `bash`, `write_file`, `edit_file` und `grep` gehören nicht zu diesem Paket. Sie liegen in `apps/agent-api/src/sagent_agent_api/agent_loop.py` und besitzen andere, schwächere Sicherheitsgrenzen. Siehe [`docs/security/AGENT_LOOP.md`](../../docs/security/AGENT_LOOP.md).
+
+## Tests
 
 ```bash
 uv run pytest packages/tools/tests

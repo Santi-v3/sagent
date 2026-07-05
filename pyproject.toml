@@ -27,7 +27,7 @@ pythonpath = [
   "packages/tools/src",
   "packages/memory/src",
 ]
-addopts = "-ra"
+addopts = "-ra --import-mode=importlib"
 
 [tool.ruff]
 target-version = "py312"

@@ -2,11 +2,10 @@
 
 import {
   ArrowUp, ArrowsClockwise, CheckCircle, CircleNotch,
-  Folder, GitBranch, GitDiff as GitDiffIcon,
+  Code, Folder, GitBranch, GitDiff as GitDiffIcon,
   Lightbulb, Play, ShieldCheck,
-  TerminalWindow, Warning, WarningCircle, XCircle,
-  Plus, Code, Gear,
-  Brain, Wrench, BookOpen,
+  TerminalWindow, Warning, WarningCircle, X, XCircle,
+  Plus, Brain, Wrench, BookOpen,
   List, ImageSquare, Camera,
 } from "@phosphor-icons/react";
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
@@ -14,6 +13,7 @@ import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } fr
 import { CapabilityPolicyPreview } from "@/components/capability-policy-preview";
 import { CloudApprovalPreview } from "@/components/cloud-approval-preview";
 import { CodeEditPreviewPanel } from "@/components/code-edit-preview-panel";
+import { SettingsPage, type UserModelConfig } from "@/components/settings/settings-page";
 import { LeftSidebar } from "@/components/sidebar/left-sidebar";
 import { api } from "@/lib/api-client";
 import type { SidebarConversation } from "@/lib/api-client";
@@ -134,9 +134,17 @@ export function SagentShell() {
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
 
   const [projects, setProjects] = useState<Project[]>([]);
-  const [accountData, setAccountData] = useState<{ name: string; plan: string }>({ name: "User", plan: "Pilot" });
+  const [accountData, setAccountData] = useState<{ name: string; plan: string; menuItems?: { id: string; label: string; danger?: boolean }[] }>({
+    name: "User",
+    plan: "Pilot",
+    menuItems: [
+      { id: "tools", label: "Werkzeuge" },
+      { id: "settings", label: "Einstellungen" },
+      { id: "logout", label: "Abmelden", danger: true },
+    ],
+  });
 
-  const [showSettings, setShowSettings] = useState(false);
+  const [currentView, setCurrentView] = useState<"chat" | "settings">("chat");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>("system");
 
@@ -172,11 +180,56 @@ export function SagentShell() {
   const [activeToolTab, setActiveToolTab] = useState<string | null>(null);
 
   const [modelAdapters, setModelAdapters] = useState<{adapter_id: string; provider: string; model: string; capabilities: string[]; transport: string; simulated: boolean; supports_streaming: boolean}[]>([]);
+  const [modelStatus, setModelStatus] = useState<Record<string, {available: boolean; rate_limited: boolean; reset_in: number; cooldown: number}>>({});
   const [selectedAdapter, setSelectedAdapter] = useState<string>("");
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const modelDropdownRef = useRef<HTMLDivElement>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastFallbackSelectedRef = useRef<string | null>(null);
+
+  const localModels = modelAdapters.filter(m => m.transport !== "remote_http");
+  const cloudModels = modelAdapters.filter(m => m.transport === "remote_http");
   const [modelPrompt, setModelPrompt] = useState("");
   const [modelJobLoading, setModelJobLoading] = useState(false);
   const [modelJobResult, setModelJobResult] = useState<{job_id: string; state: string; created_at: string; completed_at: string | null; result: {content: string; input_tokens: number; output_tokens: number} | null; error: string | null} | null>(null);
   const modelJobPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isCreatingConvRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const [userModels, setUserModels] = useState<UserModelConfig[]>(() => {
+    try {
+      const stored = localStorage.getItem("sagent-user-models");
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("sagent-user-models", JSON.stringify(userModels));
+  }, [userModels]);
+
+  const allModels = [
+    ...modelAdapters,
+    ...userModels.map(um => ({
+      adapter_id: um.id,
+      provider: um.provider,
+      model: um.model,
+      capabilities: [] as string[],
+      transport: "remote_http" as const,
+      simulated: false,
+      supports_streaming: true,
+    })),
+  ];
+  const selectedAdapterLabel = allModels.find(m => m.adapter_id === selectedAdapter)?.model;
+  const selectedModelStatus = modelStatus[selectedAdapter];
+  const isSelectedRateLimited = selectedModelStatus && !selectedModelStatus.available;
+
+  function handleAddUserModel(cfg: UserModelConfig) {
+    setUserModels(prev => [...prev, cfg]);
+  }
+
+  function handleRemoveUserModel(id: string) {
+    setUserModels(prev => prev.filter(m => m.id !== id));
+  }
 
   useEffect(() => {
     api.getSidebarData().then((data) => {
@@ -191,6 +244,7 @@ export function SagentShell() {
   useEffect(() => { document.documentElement.setAttribute("data-theme", theme); }, [theme]);
 
   async function saveCurrentConversation(msgs: {role: "user" | "assistant"; content: string}[], firstMsg: string) {
+    if (isCreatingConvRef.current) return;
     if (activeConvId) {
       const existing = conversations.find(c => c.id === activeConvId);
       if (existing) {
@@ -200,6 +254,7 @@ export function SagentShell() {
         return;
       }
     }
+    isCreatingConvRef.current = true;
     try {
       const conv = await api.createConversation({
         label: firstMsg.slice(0, 40),
@@ -212,10 +267,13 @@ export function SagentShell() {
       const conv: Conversation = { id: localId, label: firstMsg.slice(0, 40), messages: msgs, updatedAt: Date.now(), pinned: false, projectId: null };
       setActiveConvId(localId);
       setConversations(prev => [conv, ...prev]);
+    } finally {
+      isCreatingConvRef.current = false;
     }
   }
 
   function startNewConversation() {
+    isCreatingConvRef.current = false;
     setSubmittedTask(""); setResult(null); setError(""); setTask("");
     setChatResponse(null); setChatResponseLoading(false); setMessages([]);
     setToolCalls([]); setActiveConvId(null);
@@ -346,7 +404,72 @@ export function SagentShell() {
         }
       })
       .catch((e: unknown) => { console.warn("Fehler beim Laden der Modelle:", e); });
+    fetch(`${API_URL}/models/status`)
+      .then(r => r.json())
+      .then((data: {providers: Record<string, {available: boolean; rate_limited: boolean; reset_in: number; cooldown: number}>}) => {
+        setModelStatus(data.providers);
+      })
+      .catch(() => {});
   }, []);
+
+  const selectedAdapterRef = useRef(selectedAdapter);
+  useEffect(() => { selectedAdapterRef.current = selectedAdapter; }, [selectedAdapter]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch(`${API_URL}/models/status`)
+        .then(r => r.json())
+        .then((data) => {
+          if (!data?.providers) return;
+          setModelStatus(prev => ({...prev, ...data.providers}));
+          const curSelected = selectedAdapterRef.current;
+          if (!curSelected) return;
+          const st = data.providers[curSelected];
+          if (!st || st.available) return;
+          if (lastFallbackSelectedRef.current === curSelected) return;
+          const avail = (id: string) => {
+            const s = data.providers[id];
+            return !s || s.available;
+          };
+          let next: string | null = modelAdapters.filter(m => m.transport !== "remote_http").find(m => m.adapter_id !== curSelected && avail(m.adapter_id))?.adapter_id ?? null;
+          if (!next) {
+            next = userModels.find(um => avail(um.id) && um.id !== curSelected)?.id ?? null;
+          }
+          if (!next) {
+            next = modelAdapters.filter(m => m.transport === "remote_http").find(m => m.adapter_id !== curSelected && avail(m.adapter_id))?.adapter_id ?? null;
+          }
+          if (next && next !== curSelected) {
+            lastFallbackSelectedRef.current = curSelected;
+            const nextLabel = modelAdapters.find(m => m.adapter_id === next)?.model ?? userModels.find(um => um.id === next)?.label ?? next;
+            setToastMessage(`Modell gewechselt: ${nextLabel} (vorheriges war ausgelastet)`);
+            if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+            toastTimerRef.current = setTimeout(() => setToastMessage(null), 5000);
+            setTimeout(() => setSelectedAdapter(next), 0);
+          }
+        })
+        .catch(() => {});
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [modelAdapters, userModels]);
+
+  useEffect(() => {
+    if (!showModelDropdown) return;
+    function onDown(e: MouseEvent) {
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(e.target as Node) &&
+          !(e.target as Element)?.closest?.(".model-selector")) {
+        setShowModelDropdown(false);
+      }
+    }
+    function onKey(e: Event) {
+      if ("key" in e && e.key === "Escape") setShowModelDropdown(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [showModelDropdown]);
 
   function stopModelJobPoll() {
     if (modelJobPollRef.current) { clearInterval(modelJobPollRef.current); modelJobPollRef.current = null; }
@@ -424,99 +547,111 @@ export function SagentShell() {
       setChatResponse(null); setChatResponseLoading(true);
       setToolCalls([]);
     setSubmittedTask(t); setTask("");
-    setIsLoading(false);
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     const userMessage: {role: "user"; content: string} = {role: "user", content: t};
     setMessages(prev => [...prev, userMessage]);
 
-    // Versuche zuerst den Agent Loop mit Streaming
+    const selectedUserModel = userModels.find(um => um.id === selectedAdapter);
+    const cloudConfig = selectedUserModel ? {
+      endpoint: selectedUserModel.endpoint || undefined,
+      apiKey: selectedUserModel.apiKey,
+      model: selectedUserModel.model,
+      provider: selectedUserModel.provider,
+    } : undefined;
+
     try {
-      const response = await fetch(`${API_URL}/agent/execute/stream`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          task: t,
-          messages: messages.map(m => ({role: m.role, content: m.content})),
-        }),
-      });
-      if (!response.ok || !response.body) { setChatResponseLoading(false); return; }
+      // Versuche zuerst den Agent Loop mit Streaming
+      try {
+        const response = await fetch(`${API_URL}/agent/execute/stream`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            task: t,
+            messages: messages.map(m => ({role: m.role, content: m.content})),
+            safety_level: safetyLevel,
+            adapter_id: selectedAdapter || undefined,
+            cloud_config: cloudConfig,
+          }),
+        });
+        if (!response.ok || !response.body) { setChatResponseLoading(false); return; }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullText = "";
-      const toolCallLog: {name: string; args: string; result?: string}[] = [];
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = "";
+        let seenError = "";
+        const toolCallLog: {name: string; args: string; result?: string}[] = [];
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        for (const line of chunk.split("\n")) {
-          if (!line.startsWith("data: ")) continue;
-          try {
-            const event = JSON.parse(line.slice(6));
-            if (event.type === "text" && event.content) {
-              fullText += event.content;
-              setChatResponse(fullText);
-            } else if (event.type === "tool_call") {
-              setToolCalls(prev => [...prev, {name: event.name, status: "running"}]);
-              toolCallLog.push({name: event.name, args: event.args || "{}"});
-            } else if (event.type === "tool_result" && event.name) {
-              setToolCalls(prev => prev.map(tc =>
-                tc.name === event.name && tc.status === "running"
-                  ? {...tc, status: "done"} : tc
-              ));
-              const entry = toolCallLog.find(tc => tc.name === event.name && !tc.result);
-              if (entry) entry.result = event.result;
-            } else if (event.type === "error" && event.message) {
-              setChatResponse(fullText || event.message);
-            } else if (event.type === "done") {
-              let content = fullText || "Fertig.";
-              if (toolCallLog.length > 0) {
-                content += "\n\n---\n**Ausgeführte Werkzeuge:**\n";
-                for (const tc of toolCallLog) {
-                  let argsPreview = tc.args;
-                  try { const parsed = JSON.parse(tc.args); argsPreview = JSON.stringify(parsed, null, 2); } catch {}
-                  content += `\n🔧 \`${tc.name}\` ${argsPreview}\n`;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          for (const line of chunk.split("\n")) {
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const event = JSON.parse(line.slice(6));
+              if (event.type === "text" && event.content) {
+                fullText += event.content;
+                setChatResponse(fullText);
+              } else if (event.type === "tool_call") {
+                setToolCalls(prev => [...prev, {name: event.name, status: "running"}]);
+                toolCallLog.push({name: event.name, args: event.args || "{}"});
+              } else if (event.type === "tool_result" && event.name) {
+                setToolCalls(prev => prev.map(tc =>
+                  tc.name === event.name && tc.status === "running"
+                    ? {...tc, status: "done"} : tc
+                ));
+                const entry = toolCallLog.find(tc => tc.name === event.name && !tc.result);
+                if (entry) entry.result = event.result;
+              } else if (event.type === "error" && event.message) {
+                seenError = event.message;
+                setChatResponse(fullText || event.message);
+              } else if (event.type === "done") {
+                let content = fullText || seenError || "Fertig.";
+                if (toolCallLog.length > 0) {
+                  content += "\n\n---\n**Ausgeführte Werkzeuge:**\n";
+                  for (const tc of toolCallLog) {
+                    let argsPreview = tc.args;
+                    try { const parsed = JSON.parse(tc.args); argsPreview = JSON.stringify(parsed, null, 2); } catch {}
+                    content += `\n🔧 \`${tc.name}\` ${argsPreview}\n`;
+                  }
+                }
+                const assistantMsg = {role: "assistant" as const, content};
+                const newMsgs = [...messages, userMessage, assistantMsg];
+                setMessages(newMsgs);
+                setChatResponse(null);
+                setChatResponseLoading(false);
+                setToolCalls([]);
+                await saveCurrentConversation(newMsgs, t);
+                if (fullText.length > 20) {
+                  try { await fetch(`${API_URL}/memory/store`, {
+                    method: "POST", headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({text: fullText.slice(0, 2000), metadata: {category: "chat-response", type: "agent"}}),
+                  }); } catch {}
                 }
               }
-              const assistantMsg = {role: "assistant" as const, content};
-              const newMsgs = [...messages, userMessage, assistantMsg];
-              setMessages(newMsgs);
-              setChatResponseLoading(false);
-              setToolCalls([]);
-              saveCurrentConversation(newMsgs, t);
-              if (fullText.length > 20) {
-                try { await fetch(`${API_URL}/memory/store`, {
-                  method: "POST", headers: {"Content-Type": "application/json"},
-                  body: JSON.stringify({text: fullText.slice(0, 2000), metadata: {category: "chat-response", type: "agent"}}),
-                }); } catch {}
-              }
-            }
-          } catch {}
-        }
-      }
-      if (fullText && !chatResponse) {
-        let content = fullText;
-        if (toolCallLog.length > 0) {
-          content += "\n\n---\n**Ausgeführte Werkzeuge:**\n";
-          for (const tc of toolCallLog) {
-            let argsPreview = tc.args;
-            try { const parsed = JSON.parse(tc.args); argsPreview = JSON.stringify(parsed, null, 2); } catch {}
-            content += `\n🔧 \`${tc.name}\` ${argsPreview}\n`;
+            } catch {}
           }
         }
-        const assistantMsg = {role: "assistant" as const, content};
+      if (fullText && !chatResponse) {
+        const assistantMsg = {role: "assistant" as const, content: fullText};
         const newMsgs = [...messages, userMessage, assistantMsg];
         setMessages(newMsgs);
+        setChatResponse(null);
         setChatResponseLoading(false);
         setToolCalls([]);
-        saveCurrentConversation(newMsgs, t);
       }
     } catch {
+      if (controller.signal.aborted) return;
       // Fallback: direktes Model-Streaming ohne Agent Loop
       try {
         const streamR = await fetch(`${API_URL}/models/complete/stream`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: t }),
+          body: JSON.stringify({ prompt: t, adapter_id: selectedAdapter || undefined, cloud_config: cloudConfig }),
+          signal: controller.signal,
         });
         if (!streamR.ok || !streamR.body) { setChatResponseLoading(false); return; }
         const reader = streamR.body.getReader();
@@ -531,14 +666,14 @@ export function SagentShell() {
               try {
                 const data = JSON.parse(line.slice(6));
                 if (data.done) {
-                  setChatResponse(fullText);
-                  const assistantMsg = {role: "assistant" as const, content: fullText};
-                  const newMsgs = [...messages, userMessage, assistantMsg];
-                  setMessages(newMsgs);
-                  setChatResponseLoading(false);
-                  saveCurrentConversation(newMsgs, t);
-                  break;
-                }
+                    const assistantMsg = {role: "assistant" as const, content: fullText};
+                    const newMsgs = [...messages, userMessage, assistantMsg];
+                    setMessages(newMsgs);
+                    setChatResponse(null);
+                    setChatResponseLoading(false);
+                    await saveCurrentConversation(newMsgs, t);
+                    break;
+                  }
                 if (data.content) {
                   fullText += data.content;
                   setChatResponse(fullText);
@@ -552,17 +687,21 @@ export function SagentShell() {
           }
         }
         if (fullText && !chatResponse) {
-          setChatResponse(fullText);
           const assistantMsg = {role: "assistant" as const, content: fullText};
           const newMsgs = [...messages, userMessage, assistantMsg];
           setMessages(newMsgs);
+          setChatResponse(null);
           setChatResponseLoading(false);
-          saveCurrentConversation(newMsgs, t);
         }
-      } catch {
-        setChatResponse("Verbindung zur API fehlgeschlagen.");
-        setChatResponseLoading(false);
+        } catch {
+          if (controller.signal.aborted) return;
+          setChatResponse("Verbindung zur API fehlgeschlagen.");
+          setChatResponseLoading(false);
+        }
       }
+    } finally {
+      abortRef.current = null;
+      setIsLoading(false);
     }
   }
 
@@ -639,6 +778,17 @@ export function SagentShell() {
 
   return (
     <main className="app-shell">
+      {currentView === "settings" ? (
+        <SettingsPage
+          onBack={() => setCurrentView("chat")}
+          theme={theme}
+          onSetTheme={setTheme}
+          userModels={userModels}
+          onAddUserModel={handleAddUserModel}
+          onRemoveUserModel={handleRemoveUserModel}
+        />
+      ) : (
+        <>
       {/* ── Sidebar ── */}
       {sidebarOpen ? (
         <button
@@ -691,7 +841,8 @@ export function SagentShell() {
           setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, name: name.trim() || p.name } : p)));
           api.updateProject(id, { name: name.trim() }).catch(() => {});
         }}
-        onOpenSettings={() => setShowSettings(true)}
+        onOpenSettings={() => setCurrentView("settings")}
+        onOpenTools={toggleToolPanel}
         onOpenSearch={() => {}}
         account={accountData}
       />
@@ -712,19 +863,96 @@ export function SagentShell() {
               <List weight="regular" aria-hidden="true" />
             </button>
             <span className="topbar-brand">Sagent</span>
-            <button
-              type="button"
-              className="model-selector"
-              title="Lokale Modelle öffnen"
-              aria-expanded={showFeaturePanel === "model"}
-              onClick={() => {
-                setShowSettings(false);
-                setShowFeaturePanel(showFeaturePanel === "model" ? null : "model");
-              }}
-            >
-              <Brain weight="regular" />
-              <span>Lokales Modell</span>
-            </button>
+            <div className="model-selector-wrap">
+              <button
+                type="button"
+                className="model-selector"
+                title="Modell auswählen"
+                aria-expanded={showModelDropdown}
+                onClick={() => setShowModelDropdown(s => !s)}
+              >
+                <Brain weight="regular" />
+                <span>{selectedAdapterLabel || "Modell wählen"}</span>
+                {isSelectedRateLimited && <span className="badge badge-warning" style={{fontSize:10}}>Limit</span>}
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{marginLeft:2}}>
+                  <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </button>
+              {showModelDropdown && (
+                <div className="model-dropdown" ref={modelDropdownRef}>
+                  {localModels.length > 0 && (
+                    <>
+                      <div className="model-dropdown-section">Lokale Modelle</div>
+                      {localModels.map(m => {
+                    const st = modelStatus[m.adapter_id];
+                    const unavailable = st && !st.available;
+                    return (
+                    <button key={m.adapter_id} type="button"
+                      className={`model-dropdown-item${selectedAdapter === m.adapter_id ? " active" : ""}${unavailable ? " disabled" : ""}`}
+                      disabled={unavailable}
+                      onClick={() => { if (!unavailable) { setSelectedAdapter(m.adapter_id); setShowModelDropdown(false); } }}
+                      title={unavailable ? `Nicht verfügbar (Cooldown ${Math.ceil(st?.reset_in || st?.cooldown || 0)}s)` : ""}>
+                      <span className="model-dropdown-name">
+                        {m.model}
+                        {unavailable && <span className="model-dropdown-status">{Math.ceil(st?.reset_in || st?.cooldown || 0)}s</span>}
+                      </span>
+                      <span className="model-dropdown-provider">{m.provider}</span>
+                      {m.simulated && <span className="badge badge-warning">Simulation</span>}
+                      {!m.simulated && <span className="badge badge-success">Live</span>}
+                    </button>
+                    );
+                  })}
+                    </>
+                  )}
+                  {cloudModels.length > 0 && (
+                    <>
+                      <div className="model-dropdown-divider" />
+                      <div className="model-dropdown-section">Cloud Modelle</div>
+                      {cloudModels.map(m => {
+                    const st = modelStatus[m.adapter_id];
+                    const unavailable = st && !st.available;
+                    return (
+                      <button key={m.adapter_id} type="button"
+                        className={`model-dropdown-item${selectedAdapter === m.adapter_id ? " active" : ""}${unavailable ? " disabled" : ""}`}
+                        disabled={unavailable}
+                        onClick={() => { if (!unavailable) { setSelectedAdapter(m.adapter_id); setShowModelDropdown(false); } }}
+                        title={unavailable ? `Nicht verfügbar (Cooldown ${Math.ceil(st?.reset_in || st?.cooldown || 0)}s)` : ""}>
+                        <span className="model-dropdown-name">
+                          {m.model}
+                          {unavailable && <span className="model-dropdown-status">{Math.ceil(st?.reset_in || st?.cooldown || 0)}s</span>}
+                        </span>
+                        <span className="model-dropdown-provider">{m.provider}</span>
+                      </button>
+                    );
+                  })}
+                    </>
+                  )}
+                  {userModels.length > 0 && (
+                    <>
+                      <div className="model-dropdown-divider" />
+                      <div className="model-dropdown-section">Eigene Modelle</div>
+                      {userModels.map(um => {
+                    const st = modelStatus[um.id];
+                    const unavailable = st && !st.available;
+                    return (
+                      <button key={um.id} type="button"
+                        className={`model-dropdown-item${selectedAdapter === um.id ? " active" : ""}${unavailable ? " disabled" : ""}`}
+                        disabled={unavailable}
+                        onClick={() => { if (!unavailable) { setSelectedAdapter(um.id); setShowModelDropdown(false); } }}
+                        title={unavailable ? `Nicht verfügbar (Cooldown ${Math.ceil(st?.reset_in || st?.cooldown || 0)}s)` : ""}>
+                        <span className="model-dropdown-name">
+                          {um.label}
+                          {unavailable && <span className="model-dropdown-status">{Math.ceil(st?.reset_in || st?.cooldown || 0)}s</span>}
+                        </span>
+                        <span className="model-dropdown-provider">{um.provider}</span>
+                      </button>
+                    );
+                  })}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           <div className="topbar-right">
             <div className={`api-status${isApiOnline ? " online" : ""}`}>
@@ -749,28 +977,18 @@ export function SagentShell() {
                 </div>
               )}
             </div>
-            <button
-              type="button"
-              className="safety-btn icon-button"
-              title="Einstellungen öffnen"
-              aria-label="Einstellungen öffnen"
-              aria-expanded={showSettings}
-              onClick={() => {
-                setShowFeaturePanel(null);
-                setShowSettings(true);
-              }}
-            >
-              <Gear weight="regular" aria-hidden="true" />
-            </button>
-            <button type="button" className={`safety-btn tool-toggle${toolPanelOpen ? " active" : ""}`}
-              onClick={toggleToolPanel} title="Werkzeuge anzeigen" aria-label="Werkzeuge anzeigen" aria-expanded={toolPanelOpen}>
-              <Code weight="regular" aria-hidden="true" />
-            </button>
           </div>
         </header>
 
         {/* ── Chat Area ── */}
         <div className="chat-area">
+          {toastMessage && (
+            <div className="toast-notification" role="status">
+              <ArrowsClockwise weight="regular" />
+              <span>{toastMessage}</span>
+              <button type="button" className="toast-close" onClick={() => setToastMessage(null)} aria-label="Schließen">×</button>
+            </div>
+          )}
           <div className="messages">
             {messages.length === 0 && !submittedTask ? (
               <div className="empty-state">
@@ -879,58 +1097,21 @@ export function SagentShell() {
                 title="Datei anhängen">
                 <Plus weight="bold" aria-hidden="true" />
               </button>
-              <button type="submit" className="send-btn" disabled={!task.trim() || isLoading}
-                aria-label="Senden">
-                <ArrowUp weight="bold" aria-hidden="true" />
-              </button>
+              {chatResponseLoading ? (
+                <button type="button" className="send-btn cancel-btn" onClick={() => { abortRef.current?.abort(); setChatResponseLoading(false); }}
+                  aria-label="Abbrechen">
+                  <X weight="bold" aria-hidden="true" />
+                </button>
+              ) : (
+                <button type="submit" className="send-btn" disabled={!task.trim() || isLoading}
+                  aria-label="Senden">
+                  <ArrowUp weight="bold" aria-hidden="true" />
+                </button>
+              )}
             </div>
           </form>
 
           <div className="composer-hint">Shift + Enter für neue Zeile</div>
-
-          {/* ── Settings Panel ── */}
-          {showSettings && (
-            <div className="settings-panel">
-              <div className="settings-header">
-                <h2><Gear weight="regular" style={{ verticalAlign: "middle", marginRight: 8 }} />Einstellungen</h2>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowSettings(false)}>Schließen</button>
-              </div>
-
-              <div className="settings-section">
-                <h3>Design</h3>
-                <div className="theme-selector">
-                  {([["system", "System"], ["light", "Hell"], ["dark", "Dunkel"]] as [ThemeMode, string][]).map(([val, label]) => (
-                    <button key={val} type="button"
-                      className={`theme-option${theme === val ? " active" : ""}`}
-                      onClick={() => setTheme(val)}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="settings-section">
-                <h3>Werkzeuge</h3>
-                <div className="settings-tools">
-                  {featureTabs.map(f => (
-                    <button key={f.id} type="button"
-                      className={`settings-tool-btn${showFeaturePanel === f.id ? " active" : ""}`}
-                      onClick={() => {
-                        setShowSettings(false);
-                        setShowFeaturePanel(f.id);
-                      }}
-                      title={f.desc}>
-                      <f.icon weight="regular" />
-                      <div className="settings-tool-info">
-                        <strong>{f.label}</strong>
-                        <span>{f.desc}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* ── Feature Panels ── */}
           {showFeaturePanel && (
@@ -1334,6 +1515,7 @@ export function SagentShell() {
         </aside>
       )}
       </div>
+      </>)}
     </main>
   );
 }

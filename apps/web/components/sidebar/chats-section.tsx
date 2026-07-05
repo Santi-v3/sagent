@@ -19,7 +19,7 @@ export function ChatsSection({
 }: ChatsSectionProps) {
   const filtered = conversations
     .filter((c) => !c.projectId)
-    .sort((a, b) => b.updatedAt - a.updatedAt);
+    .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.updatedAt - a.updatedAt);
 
   return (
     <section className="sidebar-section" aria-label="Chats">

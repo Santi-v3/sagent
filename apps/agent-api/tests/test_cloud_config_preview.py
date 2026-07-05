@@ -9,6 +9,9 @@ from fastapi.testclient import TestClient
 from sagent_agent_api.main import app, get_cloud_config_preview
 
 client = TestClient(app)
+REPO_ROOT = Path(__file__).resolve().parents[3]
+CLOUD_CONFIG_SOURCE = REPO_ROOT / "packages/agent-core/src/sagent_agent_core/cloud_config.py"
+
 
 
 def test_config_preview_returns_disabled_defaults() -> None:
@@ -94,9 +97,7 @@ def test_config_preview_source_has_no_endpoint_or_network_literals() -> None:
     assert "Authorization" not in route_source
     assert "Bearer" not in route_source
 
-    module_source = Path(
-        "packages/agent-core/src/sagent_agent_core/cloud_config.py"
-    ).read_text("utf-8")
+    module_source = CLOUD_CONFIG_SOURCE.read_text("utf-8")
     assert "import os" not in module_source
     assert "import httpx" not in module_source
     assert "import socket" not in module_source

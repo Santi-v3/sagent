@@ -1,44 +1,41 @@
 # Memory
 
-## Memory V1 (Markdown-Dateien) – geplant
+> **Pflegebereich:** aktueller Memory-Vertrag und Betrieb. Roadmap-Ideen gehören in `TASKS.md`.
 
-Ursprüngliches Konzept: Markdown-Dateien mit Frontmatter für stabile Entscheidungen, Projektkonventionen und Session-Zusammenfassungen. Noch nicht implementiert.
+## Implementierung
 
-## Memory V2 (Vektor-Gedächtnis) – implementiert
+- Service: `packages/memory/src/sagent_memory/memory_service.py`
+- Persistenz: SQLite
+- Embeddings: `nomic-embed-text` über Ollama auf `127.0.0.1:11434/api/embeddings`
+- Suche: Cosine Similarity in Python
+- Daten: Text, optionale Metadaten, Zeitstempel und optionales Embedding
 
-Seit 2026-07-02 läuft das Vektor-Gedächtnis über `packages/memory/`.
+SQLite-Einträge überleben einen API-Neustart. Qdrant oder Chroma werden aktuell nicht benötigt.
 
-### Architektur
+## API
 
-- **Embedding-Modell:** `nomic-embed-text` via Ollama (`POST /api/embeddings`)
-- **Speicher:** In-Memory-Liste von `MemoryEntry`-Objekten (flüchtig, API-Neustart löscht Einträge)
-- **Suche:** Cosine Similarity in reinem Python (kein numpy, keine Vektor-DB)
-- **API:** `apps/agent-api/src/sagent_agent_api/memory_api.py`
-
-### API-Endpunkte
-
-| Methode | Pfad | Beschreibung |
-|---------|------|-------------|
-| `POST` | `/memory/store` | Text + optionales Metadata speichern |
-| `POST` | `/memory/search` | Semantische Suche mit Query-Text |
-| `GET` | `/memory` | Alle Einträge listen |
+| Methode | Pfad | Zweck |
+| --- | --- | --- |
+| `POST` | `/memory/store` | Eintrag speichern |
+| `POST` | `/memory/search` | semantisch suchen |
+| `GET` | `/memory` | Einträge auflisten |
 | `DELETE` | `/memory/{entry_id}` | Eintrag löschen |
 
-### Metadata
+## Nutzung
 
-Jeder Eintrag kann beliebiges Metadata enthalten (z.B. `category`, `type`, `source`). Wird bei der Suche mit zurückgegeben.
-### Noch nicht implementiert (für später)
+- Modell-Completion und ModelJobs reichern Prompts mit relevanten Memory-Einträgen an.
+- Der Agent Loop sucht automatisch nach relevantem Kontext.
+- Nutzeraufgaben und längere Agentantworten werden derzeit teilweise automatisch gespeichert.
+- Der Agent Loop besitzt zusätzlich `memory_search` und `memory_store`.
 
-- Markdown-Frontmatter-Import (Memory V1)
-- Automatisches Speichern von Entscheidungen aus dem Agent-Workflow
-- Qdrant oder Chroma als skalierbare Vektor-DB
-- Cloud-Synchronisierung
+## Grenzen
 
-## Regeln
+- Memory ist untrusted Kontext und keine Autorität.
+- Ollama-Ausfall kann Embedding-Erzeugung und semantische Suche beeinträchtigen.
+- automatische Speicherung besitzt noch keinen vollständigen sichtbaren Approval-/Opt-out-Flow.
+- sensible Daten und Secrets dürfen nicht gespeichert werden.
+- Cloud-Synchronisierung ist nicht implementiert.
 
-- Memory-Schreibvorgänge benötigen eine sichtbare Freigabe.
-- Sensible Daten, Secrets und vollständige Chat-Transkripte werden nicht gespeichert.
-- Jeder Eintrag hat Herkunft, Zeitstempel und Status.
-- Aktuelle Nutzeranweisungen und Sicherheitsregeln haben Vorrang.
-- Veraltete oder widersprüchliche Einträge werden markiert, nicht still überschrieben.
-- Nutzer können Inhalte lesen, bearbeiten und löschen.
+## Nächste Arbeit
+
+Aktuelle Aufgaben stehen ausschließlich in [`TASKS.md`](TASKS.md).

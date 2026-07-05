@@ -1,5 +1,5 @@
 export function formatRelativeTime(input: string | number | Date): string {
-  const date = input instanceof Date ? input : new Date(input);
+  const date = input instanceof Date ? input : new Date(typeof input === "number" && input < 1e12 ? input * 1000 : input);
   const diffMs = Date.now() - date.getTime();
   if (Number.isNaN(diffMs)) return "";
 

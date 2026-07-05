@@ -39,7 +39,7 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
     onDeleteConversation, onRenameConversation, onTogglePinConversation,
     onAssignConversationToProject,
     onCreateProject, onDeleteProject, onRenameProject,
-    onOpenSettings, onOpenSearch,
+    onOpenSettings, onOpenTools, onOpenSearch,
     onSelectProject,
     account, initialCollapsed = false,
     className = "",
@@ -192,6 +192,7 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
           account={account}
           onSelectMenuItem={(id) => {
             if (id === "settings") onOpenSettings();
+            if (id === "tools") onOpenTools();
           }}
         />
       )}
