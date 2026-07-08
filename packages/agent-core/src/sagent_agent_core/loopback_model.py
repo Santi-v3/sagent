@@ -239,21 +239,58 @@ class LoopbackOpenAIChatAdapter:
 
     def _request_payload(self, request: ModelRequest) -> dict[str, object]:
         messages = []
-        for part in request.parts:
-            if part.source is ModelInputSource.POLICY:
-                role = "system"
-            elif part.source is ModelInputSource.ASSISTANT:
-                role = "assistant"
-            else:
-                role = "user"
-            content = part.content
-            if part.source not in {
-                ModelInputSource.POLICY,
-                ModelInputSource.USER,
-                ModelInputSource.ASSISTANT,
-            }:
-                content = f"[Sagent source: {part.source.value}; untrusted]\n{content}"
-            messages.append({"role": role, "content": content})
+        has_images = any(part.source is ModelInputSource.IMAGE for part in request.parts)
+        if has_images:
+            # Multi-modal: build content arrays per role
+            current_role = "user"
+            current_content: list[dict] = []
+            for part in request.parts:
+                if part.source is ModelInputSource.IMAGE:
+                    if current_role != "user":
+                        if current_content:
+                            messages.append({"role": current_role, "content": current_content})
+                        current_content = []
+                        current_role = "user"
+                    img_url = part.content if part.content.startswith("data:") else f"data:image/png;base64,{part.content}"
+                    current_content.append({"type": "image_url", "image_url": {"url": img_url}})
+                else:
+                    if part.source is ModelInputSource.POLICY:
+                        role = "system"
+                    elif part.source is ModelInputSource.ASSISTANT:
+                        role = "assistant"
+                    else:
+                        role = "user"
+                    text = part.content
+                    if part.source not in {
+                        ModelInputSource.POLICY,
+                        ModelInputSource.USER,
+                        ModelInputSource.ASSISTANT,
+                    }:
+                        text = f"[Sagent source: {part.source.value}; untrusted]\n{text}"
+                    if role != current_role:
+                        if current_content:
+                            messages.append({"role": current_role, "content": current_content})
+                        current_content = []
+                        current_role = role
+                    current_content.append({"type": "text", "text": text})
+            if current_content:
+                messages.append({"role": current_role, "content": current_content})
+        else:
+            for part in request.parts:
+                if part.source is ModelInputSource.POLICY:
+                    role = "system"
+                elif part.source is ModelInputSource.ASSISTANT:
+                    role = "assistant"
+                else:
+                    role = "user"
+                content = part.content
+                if part.source not in {
+                    ModelInputSource.POLICY,
+                    ModelInputSource.USER,
+                    ModelInputSource.ASSISTANT,
+                }:
+                    content = f"[Sagent source: {part.source.value}; untrusted]\n{content}"
+                messages.append({"role": role, "content": content})
         return {
             "model": self.model,
             "messages": messages,

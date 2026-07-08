@@ -99,7 +99,14 @@ from sagent_agent_core.models import (
     ChangeSetStatus,
     FileChange,
 )
-from sagent_agent_core.tool_registry import ToolDef, ToolRegistry
+from sagent_agent_core.mcp_client import list_mcp_tools, mcp_session, register_mcp_tools
+from sagent_agent_core.tool_registry import (
+    ToolDef,
+    ToolPermission,
+    ToolPermissionManager,
+    ToolRegistry,
+    ToolResult,
+)
 from sagent_tools import FileAccessError, FileTool, WorkspaceGuard, WorkspaceSecurityError
 
 __all__ = [
@@ -183,7 +190,13 @@ __all__ = [
     "SYNTHETIC_BENCHMARK_TASKS",
     "SyntheticBenchmarkTask",
     "ToolDef",
+    "ToolPermission",
+    "ToolPermissionManager",
     "ToolRegistry",
+    "ToolResult",
+    "list_mcp_tools",
+    "mcp_session",
+    "register_mcp_tools",
     "WorkspaceGuard",
     "WorkspaceSecurityError",
     "get_local_provider_profile",

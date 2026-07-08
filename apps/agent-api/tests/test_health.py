@@ -14,4 +14,5 @@ def test_health_returns_local_service_status() -> None:
     assert response.json() == {
         "status": "ok",
         "service": "sagent-agent-api",
+        "auth_enabled": False,
     }

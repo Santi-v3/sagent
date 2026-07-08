@@ -126,6 +126,7 @@ class ModelInputSource(StrEnum):
     WORKSPACE = "workspace"
     MEMORY = "memory"
     TOOL_RESULT = "tool_result"
+    IMAGE = "image"
 
 
 class ModelTransport(StrEnum):
@@ -173,6 +174,7 @@ class ModelRequest:
     temperature: float = 0.0
     stream: bool = False
     request_id: UUID = field(default_factory=uuid4)
+    tools: tuple[dict, ...] | None = None
 
     def __post_init__(self) -> None:
         if not self.parts:
@@ -226,6 +228,7 @@ class ModelResponse:
     content: str
     finish_reason: ModelFinishReason
     usage: ModelUsage
+    tool_calls: tuple[dict, ...] | None = None
     untrusted: bool = field(default=True, init=False)
 
     def __post_init__(self) -> None:

@@ -35,3 +35,7 @@ build/
 
 # Logs
 *.log
+
+# Desktop build artifacts
+apps/desktop/release/
+apps/desktop/web-out/

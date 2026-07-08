@@ -26,6 +26,7 @@ from sagent_tools.runner import (
     TestRunnerBusyError,
 )
 from sagent_tools.workspace import WorkspaceGuard, WorkspaceSecurityError
+from sagent_tools.mcp_server import main as run_mcp_server
 
 __all__ = [
     "FileAccessError",
@@ -52,4 +53,5 @@ __all__ = [
     "WorkspaceGuard",
     "WorkspaceSecurityError",
     "redact_secrets",
+    "run_mcp_server",
 ]

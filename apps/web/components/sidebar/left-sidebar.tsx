@@ -39,7 +39,7 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
     onDeleteConversation, onRenameConversation, onTogglePinConversation,
     onAssignConversationToProject,
     onCreateProject, onDeleteProject, onRenameProject,
-    onOpenSettings, onOpenTools, onOpenSearch,
+    onOpenSettings, onOpenTools, onOpenSearch, onOpenExtensions,
     onSelectProject,
     account, initialCollapsed = false,
     className = "",
@@ -139,6 +139,7 @@ export function LeftSidebar(props: LeftSidebarProps & { className?: string }) {
         collapsed={collapsed}
         onNewChat={onNewChat}
         onOpenSearch={() => { setSearchModalOpen(true); onOpenSearch(); }}
+        onOpenExtensions={onOpenExtensions}
       />
 
       {!collapsed && (

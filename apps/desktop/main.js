@@ -9,7 +9,7 @@ const os = require("os");
 const DEV = !app.isPackaged;
 let WEB_PORT = 3000;
 const API_PORT = 8765;
-const STATE_PATH = `${os.homedir()}/.sagent/window-state.json`;
+const STATE_PATH = path.join(os.homedir(), ".sagent", "window-state.json");
 
 let mainWindow = null;
 let splashWindow = null;
@@ -28,7 +28,13 @@ const MIME_TYPES = {
   ".ico": "image/x-icon",
 };
 
-const COMMON_PATHS = [
+const isWin = process.platform === "win32";
+const isMac = process.platform === "darwin";
+
+const COMMON_PATHS = isWin ? [
+  `${os.homedir()}\\AppData\\Local\\Programs\\Python\\Python313`,
+  `${os.homedir()}\\AppData\\Local\\Programs\\Python\\Python312`,
+] : [
   "/opt/homebrew/bin",
   "/usr/local/bin",
   `${os.homedir()}/.local/bin`,
@@ -85,15 +91,16 @@ function closeSplash() {
 }
 
 function findUv() {
+  const uvName = isWin ? "uv.exe" : "uv";
   for (const dir of COMMON_PATHS) {
-    const p = `${dir}/uv`;
+    const p = path.join(dir, uvName);
     if (fs.existsSync(p)) return p;
   }
   return "uv";
 }
 
 function augmentPath() {
-  return [...COMMON_PATHS, process.env.PATH || ""].join(":");
+  return [...COMMON_PATHS, process.env.PATH || ""].join(path.delimiter);
 }
 
 function packagesDir() {
@@ -103,14 +110,14 @@ function packagesDir() {
 function startBackend() {
   const apiDir = path.resolve(__dirname, DEV ? "../../apps/agent-api" : "../agent-api");
   const pkgsDir = packagesDir();
-  const sagentDir = `${os.homedir()}/.sagent`;
-  const venvDir = `${sagentDir}/venv`;
+  const sagentDir = path.join(os.homedir(), ".sagent");
+  const venvDir = path.join(sagentDir, "venv");
   const pythonPath = [
-    `${apiDir}/src`,
-    `${pkgsDir}/tools/src`,
-    `${pkgsDir}/agent-core/src`,
-    `${pkgsDir}/memory/src`,
-  ].join(":");
+    path.join(apiDir, "src"),
+    path.join(pkgsDir, "tools", "src"),
+    path.join(pkgsDir, "agent-core", "src"),
+    path.join(pkgsDir, "memory", "src"),
+  ].join(path.delimiter);
 
   const baseEnv = {
     ...process.env,
@@ -120,7 +127,7 @@ function startBackend() {
   };
 
   const uvBin = findUv();
-  const venvPython = `${venvDir}/bin/python3`;
+  const venvPython = isWin ? path.join(venvDir, "Scripts", "python.exe") : path.join(venvDir, "bin", "python3");
 
   updateSplash("Backend startet...");
 
@@ -214,7 +221,7 @@ function createMainWindow(url) {
     width: state.width, height: state.height, x: state.x, y: state.y,
     minWidth: 900, minHeight: 600,
     title: "Sagent",
-    titleBarStyle: "hiddenInset",
+    titleBarStyle: isMac ? "hiddenInset" : "default",
     show: false,
     webPreferences: { nodeIntegration: false, contextIsolation: true },
   });

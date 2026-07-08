@@ -17,6 +17,7 @@ from time import monotonic
 from typing import BinaryIO
 from uuid import UUID, uuid4
 
+from sagent_tools._proc import create_process_kwargs, kill_process_group
 from sagent_tools.files import FileAccessError, FileTool
 from sagent_tools.redaction import redact_secrets
 from sagent_tools.workspace import WorkspaceGuard, WorkspaceSecurityError
@@ -507,7 +508,7 @@ class GitTool:
                 "HOME": temp_home,
                 "LANG": "C.UTF-8",
                 "LC_ALL": "C.UTF-8",
-                "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+                "PATH": os.environ.get("PATH", ""),
             }
             try:
                 process = subprocess.Popen(  # noqa: S603 - exact internal Git argv.
@@ -519,7 +520,7 @@ class GitTool:
                     stderr=subprocess.PIPE,
                     shell=False,
                     close_fds=True,
-                    start_new_session=True,
+                    **create_process_kwargs(),
                 )
             except OSError as error:
                 raise GitCommandError("Git process could not be started.") from error
@@ -533,10 +534,7 @@ class GitTool:
             try:
                 returncode = process.wait(timeout=self.timeout_seconds)
             except subprocess.TimeoutExpired as error:
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
+                kill_process_group(process)
                 process.wait()
                 raise GitCommandError("Git command exceeded its timeout.") from error
             finally:

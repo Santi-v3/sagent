@@ -11,6 +11,7 @@ no shell=True, no git, no network, no cloud, no model calls.
 
 import hashlib
 import os
+import platform
 import signal
 import subprocess
 import sys
@@ -254,8 +255,8 @@ def _run_process(state: TestRunState, cmd: TestCommand) -> None:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 shell=False,
-                close_fds=True,
-                start_new_session=True,
+                close_fds=platform.system() != "Windows",
+                **({} if platform.system() == "Windows" else {"start_new_session": True}),
             )
         except OSError as error:
             state.error = "Test process could not be started."
@@ -292,6 +293,7 @@ def _run_process(state: TestRunState, cmd: TestCommand) -> None:
 
 
 def _sanitized_environment(temp_home: Path) -> dict[str, str]:
+    is_win = platform.system() == "Windows"
     return {
         "CI": "1",
         "ALL_PROXY": "http://127.0.0.1:9",
@@ -302,11 +304,13 @@ def _sanitized_environment(temp_home: Path) -> dict[str, str]:
         "LC_ALL": "C.UTF-8",
         "NO_COLOR": "1",
         "NO_PROXY": "",
-        "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+        "PATH": os.environ.get("PATH", ""),
         "PYTHONDONTWRITEBYTECODE": "1",
         "PYTHONPYCACHEPREFIX": str(temp_home / "pycache"),
         "PYTHONUNBUFFERED": "1",
         "TMPDIR": str(temp_home),
+        "TEMP": str(temp_home),
+        "TMP": str(temp_home),
         "all_proxy": "http://127.0.0.1:9",
         "http_proxy": "http://127.0.0.1:9",
         "https_proxy": "http://127.0.0.1:9",
@@ -331,10 +335,13 @@ def _capture_output(
 
 
 def _terminate_process_group(process: subprocess.Popen) -> None:
-    try:
-        os.killpg(process.pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
+    if platform.system() == "Windows":
+        process.kill()
+    else:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
 
 
 def get_test_run(test_run_id: UUID) -> TestRunState:

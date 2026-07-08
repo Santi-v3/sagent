@@ -41,6 +41,7 @@ export type LeftSidebarProps = {
   onOpenSettings: () => void;
   onOpenTools: () => void;
   onOpenSearch: () => void;
+  onOpenExtensions: () => void;
   onSelectProject?: (id: string) => void;
   account: SidebarAccount;
   initialCollapsed?: boolean;

@@ -2,7 +2,7 @@
   "name": "sagent",
   "version": "0.0.0",
   "private": true,
-  "description": "Local-first, Mac-first personal AI agent",
+  "description": "Local-first personal AI agent",
   "packageManager": "pnpm@11.7.0",
   "engines": {
     "node": ">=22",

@@ -6,7 +6,7 @@ import {
   Lightbulb, Play, ShieldCheck,
   TerminalWindow, Warning, WarningCircle, X, XCircle,
   Plus, Brain, Wrench, BookOpen,
-  List, ImageSquare, Camera,
+  List, ImageSquare, Camera, SpeakerHigh,
 } from "@phosphor-icons/react";
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 
@@ -14,6 +14,14 @@ import { CapabilityPolicyPreview } from "@/components/capability-policy-preview"
 import { CloudApprovalPreview } from "@/components/cloud-approval-preview";
 import { CodeEditPreviewPanel } from "@/components/code-edit-preview-panel";
 import { SettingsPage, type UserModelConfig } from "@/components/settings/settings-page";
+import { ConversationToolPerms } from "@/components/chat/conversation-tool-perms";
+import { ToolPreviewPanel } from "@/components/chat/tool-preview-panel";
+import { SyntaxHighlight, detectLanguage } from "@/components/chat/syntax-highlight";
+import { DiffViewer } from "@/components/chat/diff-viewer";
+import { ArtifactView } from "@/components/chat/artifact-view";
+import { UsageDashboard } from "@/components/usage-dashboard";
+import { AutonomousModePanel } from "@/components/autonomous-panel";
+import { ExtensionsPage } from "@/components/extensions/extensions-page";
 import { LeftSidebar } from "@/components/sidebar/left-sidebar";
 import { api } from "@/lib/api-client";
 import type { SidebarConversation } from "@/lib/api-client";
@@ -59,6 +67,8 @@ const featureTabs = [
   { id: "tests", icon: Play, label: "Tests", desc: "Test-Runner" },
   { id: "model", icon: Brain, label: "Model", desc: "Lokale Modelle & Jobs" },
   { id: "memory", icon: BookOpen, label: "Memory", desc: "Vektor-Gedächtnis (MVP 3)" },
+  { id: "usage", icon: Play, label: "Usage", desc: "Modell-Verbrauch & Statistiken" },
+  { id: "autonomous", icon: Lightbulb, label: "Auto", desc: "Autonomer Modus & Vorschläge" },
   { id: "cloud", icon: ShieldCheck, label: "Cloud", desc: "Cloud-Provider & Konfiguration" },
 ];
 
@@ -76,30 +86,60 @@ function renderInlineMarkdown(text: string) {
   });
 }
 
-function ChatMessageContent({ content }: { content: string }) {
-  const lines = content.replace(/\r\n/g, "\n").split("\n");
-  const blocks: React.ReactNode[] = [];
+function CodeBlock({ code, lang }: { code: string; lang?: string }) {
+  const isDiff = code.startsWith("diff --git") || (code.includes("\n---") && code.includes("\n+++"));
+  if (isDiff) return <DiffViewer diff={code} />;
+  return (
+    <pre className="code-block">
+      <div className="code-block-header">
+        <span className="code-block-lang">{lang || detectLanguage(code)}</span>
+        <button type="button" className="code-block-copy" onClick={() => navigator.clipboard.writeText(code)}>
+          Kopieren
+        </button>
+      </div>
+      <SyntaxHighlight code={code} language={lang} />
+    </pre>
+  );
+}
 
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index].trimEnd();
+function ChatMessageContent({ content }: { content: string }) {
+  const raw = content.replace(/\r\n/g, "\n");
+  const blocks: React.ReactNode[] = [];
+  let idx = 0;
+
+  while (idx < raw.length) {
+    const fencedMatch = raw.slice(idx).match(/^```(\w*)\s*\n([\s\S]*?)```/m);
+    if (fencedMatch && fencedMatch.index === 0) {
+      const lang = fencedMatch[1] || "";
+      const code = fencedMatch[2];
+      blocks.push(<CodeBlock key={`cb-${idx}`} code={code} lang={lang} />);
+      idx += fencedMatch[0].length;
+      continue;
+    }
+
+    const newlineIdx = raw.indexOf("\n", idx);
+    const line = raw.slice(idx, newlineIdx === -1 ? undefined : newlineIdx).trimEnd();
+    idx = newlineIdx === -1 ? raw.length : newlineIdx + 1;
+
     if (!line.trim()) continue;
 
     if (line.trim() === "---") {
-      blocks.push(<hr key={`rule-${index}`} />);
+      blocks.push(<hr key={`hr-${idx}`} />);
       continue;
     }
 
     if (line.trimStart().startsWith("🔧")) {
       const toolLines = [line];
-      while (index + 1 < lines.length) {
-        const nextLine = lines[index + 1];
+      while (idx < raw.length) {
+        const nextNewline = raw.indexOf("\n", idx);
+        const nextLine = raw.slice(idx, nextNewline === -1 ? undefined : nextNewline).trimEnd();
         if (!nextLine.trim() && toolLines.at(-1)?.trim() === "}") break;
-        index += 1;
+        idx = nextNewline === -1 ? raw.length : nextNewline + 1;
         if (nextLine.trim()) toolLines.push(nextLine);
         if (nextLine.trim() === "}") break;
       }
       blocks.push(
-        <div className="tool-output-block" key={`tool-${index}`}>
+        <div className="tool-output-block" key={`tool-${idx}`}>
           <div className="tool-output-title">
             <Wrench weight="regular" aria-hidden="true" />
             {renderInlineMarkdown(toolLines[0].replace(/^\s*🔧\s*/, ""))}
@@ -110,7 +150,7 @@ function ChatMessageContent({ content }: { content: string }) {
       continue;
     }
 
-    blocks.push(<p key={`line-${index}`}>{renderInlineMarkdown(line)}</p>);
+    blocks.push(<p key={`p-${idx}`}>{renderInlineMarkdown(line)}</p>);
   }
 
   return <div className="model-chat-text">{blocks}</div>;
@@ -126,10 +166,13 @@ export function SagentShell() {
   const [isLoading, setIsLoading] = useState(false);
   const [isApprovalLoading, setIsApprovalLoading] = useState(false);
   const [isApiOnline, setIsApiOnline] = useState(false);
+  const [mcpRunning, setMcpRunning] = useState(false);
   const [chatResponse, setChatResponse] = useState<string | null>(null);
   const [chatResponseLoading, setChatResponseLoading] = useState(false);
   const [messages, setMessages] = useState<{role: "user" | "assistant"; content: string}[]>([]);
   const [toolCalls, setToolCalls] = useState<{name: string; status: "running" | "done"}[]>([]);
+  const [toolPreviews, setToolPreviews] = useState<{name: string; preview: string; high_risk: boolean; iteration: number}[]>([]);
+  const [projectContext, setProjectContext] = useState<{root: string | null; files_loaded: number} | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
 
@@ -144,9 +187,11 @@ export function SagentShell() {
     ],
   });
 
-  const [currentView, setCurrentView] = useState<"chat" | "settings">("chat");
+  const [currentView, setCurrentView] = useState<"chat" | "settings" | "extensions">("chat");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>("system");
+  const [splitViewEnabled, setSplitViewEnabled] = useState(false);
+  const [selectedArtifactIndex, setSelectedArtifactIndex] = useState(0);
 
   const [testProfiles, setTestProfiles] = useState<TestProfile[]>([]);
   const [selectedTestProfileId, setSelectedTestProfileId] = useState("");
@@ -155,6 +200,8 @@ export function SagentShell() {
   const [isTestProfilesLoading, setIsTestProfilesLoading] = useState(false);
   const [isTestLoading, setIsTestLoading] = useState(false);
   const [retryTest, setRetryTest] = useState(false);
+  const [routingInfo, setRoutingInfo] = useState<{target: string; reason: string} | null>(null);
+  const [convToolPerms, setConvToolPerms] = useState<Record<string, string>>({});
   const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
   const [gitDiff, setGitDiff] = useState<GitDiffState | null>(null);
   const [gitError, setGitError] = useState("");
@@ -169,6 +216,7 @@ export function SagentShell() {
   const [safetyLevel, setSafetyLevel] = useState<SafetyLevel>("balanced");
   const [showSafetyMenu, setShowSafetyMenu] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showFeaturePanel, setShowFeaturePanel] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -176,6 +224,7 @@ export function SagentShell() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [toolPanelOpen, setToolPanelOpen] = useState(false);
+  const [artifacts, setArtifacts] = useState<{path: string; content: string; sizeBytes: number}[]>([]);
   const [toolTabs, setToolTabs] = useState<{id: string; label: string; icon: string}[]>([]);
   const [activeToolTab, setActiveToolTab] = useState<string | null>(null);
 
@@ -184,9 +233,27 @@ export function SagentShell() {
   const [selectedAdapter, setSelectedAdapter] = useState<string>("");
   const [showModelDropdown, setShowModelDropdown] = useState(false);
   const modelDropdownRef = useRef<HTMLDivElement>(null);
+  const [showModelSettings, setShowModelSettings] = useState(false);
+  const modelSettingsRef = useRef<HTMLDivElement>(null);
+  const [convTemperature, setConvTemperature] = useState<number>(0.7);
+  const [convMaxTokens, setConvMaxTokens] = useState<number>(2048);
+  const [convSystemPrompt, setConvSystemPrompt] = useState<string>("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFallbackSelectedRef = useRef<string | null>(null);
+  const [toolTemplates, setToolTemplates] = useState<{id: string; name: string; category: string; description: string; prompt_hint: string}[]>([]);
+  const [showTemplatePicker, setShowTemplatePicker] = useState<{name: string} | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [templateParams, setTemplateParams] = useState<Record<string, string>>({});
+  const [previewCode, setPreviewCode] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [missingTools, setMissingTools] = useState<{name: string}[]>([]);
+  const [cloudConfirmDialog, setCloudConfirmDialog] = useState<{
+    provider: string;
+    model: string;
+    endpoint: string;
+    resolve: (confirmed: boolean) => void;
+  } | null>(null);
 
   const localModels = modelAdapters.filter(m => m.transport !== "remote_http");
   const cloudModels = modelAdapters.filter(m => m.transport === "remote_http");
@@ -206,6 +273,15 @@ export function SagentShell() {
   useEffect(() => {
     localStorage.setItem("sagent-user-models", JSON.stringify(userModels));
   }, [userModels]);
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Track if window was focused during task
 
   const allModels = [
     ...modelAdapters,
@@ -276,7 +352,7 @@ export function SagentShell() {
     isCreatingConvRef.current = false;
     setSubmittedTask(""); setResult(null); setError(""); setTask("");
     setChatResponse(null); setChatResponseLoading(false); setMessages([]);
-    setToolCalls([]); setActiveConvId(null);
+    setToolCalls([]); setActiveConvId(null); setArtifacts([]);
     setSidebarOpen(false);
   }
 
@@ -289,10 +365,99 @@ export function SagentShell() {
     setSidebarOpen(false);
   }
 
+  const [installedTools, setInstalledTools] = useState<{name: string; status: string; description: string}[]>([]);
+  const [installedToolsLoading, setInstalledToolsLoading] = useState(false);
+
+  async function fetchInstalledTools() {
+    setInstalledToolsLoading(true);
+    try {
+      const r = await fetch(`${API_URL}/tools/installed`);
+      if (r.ok) setInstalledTools(await r.json());
+    } catch {}
+    finally { setInstalledToolsLoading(false); }
+  }
+
+  async function fetchTemplates() {
+    try {
+      const r = await fetch(`${API_URL}/tools/templates`);
+      if (r.ok) setToolTemplates(await r.json());
+    } catch {}
+  }
+
+  async function installTool(name: string, description: string, templateId?: string) {
+    try {
+      const body: Record<string, unknown> = { name, description, use_llm: false };
+      if (templateId) {
+        body.template_id = templateId;
+        if (Object.keys(templateParams).length > 0) body.template_params = templateParams;
+      }
+      const r = await fetch(`${API_URL}/tools/install-auto`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (r.ok) {
+        await fetchInstalledTools();
+        setSelectedTemplate("");
+        setTemplateParams({});
+        setShowTemplatePicker(null);
+        setToolTabs(prev => {
+          if (prev.some(t => t.id === "tools")) return prev;
+          return [...prev, { id: "tools", label: "Tools", icon: "🔧" }];
+        });
+        setActiveToolTab("tools");
+      }
+    } catch {}
+  }
+
+  async function uninstallTool(name: string) {
+    try {
+      await fetch(`${API_URL}/tools/installed/${encodeURIComponent(name)}`, { method: "DELETE" });
+      await fetchInstalledTools();
+    } catch {}
+  }
+
+  const speak = useCallback((text: string) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text.replace(/<[^>]*>/g, "").slice(0, 1000));
+    utterance.lang = "de-DE";
+    utterance.rate = 1.0;
+    window.speechSynthesis.speak(utterance);
+  }, []);
+
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<{ start: () => void; stop: () => void; onresult: ((event: { results: SpeechRecognitionResultList }) => void) | null; onerror: ((event: { error: string }) => void) | null; onend: (() => void) | null } | null>(null);
+
+  const startListening = useCallback(() => {
+    const SpeechRecognition = (window as unknown as Record<string, unknown>).SpeechRecognition || (window as unknown as Record<string, unknown>).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    const recognition = new (SpeechRecognition as new () => { start: () => void; stop: () => void; continuous: boolean; interimResults: boolean; lang: string; onresult: ((event: { results: SpeechRecognitionResultList }) => void) | null; onerror: ((event: { error: string }) => void) | null; onend: (() => void) | null })();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "de-DE";
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let i = event.results.length - 1; i >= 0; i--) {
+        transcript = event.results[i][0].transcript + transcript;
+      }
+      setTask(prev => prev + transcript);
+    };
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
+  }, []);
+
+  const stopListening = useCallback(() => {
+    recognitionRef.current?.stop();
+    setListening(false);
+  }, []);
+
   const [memoryInput, setMemoryInput] = useState("");
   const [memoryCategory, setMemoryCategory] = useState("");
   const [memoryQuery, setMemoryQuery] = useState("");
-  const [memoryResults, setMemoryResults] = useState<{id: string; text: string; metadata: Record<string, string | number | boolean>; created_at: number; score: number | null}[]>([]);
+  const [memoryResults, setMemoryResults] = useState<{id: string; text: string; metadata: Record<string, string | number | boolean>; created_at: number; score: number | null; parent_id: string | null}[]>([]);
   const [memoryLoading, setMemoryLoading] = useState(false);
   const [memorySearching, setMemorySearching] = useState(false);
 
@@ -317,9 +482,11 @@ export function SagentShell() {
     if (!q) return;
     setMemorySearching(true);
     try {
-      const r = await fetch(`${API_URL}/memory/search`, {
+      const body: Record<string, unknown> = { query: q, n_groups: 10 };
+      if (memoryCategory.trim()) body.category = memoryCategory.trim();
+      const r = await fetch(`${API_URL}/memory/search/grouped`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: q, n_results: 20 }),
+        body: JSON.stringify(body),
       });
       if (r.ok) setMemoryResults(await r.json());
     } catch {}
@@ -471,6 +638,24 @@ export function SagentShell() {
     };
   }, [showModelDropdown]);
 
+  useEffect(() => {
+    if (!showModelSettings) return;
+    function onDown(e: MouseEvent) {
+      if (modelSettingsRef.current && !modelSettingsRef.current.contains(e.target as Node)) {
+        setShowModelSettings(false);
+      }
+    }
+    function onKey(e: Event) {
+      if ("key" in e && e.key === "Escape") setShowModelSettings(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [showModelSettings]);
+
   function stopModelJobPoll() {
     if (modelJobPollRef.current) { clearInterval(modelJobPollRef.current); modelJobPollRef.current = null; }
   }
@@ -525,6 +710,17 @@ export function SagentShell() {
     return () => stopModelJobPoll();
   }, []);
 
+  useEffect(() => {
+    fetch(`${API_URL}/agent/project-context`, { method: "POST" })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.root) setProjectContext(d); })
+      .catch(() => {});
+    fetch(`${API_URL}/mcp/status`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setMcpRunning(d.running); })
+      .catch(() => {});
+  }, []);
+
   const loadTestProfiles = useCallback(async () => {
     setIsTestProfilesLoading(true); setTestProfileError("");
     try {
@@ -538,14 +734,31 @@ export function SagentShell() {
     finally { setIsTestProfilesLoading(false); }
   }, []);
 
+  const handleMcpToggle = useCallback(async () => {
+    if (mcpRunning) {
+      await fetch(`${API_URL}/mcp/stop`, { method: "POST" });
+      setMcpRunning(false);
+    } else {
+      const r = await fetch(`${API_URL}/mcp/start`, { method: "POST" });
+      if (r.ok) { const d = await r.json(); setMcpRunning(d.running); }
+    }
+  }, [mcpRunning]);
+
   async function submitTask(event?: FormEvent) {
     event?.preventDefault();
-    const t = task.trim();
+    let t = task.trim();
     if (!t || isLoading) return;
     setIsLoading(true); setError(""); setRetryDecision(null); setResult(null); setApprovalMessage("");
     setTestProfiles([]); setSelectedTestProfileId(""); setTestResult(null); setTestProfileError(""); setRetryTest(false);
       setChatResponse(null); setChatResponseLoading(true);
+      setMissingTools([]);
       setToolCalls([]);
+    // Parse @cloud / @lokal prefix
+    let forceRoute: string | undefined;
+    const cloudMatch = t.match(/^@cloud\s+/);
+    const lokalMatch = t.match(/^@lokal\s+/i);
+    if (cloudMatch) { forceRoute = "cloud"; t = t.slice(cloudMatch[0].length); }
+    else if (lokalMatch) { forceRoute = "lokal"; t = t.slice(lokalMatch[0].length); }
     setSubmittedTask(t); setTask("");
 
     abortRef.current?.abort();
@@ -554,8 +767,11 @@ export function SagentShell() {
 
     const userMessage: {role: "user"; content: string} = {role: "user", content: t};
     setMessages(prev => [...prev, userMessage]);
+    setRoutingInfo(null);
+    setToolCalls([]);
 
     const selectedUserModel = userModels.find(um => um.id === selectedAdapter);
+    const isCloudRequest = !!selectedUserModel;
     const cloudConfig = selectedUserModel ? {
       endpoint: selectedUserModel.endpoint || undefined,
       apiKey: selectedUserModel.apiKey,
@@ -563,7 +779,37 @@ export function SagentShell() {
       provider: selectedUserModel.provider,
     } : undefined;
 
+    // Cloud-Bestätigung einholen
+    if (isCloudRequest) {
+      const confirmed = await new Promise<boolean>(resolve => {
+        setCloudConfirmDialog({
+          provider: selectedUserModel.provider,
+          model: selectedUserModel.model,
+          endpoint: selectedUserModel.endpoint || "Standard-API",
+          resolve,
+        });
+      });
+      setCloudConfirmDialog(null);
+      if (!confirmed) {
+        setChatResponseLoading(false);
+        setMessages(prev => prev.filter(m => m !== userMessage));
+        return;
+      }
+    }
+
     try {
+      // Dateien als Base64 konvertieren
+      const imageB64 = await Promise.all(
+        attachedFiles
+          .filter(f => f.type.startsWith("image/"))
+          .map(f => new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(f);
+          }))
+      );
+
       // Versuche zuerst den Agent Loop mit Streaming
       try {
         const response = await fetch(`${API_URL}/agent/execute/stream`, {
@@ -575,6 +821,13 @@ export function SagentShell() {
             safety_level: safetyLevel,
             adapter_id: selectedAdapter || undefined,
             cloud_config: cloudConfig,
+            cloud_confirmed: !!selectedUserModel,
+            tool_permissions: Object.keys(convToolPerms).length > 0 ? convToolPerms : undefined,
+            images: imageB64.length > 0 ? imageB64 : undefined,
+            temperature: convTemperature !== 0.7 ? convTemperature : undefined,
+            max_tokens: convMaxTokens !== 2048 ? convMaxTokens : undefined,
+            system_prompt: convSystemPrompt.trim() || undefined,
+            force_route: forceRoute,
           }),
         });
         if (!response.ok || !response.body) { setChatResponseLoading(false); return; }
@@ -593,19 +846,59 @@ export function SagentShell() {
             if (!line.startsWith("data: ")) continue;
             try {
               const event = JSON.parse(line.slice(6));
-              if (event.type === "text" && event.content) {
+              if (event.type === "routing" && event.target) {
+                setRoutingInfo({target: event.target, reason: event.reason || ""});
+              } else if (event.type === "text" && event.content) {
                 fullText += event.content;
                 setChatResponse(fullText);
               } else if (event.type === "tool_call") {
                 setToolCalls(prev => [...prev, {name: event.name, status: "running"}]);
                 toolCallLog.push({name: event.name, args: event.args || "{}"});
+              } else if (event.type === "tool_preview") {
+                setToolPreviews(prev => [...prev, {name: event.name, preview: event.preview, high_risk: event.high_risk, iteration: event.iteration}]);
               } else if (event.type === "tool_result" && event.name) {
                 setToolCalls(prev => prev.map(tc =>
                   tc.name === event.name && tc.status === "running"
                     ? {...tc, status: "done"} : tc
                 ));
                 const entry = toolCallLog.find(tc => tc.name === event.name && !tc.result);
-                if (entry) entry.result = event.result;
+                if (entry) {
+                  entry.result = event.result;
+                  // Artefakt sammeln bei erfolgreichem write_file
+                  if (event.name === "write_file") {
+                    try {
+                      const res = JSON.parse(event.result);
+                      if (res.success !== false) {
+                        const args = JSON.parse(entry.args);
+                        if (args.content) {
+                          setArtifacts(prev => [...prev, {
+                            path: args.path || res.path || "",
+                            content: args.content,
+                            sizeBytes: res.size_bytes || args.content.length,
+                          }]);
+                        }
+                      }
+                    } catch {}
+                  }
+                }
+              } else if (event.type === "self_diagnosis" && event.missing_tools) {
+                const suggestion = event.suggestion || "";
+                setMissingTools(event.missing_tools.map((n: string) => ({name: n})));
+                fullText += "\n\n---\n🔍 **Selbst-Diagnose**\n" + suggestion + "\n";
+                setChatResponse(fullText);
+              } else if (event.type === "sub_agent_begin") {
+                const subLabel = event.sub_type === "code" ? "Code" : event.sub_type === "search" ? "Suche" : event.sub_type === "test" ? "Test" : event.sub_type;
+                fullText += `\n\n---\n⚡ **Sub-Agent: ${subLabel}** – arbeite an: ${event.task || ""}\n`;
+                setChatResponse(fullText);
+                setRoutingInfo({target: "sub", reason: `${subLabel}-Agent aktiv`});
+              } else if (event.type === "sub_agent_end") {
+                const subLabel = event.sub_type === "code" ? "Code" : event.sub_type === "search" ? "Suche" : event.sub_type === "test" ? "Test" : event.sub_type;
+                fullText += `\n✅ **${subLabel}-Agent** fertig.\n`;
+                setChatResponse(fullText);
+              } else if (event.type === "sub_agent_error") {
+                const subLabel = event.sub_type === "code" ? "Code" : event.sub_type === "search" ? "Suche" : event.sub_type === "test" ? "Test" : event.sub_type;
+                fullText += `\n❌ **${subLabel}-Agent** fehlgeschlagen: ${event.error || ""}\n`;
+                setChatResponse(fullText);
               } else if (event.type === "error" && event.message) {
                 seenError = event.message;
                 setChatResponse(fullText || event.message);
@@ -625,6 +918,7 @@ export function SagentShell() {
                 setChatResponse(null);
                 setChatResponseLoading(false);
                 setToolCalls([]);
+                setToolPreviews([]);
                 await saveCurrentConversation(newMsgs, t);
                 if (fullText.length > 20) {
                   try { await fetch(`${API_URL}/memory/store`, {
@@ -632,6 +926,15 @@ export function SagentShell() {
                     body: JSON.stringify({text: fullText.slice(0, 2000), metadata: {category: "chat-response", type: "agent"}}),
                   }); } catch {}
                 }
+                // Desktop notification when done
+                try {
+                  if (document.hidden && "Notification" in window && Notification.permission === "granted") {
+                    new Notification("Sagent – Aufgabe abgeschlossen", {
+                      body: t.length > 80 ? t.slice(0, 80) + "…" : t,
+                      icon: "/favicon.ico",
+                    });
+                  }
+                } catch {}
               }
             } catch {}
           }
@@ -643,6 +946,7 @@ export function SagentShell() {
         setChatResponse(null);
         setChatResponseLoading(false);
         setToolCalls([]);
+        setToolPreviews([]);
       }
     } catch {
       if (controller.signal.aborted) return;
@@ -767,6 +1071,25 @@ export function SagentShell() {
     e.target.value = "";
   }
 
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length) {
+      setAttachedFiles(prev => [...prev, ...files]);
+    }
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+  }
+
   function removeFile(index: number) {
     setAttachedFiles(prev => prev.filter((_, i) => i !== index));
   }
@@ -777,6 +1100,7 @@ export function SagentShell() {
   }
 
   return (
+    <>
     <main className="app-shell">
       {currentView === "settings" ? (
         <SettingsPage
@@ -786,6 +1110,10 @@ export function SagentShell() {
           userModels={userModels}
           onAddUserModel={handleAddUserModel}
           onRemoveUserModel={handleRemoveUserModel}
+        />
+      ) : currentView === "extensions" ? (
+        <ExtensionsPage
+          onBack={() => setCurrentView("chat")}
         />
       ) : (
         <>
@@ -842,6 +1170,7 @@ export function SagentShell() {
           api.updateProject(id, { name: name.trim() }).catch(() => {});
         }}
         onOpenSettings={() => setCurrentView("settings")}
+        onOpenExtensions={() => setCurrentView("extensions")}
         onOpenTools={toggleToolPanel}
         onOpenSearch={() => {}}
         account={accountData}
@@ -863,6 +1192,12 @@ export function SagentShell() {
               <List weight="regular" aria-hidden="true" />
             </button>
             <span className="topbar-brand">Sagent</span>
+            {projectContext && (
+              <span className="project-context-badge" title={`Projekt: ${projectContext.root}`}>
+                <Folder weight="regular" />
+                {projectContext.root?.split("/").pop() || "Projekt"}
+              </span>
+            )}
             <div className="model-selector-wrap">
               <button
                 type="button"
@@ -955,6 +1290,50 @@ export function SagentShell() {
             </div>
           </div>
           <div className="topbar-right">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSplitViewEnabled(s => !s)}
+              title={splitViewEnabled ? "Split View aus" : "Split View an"}
+              style={{ opacity: splitViewEnabled ? 1 : 0.5 }}>
+              {splitViewEnabled ? "⊞" : "⊟"}
+            </button>
+            <ConversationToolPerms overrides={convToolPerms} onChange={setConvToolPerms} />
+            <button type="button" className="theme-toggle" onClick={() => setTheme(t => t === "dark" ? "light" : "dark")} title={`Theme: ${theme}`}>
+              {theme === "dark" ? "☀️" : "🌙"}
+            </button>
+            <button type="button" className={`mcp-status ${mcpRunning ? "active" : ""}`} onClick={handleMcpToggle} title={mcpRunning ? "MCP-Server läuft" : "MCP-Server starten"}>
+              <Wrench weight="regular" />
+            </button>
+            <div className="model-settings-wrap" ref={modelSettingsRef}>
+              <button type="button" className="model-settings-btn" aria-expanded={showModelSettings} onClick={() => setShowModelSettings(s => !s)} title="Modell-Einstellungen">
+                <Brain weight="regular" />
+              </button>
+              {showModelSettings && (
+                <div className="model-settings-dropdown">
+                  <div className="model-settings-item">
+                    <label>Temperature</label>
+                    <div className="model-settings-slider-row">
+                      <input type="range" min="0" max="2" step="0.1" value={convTemperature}
+                        onChange={e => setConvTemperature(parseFloat(e.target.value))} />
+                      <span className="model-settings-value">{convTemperature.toFixed(1)}</span>
+                    </div>
+                  </div>
+                  <div className="model-settings-item">
+                    <label>Max Tokens</label>
+                    <select value={convMaxTokens} onChange={e => setConvMaxTokens(parseInt(e.target.value))}>
+                      <option value={512}>512</option>
+                      <option value={1024}>1,024</option>
+                      <option value={2048}>2,048</option>
+                      <option value={4096}>4,096</option>
+                      <option value={8192}>8,192</option>
+                    </select>
+                  </div>
+                  <div className="model-settings-item">
+                    <label>System-Prompt</label>
+                    <textarea value={convSystemPrompt} onChange={e => setConvSystemPrompt(e.target.value)}
+                      placeholder="Leer lassen für Standard-Prompt" rows={3} />
+                  </div>
+                </div>
+              )}
+            </div>
             <div className={`api-status${isApiOnline ? " online" : ""}`}>
               <span className="api-dot" />
               <span>{isApiOnline ? "Online" : "Offline"}</span>
@@ -977,6 +1356,21 @@ export function SagentShell() {
                 </div>
               )}
             </div>
+            <div className="feature-tabs-topbar">
+              {featureTabs.map(tab => {
+                const Icon = tab.icon;
+                return (
+                  <button key={tab.id} type="button"
+                    className={`feature-tab-btn${showFeaturePanel === tab.id ? " active" : ""}`}
+                    onClick={() => setShowFeaturePanel(showFeaturePanel === tab.id ? null : tab.id)}
+                    title={tab.desc}
+                    aria-label={tab.label}>
+                    <Icon weight="regular" aria-hidden="true" />
+                    <span className="feature-tab-label">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </header>
 
@@ -992,10 +1386,14 @@ export function SagentShell() {
           <div className="messages">
             {messages.length === 0 && !submittedTask ? (
               <div className="empty-state">
+                <div className="welcome-logo">
+                  <Brain weight="fill" />
+                </div>
                 <h1>Sagent</h1>
-                <p className="subtitle">Lokaler KI-Assistent mit Werkzeugen und Gedächtnis.</p>
+                <p className="subtitle">Dein lokaler KI-Assistent mit Werkzeugen, Gedächtnis und Cloud-Routing.</p>
+                <p className="welcome-hint">Starte eine Konversation oder probiere eine der Schnellaktionen:</p>
                 <div className="quick-actions">
-                  {["Was kann Sagent?", "Lies die README", "Zeige Git-Status"].map(label => (
+                  {["Was kann Sagent?", "Lies die README", "Zeige Git-Status", "💡 Hilfe"].map(label => (
                     <button key={label} type="button" className="quick-action-btn" onClick={() => handleExampleClick(label)}>
                       <Lightbulb weight="regular" />{label}
                     </button>
@@ -1011,6 +1409,10 @@ export function SagentShell() {
                     </span>
                     {msg.role === "user" ? "Du" : "Sagent"}
                     {msg.role === "assistant" && <span className="model-badge">qwen2.5-coder:7b</span>}
+                    <button type="button" className="btn btn-ghost btn-sm" style={{marginLeft: "auto", opacity: 0.4, fontSize: 11}}
+                      onClick={() => speak(msg.content)} title="Vorlesen">
+                      <SpeakerHigh size={14} />
+                    </button>
                   </p>
                   <ChatMessageContent content={msg.content} />
                 </article>
@@ -1025,6 +1427,13 @@ export function SagentShell() {
                   <span className="model-badge">offline</span>
                 </p>
                 <ChatMessageContent content={chatResponse} />
+                {artifacts.length > 0 && (
+                  <div className="artifacts-container">
+                    {artifacts.map((art, i) => (
+                      <ArtifactView key={`${art.path}-${i}`} path={art.path} content={art.content} sizeBytes={art.sizeBytes} />
+                    ))}
+                  </div>
+                )}
               </article>
             )}
 
@@ -1033,7 +1442,26 @@ export function SagentShell() {
                 <span className="pulse" />
                 <span className="pulse" style={{ animationDelay: "0.2s" }} />
                 <span className="pulse" style={{ animationDelay: "0.4s" }} />
-                <span>Lokales Modell antwortet …</span>
+                {routingInfo ? (
+                  <span>
+                    {routingInfo.target === "cloud" ? "🌐" : "💻"} Routing: {routingInfo.target === "cloud" ? "Cloud" : "Lokal"} – {routingInfo.reason}
+                  </span>
+                ) : (
+                  <span>Sagent antwortet …</span>
+                )}
+                {toolPreviews.length > 0 && (
+                  <ToolPreviewPanel
+                    previews={toolPreviews}
+                    onApprove={(name) => {
+                      setToolCalls(prev => prev.map(tc => tc.name === name ? {...tc, status: "done"} : tc));
+                    }}
+                    onReject={(name) => {
+                      setToolPreviews(prev => prev.filter(tp => tp.name !== name));
+                      setToolCalls(prev => prev.map(tc => tc.name === name ? {...tc, status: "done"} : tc));
+                    }}
+                    watchfulMode={safetyLevel === "watchful"}
+                  />
+                )}
                 {toolCalls.length > 0 && (
                   <div className="tool-calls-inline">
                     {toolCalls.map((tc, i) => (
@@ -1041,10 +1469,10 @@ export function SagentShell() {
                         🔧 {tc.name} {tc.status === "done" ? "✓" : "⋯"}
                       </span>
                     ))}
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
 
             {/* Spacer so content doesn't hit bottom */}
             <div style={{ height: 16 }} />
@@ -1052,7 +1480,17 @@ export function SagentShell() {
         </div>
 
         {/* ── Input Area ── */}
-        <div className="input-area">
+        <div className="input-area" onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}>
+          {isDragging && (
+            <div className="drop-overlay">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <span>Dateien ablegen zum Anhängen</span>
+            </div>
+          )}
           {attachedFiles.length > 0 && (
             <div className="attachment-chips">
               {attachedFiles.map((f, i) => (
@@ -1090,12 +1528,32 @@ export function SagentShell() {
           <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleFilesSelected} />
 
           <form className="composer" onSubmit={submitTask}>
+            {task.match(/^@(cloud|lokal)\s/i)?.[0] && (
+              <span className="badge" style={{
+                position: "absolute", top: -20, left: 8, zIndex: 10,
+                background: task.startsWith("@cloud") ? "var(--accent)" : "var(--success)",
+                color: "#fff", fontSize: "0.75em",
+              }}>
+                {task.startsWith("@cloud") ? "🌐 Cloud erzwungen" : "💻 Lokal erzwungen"}
+              </span>
+            )}
             <textarea ref={textareaRef} value={task} onChange={e => setTask(e.target.value)} onKeyDown={handleKeyDown}
-              placeholder="Aufgabe an Sagent senden" rows={1} maxLength={4000} />
+              placeholder="Aufgabe an Sagent senden (@cloud / @lokal für erzwungenes Routing)" rows={1} maxLength={4000} />
             <div className="composer-actions">
               <button type="button" className="attach-btn" onClick={() => setShowAttachMenu(s => !s)}
                 title="Datei anhängen">
                 <Plus weight="bold" aria-hidden="true" />
+              </button>
+              <button type="button"
+                className={`send-btn ${listening ? "cancel-btn" : ""}`}
+                onClick={listening ? stopListening : startListening}
+                title={listening ? "Aufnahme beenden" : "Spracheingabe"}
+                style={{ background: listening ? "var(--danger)" : undefined }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                  <line x1="12" y1="19" x2="12" y2="22"/>
+                </svg>
               </button>
               {chatResponseLoading ? (
                 <button type="button" className="send-btn cancel-btn" onClick={() => { abortRef.current?.abort(); setChatResponseLoading(false); }}
@@ -1319,6 +1777,7 @@ export function SagentShell() {
                         )}
                       </div>
                     )}
+                    <FineTuneSection apiUrl={API_URL} />
                   </div>
                 )}
                 {showFeaturePanel === "memory" && (
@@ -1365,20 +1824,40 @@ export function SagentShell() {
                             <ArrowsClockwise weight="regular" />Alle
                           </button>
                         </div>
-                        {memoryResults.map(r => (
+                        {memoryResults.map(r => {
+                          const chunkInfo = r.metadata?.total_chunks
+                            ? ` (${Number(r.metadata.chunk) + 1}/${r.metadata.total_chunks})`
+                            : "";
+                          return (
                           <div key={r.id} className="memory-entry">
                             <div className="memory-entry-text">{r.text}</div>
                             <div className="memory-entry-meta">
                               {r.score != null && <span className="badge badge-info">{(r.score * 100).toFixed(0)}%</span>}
-                              {r.metadata?.category && <span className="badge">{r.metadata.category}</span>}
+                              {r.metadata?.category && <span className="badge">{r.metadata.category as string}{chunkInfo}</span>}
+                              {r.metadata?.type && <span className="badge">{r.metadata.type as string}</span>}
                               <span className="memory-entry-time">{new Date(r.created_at * 1000).toLocaleString()}</span>
                             </div>
                             <button type="button" className="memory-entry-delete" onClick={() => void deleteMemory(r.id)}
                               title="Löschen">×</button>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
+                  </div>
+                )}
+                {showFeaturePanel === "usage" && (
+                  <UsageDashboard apiUrl={API_URL} />
+                )}
+                {showFeaturePanel === "autonomous" && (
+                  <div className="memory-panel">
+                    <div className="card-header">
+                      <h2>
+                        <Lightbulb weight="regular" style={{ verticalAlign: "middle", marginRight: 6 }} />
+                        Autonomer Modus
+                      </h2>
+                    </div>
+                    <AutonomousModePanel apiUrl={API_URL} />
                   </div>
                 )}
               </div>
@@ -1392,8 +1871,132 @@ export function SagentShell() {
               <button type="button" onClick={retryLastAction}>Erneut versuchen</button>
             </div>
           )}
+          {missingTools.length > 0 && !chatResponseLoading && (
+            <div className="error-banner" style={{borderColor: "var(--accent)", background: "var(--surface1)"}}>
+              <span>🔧 Fehlende Werkzeuge erkannt</span>
+              <div style={{display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center"}}>
+                {missingTools.map(t => (
+                  <button key={t.name} type="button" className="btn btn-sm"
+                    onClick={() => { void fetchTemplates(); setShowTemplatePicker({name: t.name}); }}>
+                    Installiere "{t.name}"
+                  </button>
+                ))}
+              </div>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMissingTools([])}>×</button>
+            </div>
+          )}
+          {showTemplatePicker && (
+            <div className="modal-overlay" onClick={() => setShowTemplatePicker(null)}>
+              <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: 560}}>
+                <div className="modal-header">
+                  <h3>Tool installieren: "{showTemplatePicker.name}"</h3>
+                </div>
+                <div className="modal-body">
+                  <div className="form-group">
+                    <label className="form-label">Wähle eine Vorlage</label>
+                    <select className="form-select" value={selectedTemplate} onChange={e => { setSelectedTemplate(e.target.value); setTemplateParams({}); }}>
+                      <option value="">Einfaches Grundgerüst (ohne Vorlage)</option>
+                      {toolTemplates.map(tmpl => (
+                        <option key={tmpl.id} value={tmpl.id}>{tmpl.name} – {tmpl.description.slice(0, 60)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {selectedTemplate && (() => {
+                    const tmpl = toolTemplates.find(t => t.id === selectedTemplate);
+                    if (!tmpl) return null;
+                    const paramHint = tmpl.prompt_hint;
+                    return (
+                      <div className="form-group">
+                        <label className="form-label">{paramHint}</label>
+                        <input className="form-input" placeholder="z.B. docker, kubectl, npm, ..."
+                          value={templateParams.cli_tool || ""} onChange={e => setTemplateParams({...templateParams, cli_tool: e.target.value})} />
+                        {selectedTemplate === "api-client" && (
+                          <input className="form-input" placeholder="Basis-URL (z.B. https://api.example.com)"
+                            value={templateParams.base_url || ""} onChange={e => setTemplateParams({...templateParams, base_url: e.target.value})} style={{marginTop: 8}} />
+                        )}
+                        {selectedTemplate === "database-query" && (
+                          <>
+                            <input className="form-input" placeholder="DB-Typ: sqlite / postgres / mysql"
+                              value={templateParams.db_type || ""} onChange={e => setTemplateParams({...templateParams, db_type: e.target.value})} />
+                            <input className="form-input" placeholder="Connection-String (optional)"
+                              value={templateParams.connection || ""} onChange={e => setTemplateParams({...templateParams, connection: e.target.value})} style={{marginTop: 8}} />
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+                {previewCode && (
+                  <div className="form-group" style={{marginTop: 12}}>
+                    <label className="form-label">Code-Vorschau (prüfen vor Installation)</label>
+                    <pre style={{
+                      maxHeight: 200, overflowY: "auto", fontSize: 11,
+                      background: "var(--surface2)", padding: 8, borderRadius: 6,
+                      whiteSpace: "pre-wrap", wordBreak: "break-all",
+                    }}>{previewCode}</pre>
+                  </div>
+                )}
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-ghost" onClick={() => { setShowTemplatePicker(null); setPreviewCode(null); }}>Abbrechen</button>
+                  <button type="button" className="btn btn-ghost btn-sm"
+                    disabled={previewLoading}
+                    onClick={async () => {
+                      setPreviewLoading(true);
+                      try {
+                        const r = await fetch(`${API_URL}/tools/suggest`, {
+                          method: "POST",
+                          headers: {"Content-Type": "application/json"},
+                          body: JSON.stringify({
+                            name: showTemplatePicker.name,
+                            description: `Benutzerdefiniertes Werkzeug: ${showTemplatePicker.name}`,
+                            template_id: selectedTemplate || undefined,
+                            template_params: Object.keys(templateParams).length > 0 ? templateParams : undefined,
+                          }),
+                        });
+                        if (r.ok) { const d = await r.json(); setPreviewCode(d.code); }
+                      } catch {} finally { setPreviewLoading(false); }
+                    }}>
+                    {previewLoading ? "Lade..." : "Code anzeigen"}
+                  </button>
+                  <button type="button" className="btn btn-primary"
+                    onClick={() => { void installTool(showTemplatePicker.name, `Benutzerdefiniertes Werkzeug: ${showTemplatePicker.name}`, selectedTemplate || undefined); setPreviewCode(null); }}>
+                    Installieren
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           </div>
         </div>
+
+        {/* ── Split View Panel ── */}
+        {splitViewEnabled && artifacts.length > 0 && (
+          <div className="split-view-panel">
+            <div className="split-view-header">
+              <span className="split-view-title">Code-Ansicht</span>
+              <span className="split-view-file">
+                {artifacts[selectedArtifactIndex || 0]?.path.split("/").pop() || ""}
+              </span>
+            </div>
+            <div className="split-view-body">
+              <ArtifactView
+                path={artifacts[selectedArtifactIndex || 0]?.path || ""}
+                content={artifacts[selectedArtifactIndex || 0]?.content || ""}
+                sizeBytes={artifacts[selectedArtifactIndex || 0]?.sizeBytes || 0}
+              />
+            </div>
+          </div>
+        )}
+        {splitViewEnabled && artifacts.length === 0 && (
+          <div className="split-view-panel">
+            <div className="split-view-empty">
+              <p style={{ opacity: 0.4, textAlign: "center", padding: 32 }}>
+                Keine Artefakte vorhanden.<br />
+                <span style={{ fontSize: 13 }}>Artefakte erscheinen hier, sobald der Agent Code erstellt.</span>
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* ── Tool Panel ── */}
         {toolPanelOpen && (
@@ -1484,6 +2087,45 @@ export function SagentShell() {
                   </div>
                 </div>
               )}
+              {activeToolTab === "tools" && (
+                <div className="tool-files">
+                  <div className="tool-files-header">
+                    <span>🔧</span>
+                    <span>Installierte Werkzeuge</span>
+                    <button type="button" className="btn btn-ghost btn-sm" style={{marginLeft: "auto"}}
+                      onClick={() => void fetchInstalledTools()}>
+                      <ArrowsClockwise weight="regular" />
+                    </button>
+                  </div>
+                  <div className="tool-files-tree">
+                    {installedTools.length === 0 ? (
+                      <div className="tool-panel-empty">
+                        <p>Keine benutzerdefinierten Werkzeuge installiert.</p>
+                        <p className="text-muted" style={{fontSize: "0.85em", marginTop: 4}}>
+                          Fehlende Werkzeuge werden automatisch erkannt und können aus dem Chat installiert werden.
+                        </p>
+                      </div>
+                    ) : (
+                      installedTools.map(t => (
+                        <div key={t.name} className="tool-file-item">
+                          <span className="tool-file-icon">🔧</span>
+                          <span className="tool-file-name" style={{flex: 1}}>
+                            {t.name}
+                            <span className="text-muted" style={{fontSize: "0.85em", marginLeft: 8}}>
+                              {t.description ? `– ${t.description.slice(0, 60)}` : ""}
+                            </span>
+                          </span>
+                          <span className={`badge ${t.status === "loaded" ? "badge-success" : "badge-warning"}`}>
+                            {t.status}
+                          </span>
+                          <button type="button" className="memory-entry-delete" style={{position: "relative"}}
+                            onClick={() => void uninstallTool(t.name)} title="Entfernen">×</button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="tool-panel-actions">
               <button type="button" className="tool-panel-action-btn" onClick={() => openToolTab("terminal", "Terminal", "💻")}>
@@ -1494,6 +2136,9 @@ export function SagentShell() {
               </button>
               <button type="button" className="tool-panel-action-btn" onClick={() => openToolTab("files", "Dateien", "📁")}>
                 <Folder weight="regular" />Dateien
+              </button>
+              <button type="button" className="tool-panel-action-btn" onClick={() => { void fetchInstalledTools(); openToolTab("tools", "Tools", "🔧"); }}>
+                <span>🔧</span>Tools
               </button>
             </div>
             </>
@@ -1517,5 +2162,163 @@ export function SagentShell() {
       </div>
       </>)}
     </main>
+      {cloudConfirmDialog && (
+        <div className="modal-overlay" onClick={() => cloudConfirmDialog.resolve(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Cloud-Modell bestätigen</h3>
+            </div>
+            <div className="modal-body">
+              <p>Deine Anfrage wird an einen externen Cloud-Dienst gesendet:</p>
+              <ul>
+                <li><strong>Provider:</strong> {cloudConfirmDialog.provider}</li>
+                <li><strong>Modell:</strong> {cloudConfirmDialog.model}</li>
+                <li><strong>Endpunkt:</strong> {cloudConfirmDialog.endpoint}</li>
+              </ul>
+              <p className="text-warning">Deine Daten werden an diesen externen Server übertragen. Bist du sicher?</p>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-ghost" onClick={() => cloudConfirmDialog.resolve(false)}>
+                Abbrechen
+              </button>
+              <button type="button" className="btn btn-primary" onClick={() => cloudConfirmDialog.resolve(true)}>
+                Ja, Cloud verwenden
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+
+/* ── Fine-Tuning Section ── */
+
+function FineTuneSection({ apiUrl }: { apiUrl: string }) {
+  const [baseModel, setBaseModel] = useState("");
+  const [dataset, setDataset] = useState("");
+  const [outputName, setOutputName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [jobs, setJobs] = useState<Array<{
+    job_id: string; base_model: string; output_model: string;
+    state: string; progress: number; error: string; log: string[];
+  }>>([]);
+  const [expandedJob, setExpandedJob] = useState<string | null>(null);
+  const [requirements, setRequirements] = useState<{qlora_available: Record<string, boolean>; recommended: string} | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchJobs = useCallback(async () => {
+    try {
+      const res = await fetch(`${apiUrl}/models/finetune`);
+      if (res.ok) setJobs(await res.json());
+    } catch {}
+  }, [apiUrl]);
+
+  useEffect(() => {
+    fetchJobs();
+    fetch(`${apiUrl}/models/finetune/requirements`).then(r => r.ok && r.json()).then(setRequirements).catch(() => {});
+    pollRef.current = setInterval(fetchJobs, 3000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [fetchJobs, apiUrl]);
+
+  const startFineTune = useCallback(async () => {
+    if (!baseModel.trim() || !dataset.trim()) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${apiUrl}/models/finetune`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          base_model: baseModel.trim(),
+          dataset: dataset.trim(),
+          output_name: outputName.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        setError(err.detail || "Fehler beim Starten des Fine-Tunings");
+      } else {
+        setBaseModel("");
+        setDataset("");
+        setOutputName("");
+        fetchJobs();
+      }
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [apiUrl, baseModel, dataset, outputName, fetchJobs]);
+
+  return (
+    <div className="finetune-section" style={{ borderTop: "1px solid var(--border)", marginTop: 16, paddingTop: 16 }}>
+      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+        Fine-Tuning (QLoRA)
+      </h3>
+
+      {requirements && (
+        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
+          {requirements.recommended}
+        </p>
+      )}
+
+      <div className="form-group">
+        <label className="form-label">Basis-Modell</label>
+        <input className="form-input" placeholder="z.B. llama3.2:3b"
+          value={baseModel} onChange={e => setBaseModel(e.target.value)} />
+      </div>
+
+      <div className="form-group">
+        <label className="form-label">Trainingsdaten (JSONL)</label>
+        <textarea className="form-input" rows={4}
+          placeholder='[{"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}, ...]'
+          value={dataset} onChange={e => setDataset(e.target.value)} />
+      </div>
+
+      <div className="form-group">
+        <label className="form-label">Ausgabe-Name (optional)</label>
+        <input className="form-input" placeholder="Leer lassen für automatischen Namen"
+          value={outputName} onChange={e => setOutputName(e.target.value)} />
+      </div>
+
+      {error && <div className="inline-error" role="alert"><WarningCircle weight="regular" />{error}</div>}
+
+      <button type="button" className="btn btn-primary btn-sm" disabled={!baseModel.trim() || !dataset.trim() || loading}
+        onClick={startFineTune}>
+        {loading ? <CircleNotch className="spin" weight="bold" /> : <Play weight="fill" />}
+        {loading ? "Starte..." : "Fine-Tune starten"}
+      </button>
+
+      {jobs.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <h4 style={{ fontSize: 13, fontWeight: 500, marginBottom: 6 }}>Jobs</h4>
+          {jobs.map(job => (
+            <div key={job.job_id} className="model-adapter" style={{ cursor: "pointer" }}
+              onClick={() => setExpandedJob(expandedJob === job.job_id ? null : job.job_id)}>
+              <div className="model-adapter-row">
+                <strong>{job.base_model} → {job.output_model}</strong>
+                <span className={`badge ${
+                  job.state === "succeeded" ? "badge-success" :
+                  job.state === "failed" || job.state === "cancelled" ? "badge-danger" : "badge-info"
+                }`}>{job.state}</span>
+              </div>
+              {job.state === "running" && job.progress > 0 && (
+                <div style={{ height: 4, background: "var(--border)", borderRadius: 2, marginTop: 4 }}>
+                  <div style={{ height: "100%", width: `${job.progress * 100}%`, background: "var(--accent)", borderRadius: 2 }} />
+                </div>
+              )}
+              {expandedJob === job.job_id && job.log.length > 0 && (
+                <pre style={{ fontSize: 11, marginTop: 6, maxHeight: 200, overflow: "auto" }}>
+                  {job.log.join("\n")}
+                </pre>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

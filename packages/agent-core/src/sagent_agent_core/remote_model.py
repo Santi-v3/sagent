@@ -125,8 +125,27 @@ class RemoteOpenAIChatAdapter:
         if not choices:
             raise RemoteModelProtocolError("No choices in response.")
         choice = choices[0]
-        content = (choice.get("message") or {}).get("content") or ""
+        message = choice.get("message") or {}
+        content = message.get("content") or ""
         finish = choice.get("finish_reason", "stop")
+
+        tool_calls = None
+        raw_tool_calls = message.get("tool_calls")
+        if raw_tool_calls:
+            parsed: list[dict] = []
+            for tc in raw_tool_calls:
+                func = tc.get("function", {})
+                parsed.append({
+                    "id": tc.get("id", ""),
+                    "type": tc.get("type", "function"),
+                    "function": {
+                        "name": func.get("name", ""),
+                        "arguments": func.get("arguments", "{}"),
+                    },
+                })
+            if parsed:
+                tool_calls = tuple(parsed)
+
         usage_data = data.get("usage", {})
         usage = ModelUsage(
             input_tokens=usage_data.get("prompt_tokens", 0),
@@ -148,6 +167,7 @@ class RemoteOpenAIChatAdapter:
             content=content,
             finish_reason=finish_reason,
             usage=usage,
+            tool_calls=tool_calls,
         )
 
     def _chat_url(self) -> str:
@@ -163,16 +183,55 @@ class RemoteOpenAIChatAdapter:
             ModelInputSource.WORKSPACE: "user",
             ModelInputSource.MEMORY: "user",
             ModelInputSource.TOOL_RESULT: "tool",
+            ModelInputSource.IMAGE: "user",
         }
+
+        # Collect multi-modal content per-role
         messages: list[dict] = []
+        current_role = "user"
+        current_content: list[dict] | str = []
+
+        def _flush():
+            nonlocal current_content
+            if current_content:
+                if isinstance(current_content, list) and len(current_content) == 1 and current_content[0]["type"] == "text":
+                    messages.append({"role": current_role, "content": current_content[0]["text"]})
+                elif isinstance(current_content, list):
+                    messages.append({"role": current_role, "content": current_content})
+                elif isinstance(current_content, str):
+                    messages.append({"role": current_role, "content": current_content})
+                current_content = []
+
         for part in request.parts:
             role = role_map.get(part.source, "user")
-            messages.append({"role": role, "content": part.content})
+            if part.source == ModelInputSource.IMAGE:
+                if role != current_role:
+                    _flush()
+                    current_role = role
+                if isinstance(current_content, str):
+                    current_content = [{"type": "text", "text": current_content}]
+                elif not isinstance(current_content, list):
+                    current_content = []
+                img_url = part.content if part.content.startswith("data:") else f"data:image/png;base64,{part.content}"
+                current_content.append({"type": "image_url", "image_url": {"url": img_url}})
+            else:
+                if role != current_role or isinstance(current_content, list):
+                    _flush()
+                    current_role = role
+                if isinstance(current_content, list):
+                    current_content.append({"type": "text", "text": part.content})
+                else:
+                    current_content = part.content
 
-        return {
+        _flush()
+
+        payload: dict = {
             "model": self.model,
             "messages": messages,
             "max_tokens": request.max_output_tokens,
             "temperature": request.temperature,
             "stream": False,
         }
+        if request.tools:
+            payload["tools"] = list(request.tools)
+        return payload

@@ -13,6 +13,7 @@ class HealthResponse(BaseModel):
 
     status: Literal["ok"]
     service: Literal["sagent-agent-api"]
+    auth_enabled: bool = False
 
 
 class TaskRequest(BaseModel):
@@ -554,9 +555,74 @@ class SidebarAccountResponse(BaseModel):
     menuItems: list[SidebarAccountMenuItem] = []
 
 
+class ModelPullRequest(BaseModel):
+    """Request to pull/download an Ollama model."""
+    name: str = Field(min_length=1, max_length=200, description="Model name, e.g. llama3.2:3b")
+
+
+class ModelPullResponse(BaseModel):
+    """Response after initiating a model pull."""
+    job_id: str
+    name: str
+    status: str
+
+
+class ModelLibraryEntry(BaseModel):
+    """A model entry from the curated library."""
+    name: str
+    description: str
+    size: str
+    category: str
+    installed: bool = False
+
+
+class ModelLibraryResponse(BaseModel):
+    """List of models in the curated library."""
+    models: list[ModelLibraryEntry]
+
+
+class SummarizeRequest(BaseModel):
+    text: str = Field(min_length=10, max_length=50_000, description="Text to summarize")
+
+
+class SummarizeResponse(BaseModel):
+    summary: str
+    original_length: int
+    summary_length: int
+
+
 class SidebarDataResponse(BaseModel):
     """Aggregated sidebar state — one HTTP round-trip."""
 
     conversations: list[SidebarConversationResponse]
     projects: list[SidebarProjectResponse]
     account: SidebarAccountResponse
+
+
+# ── Fine-Tuning ──
+
+
+class FineTuneJobResponse(BaseModel):
+    job_id: str
+    base_model: str
+    output_model: str
+    state: str
+    created_at: float
+    started_at: float | None = None
+    completed_at: float | None = None
+    error: str = ""
+    progress: float = 0.0
+    log: list[str] = []
+
+
+class FineTuneStartRequest(BaseModel):
+    base_model: str = Field(min_length=1, max_length=200)
+    output_name: str | None = Field(default=None, max_length=200)
+    dataset: str = Field(min_length=1)
+
+
+class FineTuneRequirementsResponse(BaseModel):
+    qlora_available: dict
+    estimated_ram_gb: float
+    estimated_disk_mb: float
+    recommended: str

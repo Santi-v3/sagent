@@ -1,4 +1,7 @@
 #!/bin/bash
+# Sagent macOS update script
+# For Windows: run "pnpm build:win" in apps/desktop manually
+# For Linux: run "pnpm build:linux" in apps/desktop manually
 set -e
 cd "$(dirname "$0")"
 

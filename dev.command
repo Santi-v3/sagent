@@ -1,4 +1,6 @@
 #!/bin/bash
+# Sagent dev server (macOS double-click)
+# For cross-platform, use: ./start.sh (Linux/macOS) or start.ps1 (Windows)
 set -e
 cd "$(dirname "$0")"
 

@@ -6,21 +6,22 @@ export type PrimaryNavProps = {
   collapsed: boolean;
   onNewChat: () => void;
   onOpenSearch: () => void;
+  onOpenExtensions: () => void;
 };
 
 type NavEntry = {
-  id: "new-chat" | "search" | "planned" | "plugins";
+  id: "new-chat" | "search" | "planned" | "extensions";
   label: string;
   icon: typeof NotePencil;
   onClick: () => void;
 };
 
-export function PrimaryNav({ collapsed, onNewChat, onOpenSearch }: PrimaryNavProps) {
+export function PrimaryNav({ collapsed, onNewChat, onOpenSearch, onOpenExtensions }: PrimaryNavProps) {
   const entries: NavEntry[] = [
     { id: "new-chat", label: "Neuer Chat", icon: NotePencil, onClick: onNewChat },
     { id: "search", label: "Suche", icon: MagnifyingGlass, onClick: onOpenSearch },
     { id: "planned", label: "Geplant", icon: ClockCounterClockwise, onClick: () => {} },
-    { id: "plugins", label: "Plugins", icon: PuzzlePiece, onClick: () => {} },
+    { id: "extensions", label: "Extensions", icon: PuzzlePiece, onClick: onOpenExtensions },
   ];
 
   return (

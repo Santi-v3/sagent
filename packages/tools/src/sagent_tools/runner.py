@@ -2,6 +2,7 @@
 
 import math
 import os
+import platform
 import re
 import signal
 import subprocess
@@ -207,8 +208,8 @@ class TestRunner:
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     shell=False,
-                    close_fds=True,
-                    start_new_session=True,
+                    close_fds=platform.system() != "Windows",
+                    **({} if platform.system() == "Windows" else {"start_new_session": True}),
                 )
             except OSError as error:
                 raise TestExecutionError(
@@ -288,7 +289,7 @@ class TestRunner:
             str(Path(registered.argv[0]).parent) for registered in self._profiles.values()
         }
         executable_directories.add(str(Path(profile.argv[0]).parent))
-        safe_system_paths = {"/usr/bin", "/bin", "/usr/sbin", "/sbin"}
+        safe_system_paths = {"/usr/bin", "/bin", "/usr/sbin", "/sbin"} if platform.system() != "Windows" else {r"C:\Windows\system32", r"C:\Windows"} 
         return {
             "CI": "1",
             "ALL_PROXY": "http://127.0.0.1:9",
@@ -306,6 +307,8 @@ class TestRunner:
             "PYTHONPYCACHEPREFIX": str(temp_home / "pycache"),
             "PYTHONUNBUFFERED": "1",
             "TMPDIR": str(temp_home),
+            "TEMP": str(temp_home),
+            "TMP": str(temp_home),
             "all_proxy": "http://127.0.0.1:9",
             "http_proxy": "http://127.0.0.1:9",
             "https_proxy": "http://127.0.0.1:9",
@@ -313,7 +316,10 @@ class TestRunner:
 
     @staticmethod
     def _terminate_process_group(process: subprocess.Popen[bytes]) -> None:
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            return
+        if platform.system() == "Windows":
+            process.kill()
+        else:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                return
