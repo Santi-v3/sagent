@@ -1,4 +1,27 @@
-# Sagent
+# Sagent — Local-first AI Agent for macOS
+
+> A personal software engineering project exploring AI agents, local large language models and human-in-the-loop automation.
+
+**Focus:** AI Agents · Python / FastAPI · Next.js · Ollama · SQLite · Developer Automation
+
+## Projektüberblick
+
+**Problem:** KI-Assistenten sollen lokale Entwicklungsaufgaben unterstützen, ohne dass jeder Arbeitsschritt unkontrolliert ausgeführt oder Projektkontext ständig erneut eingegeben werden muss.
+
+**Ansatz:** Sagent kombiniert eine lokale API, Weboberfläche, LLM-Anbindung, persistentes Memory und nachvollziehbare Werkzeugabläufe. Für Änderungen gibt es geprüfte Preview-/Freigabepfade. Ein zusätzlicher experimenteller Agent Loop ist ausdrücklich noch nicht für unbeschränkte oder produktive Nutzung abgesichert.
+
+**Mein Schwerpunkt:** Konzeption und prototypische Implementierung einer lokalen KI-Agentenarchitektur mit Werkzeugsteuerung, Sicherheitspolicies und reproduzierbaren Entwicklungsschritten.
+
+### Einstieg in das Projekt
+
+- [Architektur](docs/ARCHITECTURE.md)
+- [Sicherheit und bekannte Grenzen](docs/SECURITY.md)
+- [Projektziel und Scope](docs/PROJECT.md)
+- [Dokumentationsübersicht](docs/INDEX.md)
+
+---
+
+## Technische Details und lokaler Start
 
 Sagent ist ein local-first, Mac-first Personal AI Agent. Der aktuelle Feature-Branch enthält eine lokale FastAPI, eine Next.js-Oberfläche, Ollama-Anbindung, SQLite-basiertes semantisches Memory sowie einen mehrstufigen Agent Loop mit Streaming und 16 Werkzeugen.
 
